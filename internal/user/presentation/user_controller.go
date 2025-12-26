@@ -97,7 +97,7 @@ func (c *UserController) DeleteUser(ctx *gin.Context) {
 		return
 	}
 
-	response.JSON(ctx, response.NoContent("User deleted successfully"))
+	response.SendNoContent(ctx)
 }
 
 func (c *UserController) handleError(ctx *gin.Context, err error) {

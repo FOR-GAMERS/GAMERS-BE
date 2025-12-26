@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
@@ -18,13 +18,19 @@ FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates tzdata
 
-WORKDIR /root/
+# Create non-root user
+RUN addgroup -g 1000 appgroup && \
+    adduser -D -u 1000 -G appgroup appuser
 
-# Copy the binary from builder
+WORKDIR /home/appuser
+
 COPY --from=builder /app/main .
 
-# Copy migration files if needed
-COPY --from=builder /app/migration ./migration
+# Change ownership to non-root user
+RUN chown -R appuser:appgroup /home/appuser
+
+# Switch to non-root user
+USER appuser
 
 EXPOSE 8080
 

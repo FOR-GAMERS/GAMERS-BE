@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -288,7 +289,7 @@ func TestE2E_MultipleUsersScenario(t *testing.T) {
 
 	t.Run("Verify All Users Created", func(t *testing.T) {
 		for i := 1; i <= len(users); i++ {
-			req, _ := http.NewRequest("GET", "/api/users/"+string(rune(i+'0')), nil)
+			req, _ := http.NewRequest("GET", "/api/users/"+strconv.Itoa(i), nil)
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
 

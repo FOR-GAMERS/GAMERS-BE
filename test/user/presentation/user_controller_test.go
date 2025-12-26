@@ -240,6 +240,10 @@ func TestUserController_DeleteUser(t *testing.T) {
 		t.Errorf("Expected status 204, got %d", deleteW.Code)
 	}
 
+	if deleteW.Body.Len() != 0 {
+		t.Errorf("Expected empty body for 204, got %s", deleteW.Body.String())
+	}
+
 	getReq, _ := http.NewRequest("GET", "/api/users/1", nil)
 	getW := httptest.NewRecorder()
 	router.ServeHTTP(getW, getReq)

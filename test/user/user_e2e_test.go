@@ -158,6 +158,10 @@ func TestE2E_UserLifecycle(t *testing.T) {
 		if w.Code != http.StatusNoContent {
 			t.Errorf("Expected status 204, got %d", w.Code)
 		}
+
+		if w.Body.Len() != 0 {
+			t.Errorf("Expected empty body for 204, got %s", w.Body.String())
+		}
 	})
 
 	t.Run("Verify Deletion", func(t *testing.T) {

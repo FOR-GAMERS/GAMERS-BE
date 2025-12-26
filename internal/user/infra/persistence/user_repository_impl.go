@@ -52,7 +52,6 @@ func (r *InMemoryUserRepository) FindById(id int64) (*domain.User, error) {
 		return nil, domain.ErrUserNotFound
 	}
 
-	// 복사본 반환
 	userCopy := *user
 	return &userCopy, nil
 }
@@ -65,14 +64,12 @@ func (r *InMemoryUserRepository) Update(user *domain.User) error {
 		return domain.ErrUserNotFound
 	}
 
-	// 이메일 변경 시 중복 체크
 	if existingID, exists := r.emailIdx[user.Email]; exists {
 		if existingID != user.Id {
 			return domain.ErrUserAlreadyExists
 		}
 	}
 
-	// 기존 이메일 인덱스 제거
 	if oldUser, exists := r.users[user.Id]; exists {
 		delete(r.emailIdx, oldUser.Email)
 	}

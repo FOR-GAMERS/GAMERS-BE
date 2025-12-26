@@ -34,7 +34,7 @@ func main() {
 	log.Println("Health Check:    http://localhost:8080/health")
 	log.Println("===========================================")
 
-	port := os.Getenv("port")
+	port := os.Getenv("PORT")
 
 	if port == "" {
 		port = "8080"

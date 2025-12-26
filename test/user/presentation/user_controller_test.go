@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -128,7 +129,7 @@ func TestUserController_GetUser(t *testing.T) {
 	}
 	userId := createResp.Data.Id
 
-	getReq, _ := http.NewRequest("GET", "/api/users/1", nil)
+	getReq, _ := http.NewRequest("GET", "/api/users/"+strconv.FormatInt(userId, 10), nil)
 	getW := httptest.NewRecorder()
 	router.ServeHTTP(getW, getReq)
 

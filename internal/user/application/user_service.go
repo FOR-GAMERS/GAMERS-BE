@@ -54,8 +54,6 @@ func (s *UserService) UpdateUser(id int64, req dto.UpdateUserRequest) (*dto.User
 		return nil, err
 	}
 
-	updatedUser.Id = user.Id
-	updatedUser.CreatedAt = user.CreatedAt
 	updatedUser.UpdatedAt = time.Now()
 
 	if err := s.userRepository.Update(updatedUser); err != nil {

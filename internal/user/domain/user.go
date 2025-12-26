@@ -23,7 +23,7 @@ var (
 )
 
 func NewInstance(email, password string) (*User, error) {
-	if _, err := isValidateEmail(email); err != nil {
+	if err := isValidateEmail(email); err != nil {
 		return nil, err
 	}
 
@@ -51,26 +51,26 @@ var (
 	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
 	ErrPasswordTooShort = errors.New("password must be at least 8 characters")
-	ErrPasswordTooWeak  = errors.New("password must contain at least 3 of: uppercase, lowercase, number, special character")
+	ErrPasswordTooWeak  = errors.New("password must contain at least 2 of: uppercase, lowercase, number, special character")
 	ErrInvalidEmail     = errors.New("invalid email format")
 )
 
-func isValidateEmail(email string) (bool, error) {
+func isValidateEmail(email string) error {
 	if email == "" {
-		return false, ErrInvalidEmail
+		return ErrInvalidEmail
 	}
 
 	email = strings.TrimSpace(email)
 
 	if len(email) > 254 {
-		return false, ErrInvalidEmail
+		return ErrInvalidEmail
 	}
 
 	if !emailRegex.MatchString(email) {
-		return false, ErrInvalidEmail
+		return ErrInvalidEmail
 	}
 
-	return true, nil
+	return nil
 }
 
 func isValidatePassword(password string) error {

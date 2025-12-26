@@ -28,11 +28,6 @@ func Created[T any](data T, message string) *ApiResponse[T] {
 	}
 }
 
-func NoContent() {
-	// NoContent는 직접 status만 반환하도록 변경
-	// 사용 시: response.SendNoContent(ctx) 형태로 사용
-}
-
 func SendNoContent(ctx *gin.Context) {
 	// 204 No Content는 본문이 없어야 함
 	ctx.Status(http.StatusNoContent)

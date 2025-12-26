@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"GAMERS-BE/internal/common/security/password"
 	"errors"
 	"regexp"
 	"strings"
@@ -22,7 +23,7 @@ var (
 	ErrEmailCannotChange = errors.New("email cannot be changed")
 )
 
-func NewInstance(email, password string) (*User, error) {
+func NewInstance(email, password string, hasher password.PasswordHasher) (*User, error) {
 	if err := isValidateEmail(email); err != nil {
 		return nil, err
 	}
@@ -31,18 +32,28 @@ func NewInstance(email, password string) (*User, error) {
 		return nil, err
 	}
 
+	hashedPassword, err := hasher.HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+
 	return &User{
 		Email:    email,
-		Password: password,
+		Password: hashedPassword,
 	}, nil
 }
 
-func (u *User) UpdateUser(password string) (*User, error) {
+func (u *User) UpdateUser(password string, hasher password.PasswordHasher) (*User, error) {
 	if err := isValidatePassword(password); err != nil {
 		return nil, err
 	}
 
-	u.Password = password
+	hashedPassword, err := hasher.HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Password = hashedPassword
 
 	return u, nil
 }

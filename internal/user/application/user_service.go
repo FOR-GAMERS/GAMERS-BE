@@ -1,6 +1,7 @@
 package application
 
 import (
+	"GAMERS-BE/internal/common/security/password"
 	"GAMERS-BE/internal/user/application/dto"
 	"GAMERS-BE/internal/user/domain"
 	"time"
@@ -8,16 +9,18 @@ import (
 
 type UserService struct {
 	userRepository domain.UserRepository
+	passwordHasher password.PasswordHasher
 }
 
-func NewUserService(userRepository domain.UserRepository) *UserService {
+func NewUserService(userRepository domain.UserRepository, passwordHasher password.PasswordHasher) *UserService {
 	return &UserService{
 		userRepository: userRepository,
+		passwordHasher: passwordHasher,
 	}
 }
 
 func (s *UserService) CreateUser(req dto.CreateUserRequest) (*dto.UserResponse, error) {
-	user, err := domain.NewInstance(req.Email, req.Password)
+	user, err := domain.NewInstance(req.Email, req.Password, s.passwordHasher)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +51,7 @@ func (s *UserService) UpdateUser(id int64, req dto.UpdateUserRequest) (*dto.User
 		return nil, err
 	}
 
-	updatedUser, err := user.UpdateUser(req.Password)
+	updatedUser, err := user.UpdateUser(req.Password, s.passwordHasher)
 
 	if err != nil {
 		return nil, err

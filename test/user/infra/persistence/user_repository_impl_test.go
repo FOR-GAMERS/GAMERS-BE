@@ -1,15 +1,15 @@
-package persistence
+package persistence_test
 
 import (
 	"GAMERS-BE/internal/user/domain"
-	persistence2 "GAMERS-BE/internal/user/infra/persistence"
+	"GAMERS-BE/internal/user/infra/persistence"
 	"errors"
 	"testing"
 	"time"
 )
 
 func TestInMemoryUserRepository_Save(t *testing.T) {
-	repo := persistence2.NewInMemoryUserRepository()
+	repo := persistence.NewInMemoryUserRepository()
 	user := &domain.User{
 		Email:     "test@example.com",
 		Password:  "password123",
@@ -28,7 +28,7 @@ func TestInMemoryUserRepository_Save(t *testing.T) {
 }
 
 func TestInMemoryUserRepository_Save_DuplicateEmail(t *testing.T) {
-	repo := persistence2.NewInMemoryUserRepository()
+	repo := persistence.NewInMemoryUserRepository()
 
 	user1 := &domain.User{
 		Email:     "test@example.com",
@@ -57,7 +57,7 @@ func TestInMemoryUserRepository_Save_DuplicateEmail(t *testing.T) {
 }
 
 func TestInMemoryUserRepository_FindById(t *testing.T) {
-	repo := persistence2.NewInMemoryUserRepository()
+	repo := persistence.NewInMemoryUserRepository()
 
 	original := &domain.User{
 		Email:     "test@example.com",
@@ -85,7 +85,7 @@ func TestInMemoryUserRepository_FindById(t *testing.T) {
 }
 
 func TestInMemoryUserRepository_FindById_NotFound(t *testing.T) {
-	repo := persistence2.NewInMemoryUserRepository()
+	repo := persistence.NewInMemoryUserRepository()
 
 	_, err := repo.FindById(999)
 	if !errors.Is(err, domain.ErrUserNotFound) {
@@ -94,7 +94,7 @@ func TestInMemoryUserRepository_FindById_NotFound(t *testing.T) {
 }
 
 func TestInMemoryUserRepository_Update(t *testing.T) {
-	repo := persistence2.NewInMemoryUserRepository()
+	repo := persistence.NewInMemoryUserRepository()
 
 	user := &domain.User{
 		Email:     "test@example.com",
@@ -123,7 +123,7 @@ func TestInMemoryUserRepository_Update(t *testing.T) {
 }
 
 func TestInMemoryUserRepository_Update_NotFound(t *testing.T) {
-	repo := persistence2.NewInMemoryUserRepository()
+	repo := persistence.NewInMemoryUserRepository()
 
 	user := &domain.User{
 		Id:        999,
@@ -140,7 +140,7 @@ func TestInMemoryUserRepository_Update_NotFound(t *testing.T) {
 }
 
 func TestInMemoryUserRepository_DeleteById(t *testing.T) {
-	repo := persistence2.NewInMemoryUserRepository()
+	repo := persistence.NewInMemoryUserRepository()
 
 	user := &domain.User{
 		Email:     "test@example.com",
@@ -166,7 +166,7 @@ func TestInMemoryUserRepository_DeleteById(t *testing.T) {
 }
 
 func TestInMemoryUserRepository_DeleteById_NotFound(t *testing.T) {
-	repo := persistence2.NewInMemoryUserRepository()
+	repo := persistence.NewInMemoryUserRepository()
 
 	err := repo.DeleteById(999)
 	if !errors.Is(err, domain.ErrUserNotFound) {
@@ -175,7 +175,7 @@ func TestInMemoryUserRepository_DeleteById_NotFound(t *testing.T) {
 }
 
 func TestInMemoryUserRepository_Concurrency(t *testing.T) {
-	repo := persistence2.NewInMemoryUserRepository()
+	repo := persistence.NewInMemoryUserRepository()
 	done := make(chan bool)
 
 	for i := 0; i < 10; i++ {

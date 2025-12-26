@@ -1,6 +1,7 @@
 package main
 
 import (
+	"GAMERS-BE/internal/common/security/password"
 	"GAMERS-BE/internal/user/application"
 	"GAMERS-BE/internal/user/infra/persistence"
 	"GAMERS-BE/internal/user/presentation"
@@ -13,7 +14,8 @@ import (
 func main() {
 
 	userRepository := persistence.NewInMemoryUserRepository()
-	userService := application.NewUserService(userRepository)
+	passwordHasher := password.NewBcryptPasswordHasher()
+	userService := application.NewUserService(userRepository, passwordHasher)
 	userController := presentation.NewUserController(userService)
 
 	router := gin.Default()

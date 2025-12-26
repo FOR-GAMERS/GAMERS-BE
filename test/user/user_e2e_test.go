@@ -1,6 +1,7 @@
 package user
 
 import (
+	"GAMERS-BE/internal/common/security/password"
 	"GAMERS-BE/internal/user/application"
 	"GAMERS-BE/internal/user/infra/persistence"
 	"GAMERS-BE/internal/user/presentation"
@@ -18,7 +19,8 @@ func setupE2EServer() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 
 	userRepository := persistence.NewInMemoryUserRepository()
-	userService := application.NewUserService(userRepository)
+	passwordHasher := password.NewBcryptPasswordHasher()
+	userService := application.NewUserService(userRepository, passwordHasher)
 	userController := presentation.NewUserController(userService)
 
 	router := gin.Default()

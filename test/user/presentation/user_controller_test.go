@@ -1,11 +1,12 @@
-package presentation
+package presentation_test
 
 import (
 	"GAMERS-BE/internal/common/response"
+	"GAMERS-BE/internal/common/security/password"
 	"GAMERS-BE/internal/user/application"
 	"GAMERS-BE/internal/user/application/dto"
 	"GAMERS-BE/internal/user/infra/persistence"
-	presentation2 "GAMERS-BE/internal/user/presentation"
+	"GAMERS-BE/internal/user/presentation"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -16,12 +17,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func setupRouter() (*gin.Engine, *presentation2.UserController) {
+func setupRouter() (*gin.Engine, *presentation.UserController) {
 	gin.SetMode(gin.TestMode)
 
 	repo := persistence.NewInMemoryUserRepository()
-	service := application.NewUserService(repo)
-	controller := presentation2.NewUserController(service)
+	hasher := password.NewBcryptPasswordHasher()
+	service := application.NewUserService(repo, hasher)
+	controller := presentation.NewUserController(service)
 
 	router := gin.Default()
 	controller.RegisterRoutes(router)

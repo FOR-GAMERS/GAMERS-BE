@@ -1,7 +1,8 @@
-package application
+package application_test
 
 import (
-	application2 "GAMERS-BE/internal/user/application"
+	"GAMERS-BE/internal/common/security/password"
+	"GAMERS-BE/internal/user/application"
 	"GAMERS-BE/internal/user/application/dto"
 	"GAMERS-BE/internal/user/domain"
 	"errors"
@@ -56,7 +57,8 @@ func (m *mockUserRepository) DeleteById(id int64) error {
 
 func TestUserService_CreateUser(t *testing.T) {
 	repo := newMockUserRepository()
-	service := application2.NewUserService(repo)
+	hasher := password.NewBcryptPasswordHasher()
+	service := application.NewUserService(repo, hasher)
 
 	req := dto.CreateUserRequest{
 		Email:    "test@example.com",
@@ -78,7 +80,8 @@ func TestUserService_CreateUser(t *testing.T) {
 
 func TestUserService_CreateUser_InvalidEmail(t *testing.T) {
 	repo := newMockUserRepository()
-	service := application2.NewUserService(repo)
+	hasher := password.NewBcryptPasswordHasher()
+	service := application.NewUserService(repo, hasher)
 
 	req := dto.CreateUserRequest{
 		Email:    "invalid-email",
@@ -93,7 +96,8 @@ func TestUserService_CreateUser_InvalidEmail(t *testing.T) {
 
 func TestUserService_CreateUser_InvalidPassword(t *testing.T) {
 	repo := newMockUserRepository()
-	service := application2.NewUserService(repo)
+	hasher := password.NewBcryptPasswordHasher()
+	service := application.NewUserService(repo, hasher)
 
 	req := dto.CreateUserRequest{
 		Email:    "test@example.com",
@@ -108,7 +112,8 @@ func TestUserService_CreateUser_InvalidPassword(t *testing.T) {
 
 func TestUserService_GetUserById(t *testing.T) {
 	repo := newMockUserRepository()
-	service := application2.NewUserService(repo)
+	hasher := password.NewBcryptPasswordHasher()
+	service := application.NewUserService(repo, hasher)
 
 	user := &domain.User{
 		Email:     "test@example.com",
@@ -134,7 +139,8 @@ func TestUserService_GetUserById(t *testing.T) {
 
 func TestUserService_GetUserById_NotFound(t *testing.T) {
 	repo := newMockUserRepository()
-	service := application2.NewUserService(repo)
+	hasher := password.NewBcryptPasswordHasher()
+	service := application.NewUserService(repo, hasher)
 
 	_, err := service.GetUserById(999)
 	if !errors.Is(err, domain.ErrUserNotFound) {
@@ -144,7 +150,8 @@ func TestUserService_GetUserById_NotFound(t *testing.T) {
 
 func TestUserService_UpdateUser(t *testing.T) {
 	repo := newMockUserRepository()
-	service := application2.NewUserService(repo)
+	hasher := password.NewBcryptPasswordHasher()
+	service := application.NewUserService(repo, hasher)
 
 	user := &domain.User{
 		Email:     "test@example.com",
@@ -177,7 +184,8 @@ func TestUserService_UpdateUser(t *testing.T) {
 
 func TestUserService_UpdateUser_NotFound(t *testing.T) {
 	repo := newMockUserRepository()
-	service := application2.NewUserService(repo)
+	hasher := password.NewBcryptPasswordHasher()
+	service := application.NewUserService(repo, hasher)
 
 	updateReq := dto.UpdateUserRequest{
 		Password: "NewPassword456@",
@@ -191,7 +199,8 @@ func TestUserService_UpdateUser_NotFound(t *testing.T) {
 
 func TestUserService_DeleteUser(t *testing.T) {
 	repo := newMockUserRepository()
-	service := application2.NewUserService(repo)
+	hasher := password.NewBcryptPasswordHasher()
+	service := application.NewUserService(repo, hasher)
 
 	user := &domain.User{
 		Email:     "test@example.com",
@@ -218,7 +227,8 @@ func TestUserService_DeleteUser(t *testing.T) {
 
 func TestUserService_DeleteUser_NotFound(t *testing.T) {
 	repo := newMockUserRepository()
-	service := application2.NewUserService(repo)
+	hasher := password.NewBcryptPasswordHasher()
+	service := application.NewUserService(repo, hasher)
 
 	err := service.DeleteUser(999)
 	if !errors.Is(err, domain.ErrUserNotFound) {

@@ -1,22 +1,48 @@
 package main
 
 import (
-	"GAMERS-BE/internal/common/security/password"
-	"GAMERS-BE/internal/user/application"
-	"GAMERS-BE/internal/user/infra/persistence"
-	"GAMERS-BE/internal/user/presentation"
+	"GAMERS-BE/internal/common/database"
+	"GAMERS-BE/internal/user/domain"
 	"log"
 	"os"
 
+	_ "GAMERS-BE/docs"
+
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func main() {
+// @title GAMERS API
+// @version 1.0
+// @description API Server for GAMERS platform
+// @termsOfService http://swagger.io/terms/
 
-	userRepository := persistence.NewInMemoryUserRepository()
-	passwordHasher := password.NewBcryptPasswordHasher()
-	userService := application.NewUserService(userRepository, passwordHasher)
-	userController := presentation.NewUserController(userService)
+// @contact.name API Support
+// @contact.email support@gamers.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api
+
+func main() {
+	// Initialize database
+	dbConfig := database.NewConfigFromEnv()
+	db, err := database.InitDB(dbConfig)
+	if err != nil {
+		log.Fatal("Failed to initialize database:", err)
+	}
+
+	// Auto migrate database schema
+	if err := db.AutoMigrate(&domain.User{}, &domain.Profile{}); err != nil {
+		log.Fatal("Failed to migrate database:", err)
+	}
+
+	// Initialize controllers using Wire
+	userController := InitializeUserController(db)
+	profileController := InitializeProfileController(db)
 
 	router := gin.Default()
 
@@ -28,12 +54,17 @@ func main() {
 	})
 
 	userController.RegisterRoutes(router)
+	profileController.RegisterRoutes(router)
+
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	log.Println("===========================================")
 	log.Println("🎮 GAMERS API Server Starting")
 	log.Println("===========================================")
 	log.Println("Server:          http://localhost:8080")
 	log.Println("Health Check:    http://localhost:8080/health")
+	log.Println("Swagger UI:      http://localhost:8080/swagger/index.html")
 	log.Println("===========================================")
 
 	port := os.Getenv("PORT")

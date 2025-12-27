@@ -31,6 +31,17 @@ func (c *UserController) RegisterRoutes(router *gin.Engine) {
 	}
 }
 
+// CreateUser godoc
+// @Summary Create a new user
+// @Description Create a new user with email and password
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param user body dto.CreateUserRequest true "User creation request"
+// @Success 201 {object} response.Response{data=dto.UserResponse}
+// @Failure 400 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Router /users [post]
 func (c *UserController) CreateUser(ctx *gin.Context) {
 	var req dto.CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -47,6 +58,17 @@ func (c *UserController) CreateUser(ctx *gin.Context) {
 	response.JSON(ctx, response.Created(user, "User created successfully"))
 }
 
+// GetUser godoc
+// @Summary Get a user by ID
+// @Description Get user details by user ID
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 200 {object} response.Response{data=dto.UserResponse}
+// @Failure 400 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Router /users/{id} [get]
 func (c *UserController) GetUser(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
@@ -63,6 +85,18 @@ func (c *UserController) GetUser(ctx *gin.Context) {
 	response.JSON(ctx, response.Success(user, "User retrieved successfully"))
 }
 
+// UpdateUser godoc
+// @Summary Update a user
+// @Description Update user password by user ID
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path int true "User ID"
+// @Param user body dto.UpdateUserRequest true "User update request"
+// @Success 200 {object} response.Response{data=dto.UserResponse}
+// @Failure 400 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Router /users/{id} [patch]
 func (c *UserController) UpdateUser(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
@@ -85,6 +119,17 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 	response.JSON(ctx, response.Success(user, "User updated successfully"))
 }
 
+// DeleteUser godoc
+// @Summary Delete a user
+// @Description Delete user by user ID
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 204 "No Content"
+// @Failure 400 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Router /users/{id} [delete]
 func (c *UserController) DeleteUser(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {

@@ -32,9 +32,9 @@ func TestNewInstance_ValidInput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			user, err := domain.NewInstance(tt.email, tt.password, hasher)
+			user, err := domain.NewUser(tt.email, tt.password, hasher)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewInstance() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewUser() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !tt.wantErr {
@@ -80,7 +80,7 @@ func TestNewInstance_InvalidEmail(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := domain.NewInstance(tt.email, tt.password, hasher)
+			_, err := domain.NewUser(tt.email, tt.password, hasher)
 			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("Expected error %v, got %v", tt.wantErr, err)
 			}
@@ -119,7 +119,70 @@ func TestNewInstance_InvalidPassword(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := domain.NewInstance(tt.email, tt.password, hasher)
+			_, err := domain.NewUser(tt.email, tt.password, hasher)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("Expected error %v, got %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestUpdateUser_ValidPassword(t *testing.T) {
+	hasher := password.NewBcryptPasswordHasher()
+
+	user, err := domain.NewUser("test@example.com", "OldPassword123!", hasher)
+	if err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+
+	newPassword := "NewPassword456@"
+	updatedUser, err := user.UpdateUser(newPassword, hasher)
+	if err != nil {
+		t.Errorf("UpdateUser() error = %v, expected nil", err)
+	}
+
+	if err := hasher.ComparePassword(updatedUser.Password, newPassword); err != nil {
+		t.Errorf("Password hash verification failed: %v", err)
+	}
+
+	if updatedUser.Email != "test@example.com" {
+		t.Errorf("Email should not change, got %s", updatedUser.Email)
+	}
+}
+
+func TestUpdateUser_InvalidPassword(t *testing.T) {
+	tests := []struct {
+		name        string
+		newPassword string
+		wantErr     error
+	}{
+		{
+			name:        "Password too short",
+			newPassword: "Short1!",
+			wantErr:     domain.ErrPasswordTooShort,
+		},
+		{
+			name:        "Password too weak",
+			newPassword: "weakpassword",
+			wantErr:     domain.ErrPasswordTooWeak,
+		},
+		{
+			name:        "Password only numbers",
+			newPassword: "12345678",
+			wantErr:     domain.ErrPasswordTooWeak,
+		},
+	}
+
+	hasher := password.NewBcryptPasswordHasher()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			user, err := domain.NewUser("test@example.com", "OldPassword123!", hasher)
+			if err != nil {
+				t.Fatalf("Failed to create user: %v", err)
+			}
+
+			_, err = user.UpdateUser(tt.newPassword, hasher)
 			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("Expected error %v, got %v", tt.wantErr, err)
 			}

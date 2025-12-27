@@ -5,7 +5,6 @@ import (
 	"GAMERS-BE/internal/common/security/password"
 	"GAMERS-BE/internal/user/application"
 	"GAMERS-BE/internal/user/application/dto"
-	"GAMERS-BE/internal/user/infra/persistence"
 	"GAMERS-BE/internal/user/presentation"
 	"bytes"
 	"encoding/json"
@@ -20,9 +19,12 @@ import (
 func setupRouter() (*gin.Engine, *presentation.UserController) {
 	gin.SetMode(gin.TestMode)
 
-	repo := persistence.NewInMemoryUserRepository()
+	userQueryPort := newMockUserQueryPort()
+	userCommandPort := newMockUserCommandPort(userQueryPort)
+	profileQueryPort := newMockProfileQueryPort()
+	profileCommandPort := newMockProfileCommandPort(profileQueryPort)
 	hasher := password.NewBcryptPasswordHasher()
-	service := application.NewUserService(repo, hasher)
+	service := application.NewUserService(userQueryPort, userCommandPort, profileCommandPort, hasher)
 	controller := presentation.NewUserController(service)
 
 	router := gin.Default()

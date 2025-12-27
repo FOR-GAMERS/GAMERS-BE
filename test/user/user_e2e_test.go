@@ -3,7 +3,9 @@ package user
 import (
 	"GAMERS-BE/internal/common/security/password"
 	"GAMERS-BE/internal/user/application"
-	"GAMERS-BE/internal/user/infra/persistence"
+	"GAMERS-BE/internal/user/domain"
+	"GAMERS-BE/internal/user/infra/persistence/command"
+	"GAMERS-BE/internal/user/infra/persistence/query"
 	"GAMERS-BE/internal/user/presentation"
 	"bytes"
 	"encoding/json"
@@ -13,14 +15,32 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func setupE2EServer() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 
-	userRepository := persistence.NewInMemoryUserRepository()
+	// Setup SQLite in-memory database
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect to database: " + err.Error())
+	}
+
+	// Run migrations
+	if err := db.AutoMigrate(&domain.User{}, &domain.Profile{}); err != nil {
+		panic("failed to migrate database: " + err.Error())
+	}
+
+	// Create adapters
+	userQueryAdapter := query.NewMysqlUserRepository(db)
+	userCommandAdapter := command.NewMySQLUserRepository(db)
+	profileCommandAdapter := command.NewMysqlProfileCommandAdapter(db)
 	passwordHasher := password.NewBcryptPasswordHasher()
-	userService := application.NewUserService(userRepository, passwordHasher)
+
+	// Create service
+	userService := application.NewUserService(userQueryAdapter, userCommandAdapter, profileCommandAdapter, passwordHasher)
 	userController := presentation.NewUserController(userService)
 
 	router := gin.Default()

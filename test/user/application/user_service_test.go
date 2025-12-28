@@ -10,55 +10,18 @@ import (
 	"time"
 )
 
-type mockUserRepository struct {
-	users  map[int64]*domain.User
-	nextID int64
-}
-
-func newMockUserRepository() *mockUserRepository {
-	return &mockUserRepository{
-		users:  make(map[int64]*domain.User),
-		nextID: 1,
-	}
-}
-
-func (m *mockUserRepository) Save(user *domain.User) error {
-	if user.Id == 0 {
-		user.Id = m.nextID
-		m.nextID++
-	}
-	m.users[user.Id] = user
-	return nil
-}
-
-func (m *mockUserRepository) FindById(id int64) (*domain.User, error) {
-	user, exists := m.users[id]
-	if !exists {
-		return nil, domain.ErrUserNotFound
-	}
-	return user, nil
-}
-
-func (m *mockUserRepository) Update(user *domain.User) error {
-	if _, exists := m.users[user.Id]; !exists {
-		return domain.ErrUserNotFound
-	}
-	m.users[user.Id] = user
-	return nil
-}
-
-func (m *mockUserRepository) DeleteById(id int64) error {
-	if _, exists := m.users[id]; !exists {
-		return domain.ErrUserNotFound
-	}
-	delete(m.users, id)
-	return nil
+func setupUserService() (*application.UserService, *mockUserQueryPort, *mockUserCommandPort, *mockProfileCommandPort) {
+	userQueryPort := newMockUserQueryPort()
+	userCommandPort := newMockUserCommandPort(userQueryPort)
+	profileQueryPort := newMockProfileQueryPort()
+	profileCommandPort := newMockProfileCommandPort(profileQueryPort)
+	hasher := password.NewBcryptPasswordHasher()
+	service := application.NewUserService(userQueryPort, userCommandPort, profileCommandPort, hasher)
+	return service, userQueryPort, userCommandPort, profileCommandPort
 }
 
 func TestUserService_CreateUser(t *testing.T) {
-	repo := newMockUserRepository()
-	hasher := password.NewBcryptPasswordHasher()
-	service := application.NewUserService(repo, hasher)
+	service, _, _, _ := setupUserService()
 
 	req := dto.CreateUserRequest{
 		Email:    "test@example.com",
@@ -79,9 +42,7 @@ func TestUserService_CreateUser(t *testing.T) {
 }
 
 func TestUserService_CreateUser_InvalidEmail(t *testing.T) {
-	repo := newMockUserRepository()
-	hasher := password.NewBcryptPasswordHasher()
-	service := application.NewUserService(repo, hasher)
+	service, _, _, _ := setupUserService()
 
 	req := dto.CreateUserRequest{
 		Email:    "invalid-email",
@@ -95,9 +56,7 @@ func TestUserService_CreateUser_InvalidEmail(t *testing.T) {
 }
 
 func TestUserService_CreateUser_InvalidPassword(t *testing.T) {
-	repo := newMockUserRepository()
-	hasher := password.NewBcryptPasswordHasher()
-	service := application.NewUserService(repo, hasher)
+	service, _, _, _ := setupUserService()
 
 	req := dto.CreateUserRequest{
 		Email:    "test@example.com",
@@ -111,9 +70,7 @@ func TestUserService_CreateUser_InvalidPassword(t *testing.T) {
 }
 
 func TestUserService_GetUserById(t *testing.T) {
-	repo := newMockUserRepository()
-	hasher := password.NewBcryptPasswordHasher()
-	service := application.NewUserService(repo, hasher)
+	service, queryPort, commandPort, _ := setupUserService()
 
 	user := &domain.User{
 		Email:     "test@example.com",
@@ -122,9 +79,9 @@ func TestUserService_GetUserById(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	err := repo.Save(user)
+	err := commandPort.Save(user)
 	if err != nil {
-		return
+		t.Fatalf("Failed to save user: %v", err)
 	}
 
 	resp, err := service.GetUserById(user.Id)
@@ -135,12 +92,12 @@ func TestUserService_GetUserById(t *testing.T) {
 	if resp.Email != user.Email {
 		t.Errorf("Expected email %s, got %s", user.Email, resp.Email)
 	}
+
+	_ = queryPort
 }
 
 func TestUserService_GetUserById_NotFound(t *testing.T) {
-	repo := newMockUserRepository()
-	hasher := password.NewBcryptPasswordHasher()
-	service := application.NewUserService(repo, hasher)
+	service, _, _, _ := setupUserService()
 
 	_, err := service.GetUserById(999)
 	if !errors.Is(err, domain.ErrUserNotFound) {
@@ -149,9 +106,7 @@ func TestUserService_GetUserById_NotFound(t *testing.T) {
 }
 
 func TestUserService_UpdateUser(t *testing.T) {
-	repo := newMockUserRepository()
-	hasher := password.NewBcryptPasswordHasher()
-	service := application.NewUserService(repo, hasher)
+	service, queryPort, commandPort, _ := setupUserService()
 
 	user := &domain.User{
 		Email:     "test@example.com",
@@ -160,9 +115,9 @@ func TestUserService_UpdateUser(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	err := repo.Save(user)
+	err := commandPort.Save(user)
 	if err != nil {
-		return
+		t.Fatalf("Failed to save user: %v", err)
 	}
 
 	updateReq := dto.UpdateUserRequest{
@@ -180,12 +135,12 @@ func TestUserService_UpdateUser(t *testing.T) {
 	if resp.UpdatedAt.Before(user.CreatedAt) {
 		t.Error("UpdatedAt should be after CreatedAt")
 	}
+
+	_ = queryPort
 }
 
 func TestUserService_UpdateUser_NotFound(t *testing.T) {
-	repo := newMockUserRepository()
-	hasher := password.NewBcryptPasswordHasher()
-	service := application.NewUserService(repo, hasher)
+	service, _, _, _ := setupUserService()
 
 	updateReq := dto.UpdateUserRequest{
 		Password: "NewPassword456@",
@@ -198,9 +153,7 @@ func TestUserService_UpdateUser_NotFound(t *testing.T) {
 }
 
 func TestUserService_DeleteUser(t *testing.T) {
-	repo := newMockUserRepository()
-	hasher := password.NewBcryptPasswordHasher()
-	service := application.NewUserService(repo, hasher)
+	service, queryPort, commandPort, _ := setupUserService()
 
 	user := &domain.User{
 		Email:     "test@example.com",
@@ -209,9 +162,9 @@ func TestUserService_DeleteUser(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	err := repo.Save(user)
+	err := commandPort.Save(user)
 	if err != nil {
-		return
+		t.Fatalf("Failed to save user: %v", err)
 	}
 
 	err = service.DeleteUser(user.Id)
@@ -219,16 +172,14 @@ func TestUserService_DeleteUser(t *testing.T) {
 		t.Errorf("DeleteUser() error = %v", err)
 	}
 
-	_, err = repo.FindById(user.Id)
+	_, err = queryPort.FindById(user.Id)
 	if !errors.Is(err, domain.ErrUserNotFound) {
 		t.Error("Expected user to be deleted")
 	}
 }
 
 func TestUserService_DeleteUser_NotFound(t *testing.T) {
-	repo := newMockUserRepository()
-	hasher := password.NewBcryptPasswordHasher()
-	service := application.NewUserService(repo, hasher)
+	service, _, _, _ := setupUserService()
 
 	err := service.DeleteUser(999)
 	if !errors.Is(err, domain.ErrUserNotFound) {

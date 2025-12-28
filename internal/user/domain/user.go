@@ -10,11 +10,15 @@ import (
 )
 
 type User struct {
-	Id        int64     `json:"user_id"`
-	Email     string    `json:"email"`
-	Password  string    `json:"-"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Id        int64     `gorm:"primaryKey;column:id;autoIncrement" json:"user_id"`
+	Email     string    `gorm:"uniqueIndex;column:email;type:varchar(255);not null" json:"email"`
+	Password  string    `gorm:"column:password;type:varchar(255);not null" json:"-"`
+	CreatedAt time.Time `gorm:"column:created_at;type:datetime;not null;autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time `gorm:"column:updated_at;type:datetime;not null;autoUpdateTime" json:"updated_at"`
+}
+
+func (u *User) TableName() string {
+	return "users"
 }
 
 var (
@@ -23,7 +27,7 @@ var (
 	ErrEmailCannotChange = errors.New("email cannot be changed")
 )
 
-func NewInstance(email, password string, hasher password.PasswordHasher) (*User, error) {
+func NewUser(email, password string, hasher password.PasswordHasher) (*User, error) {
 	if err := isValidateEmail(email); err != nil {
 		return nil, err
 	}

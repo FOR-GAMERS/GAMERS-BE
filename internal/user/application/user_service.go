@@ -7,6 +7,8 @@ import (
 	"GAMERS-BE/internal/user/application/port/port"
 	"GAMERS-BE/internal/user/domain"
 	"fmt"
+	"math/rand"
+	"time"
 )
 
 type UserService struct {
@@ -35,9 +37,6 @@ func (s *UserService) CreateUser(req dto.CreateUserRequest) (*dto.UserResponse, 
 		return nil, err
 	}
 
-	// Auto-create profile with default values
-	// Use user ID to generate a unique tag (format: "0001", "0002", etc.)
-	// This ensures uniqueness while staying within the 5-character limit
 	tag := generateDefaultTag(user.Id)
 	profile, err := domain.NewProfile(user.Id, "User", tag, "", "")
 	if err != nil {
@@ -51,14 +50,10 @@ func (s *UserService) CreateUser(req dto.CreateUserRequest) (*dto.UserResponse, 
 	return toUserResponse(user), nil
 }
 
-// generateDefaultTag creates a unique tag based on user ID
-// Returns a zero-padded tag up to 4 digits (e.g., "0001", "0042", "1234")
-// For IDs >= 10000, returns the ID as-is (up to 99999 max for 5-char limit)
 func generateDefaultTag(userID int64) string {
-	if userID < 10000 {
-		return fmt.Sprintf("%04d", userID)
-	}
-	return fmt.Sprintf("%d", userID)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	randomNum := r.Intn(100000)
+	return fmt.Sprintf("%04d", randomNum)
 }
 
 func (s *UserService) GetUserById(id int64) (*dto.UserResponse, error) {

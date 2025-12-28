@@ -33,9 +33,9 @@ func (s *ProfileService) CreateProfile(req dto.CreateProfileRequest) (*dto.Profi
 }
 
 func (s *ProfileService) UpdateProfile(id int64, req dto.UpdateProfileRequest) (*dto.ProfileResponse, error) {
-	profile, error := s.profileQueryPort.FindById(id)
-	if error != nil {
-		return nil, error
+	profile, err := s.profileQueryPort.FindById(id)
+	if err != nil {
+		return nil, err
 	}
 
 	newProfile, err := profile.UpdateProfile(req.Username, req.Tag, req.Bio, req.Avatar)

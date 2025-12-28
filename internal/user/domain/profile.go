@@ -12,8 +12,8 @@ type Profile struct {
 	UserId    int64     `gorm:"uniqueIndex;column:user_id;not_null" json:"userId"`
 	Username  string    `gorm:"column:username;type:varchar(16);not_null" json:"username"`
 	Tag       string    `gorm:"uniqueIndex;column:tag;type:varchar(6);not_null" json:"tag"`
-	Bio       string    `gorm:"column:bio;type:varchar(256);not_null" json:"bio"`
-	Avatar    string    `gorm:"column:profile_url;type:text;not_null" json:"avatar"`
+	Bio       string    `gorm:"column:bio;type:varchar(256);" json:"bio"`
+	Avatar    string    `gorm:"column:profile_url;type:text;" json:"avatar"`
 	CreatedAt time.Time `gorm:"column:created_at;type:datetime;not null;autoCreateTime" json:"created_at"`
 	UpdatedAt time.Time `gorm:"column:updated_at;type:datetime;not null;autoUpdateTime" json:"updated_at"`
 }
@@ -120,7 +120,7 @@ func validateTag(tag string) error {
 }
 
 func validateBio(bio string) error {
-	if len(bio) >= 256 {
+	if len(bio) > 256 {
 		return ErrBioTooLong
 	}
 

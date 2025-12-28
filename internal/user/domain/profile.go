@@ -108,7 +108,7 @@ func validateTag(tag string) error {
 		return ErrTagEmpty
 	}
 
-	if len(tag) >= 6 {
+	if len(tag) > 6 {
 		return ErrTagTooLong
 	}
 

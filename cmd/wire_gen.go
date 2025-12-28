@@ -15,6 +15,10 @@ import (
 	"gorm.io/gorm"
 )
 
+import (
+	_ "GAMERS-BE/docs"
+)
+
 // Injectors from wire.go:
 
 // InitializeUserController creates UserController with all dependencies

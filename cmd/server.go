@@ -9,6 +9,7 @@ import (
 	_ "GAMERS-BE/docs"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -28,25 +29,25 @@ import (
 // @BasePath /api
 
 func main() {
-	// Initialize database
+	if err := godotenv.Load("env/.env"); err != nil {
+		log.Println("Warning: .env file not found, using environment variables")
+	}
+
 	dbConfig := database.NewConfigFromEnv()
 	db, err := database.InitDB(dbConfig)
 	if err != nil {
 		log.Fatal("Failed to initialize database:", err)
 	}
 
-	// Auto migrate database schema
 	if err := db.AutoMigrate(&domain.User{}, &domain.Profile{}); err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
 
-	// Initialize controllers using Wire
 	userController := InitializeUserController(db)
 	profileController := InitializeProfileController(db)
 
 	router := gin.Default()
 
-	// Health check
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "ok",
@@ -56,7 +57,6 @@ func main() {
 	userController.RegisterRoutes(router)
 	profileController.RegisterRoutes(router)
 
-	// Swagger documentation
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	log.Println("===========================================")

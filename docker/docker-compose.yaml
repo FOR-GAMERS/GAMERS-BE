@@ -14,10 +14,6 @@ services:
       - gamers-network
     restart: unless-stopped
 
-volumes:
-  mysql_data:
-    driver: local
-
 networks:
   gamers-network:
     driver: bridge

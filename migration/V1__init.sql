@@ -10,12 +10,12 @@ CREATE TABLE users (
 );
 
 CREATE TABLE profiles (
-    id BIGINT PRIMARY KEY,
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
     username VARCHAR(16) NOT NULL,
-    tag VARCHAR(5)  NOT NULL,
-    avatar VARCHAR(255),
-    bio VARCHAR(255),
+    tag VARCHAR(6)  NOT NULL,
+    avatar TEXT,
+    bio VARCHAR(256),
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
 

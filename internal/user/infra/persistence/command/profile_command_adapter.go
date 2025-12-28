@@ -4,6 +4,8 @@ import (
 	"GAMERS-BE/internal/user/domain"
 	"errors"
 
+	"github.com/go-sql-driver/mysql"
+	"github.com/mattn/go-sqlite3"
 	"gorm.io/gorm"
 )
 
@@ -18,11 +20,24 @@ func NewMysqlProfileCommandAdapter(db *gorm.DB) *MYSQLProfileCommandAdapter {
 func (r *MYSQLProfileCommandAdapter) Save(profile *domain.Profile) error {
 	result := r.db.Create(profile)
 	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return result.Error
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+			return domain.ErrProfileAlreadyExists
 		}
+
+		var mysqlErr *mysql.MySQLError
+		if errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062 {
+			return domain.ErrProfileAlreadyExists
+		}
+
+		var sqliteErr sqlite3.Error
+		if errors.As(result.Error, &sqliteErr) &&
+			(errors.Is(sqliteErr.Code, sqlite3.ErrConstraint) || sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique) {
+			return domain.ErrProfileAlreadyExists
+		}
+
+		return result.Error
 	}
-	return result.Error
+	return nil
 }
 
 func (r *MYSQLProfileCommandAdapter) Update(profile *domain.Profile) error {
@@ -36,9 +51,21 @@ func (r *MYSQLProfileCommandAdapter) Update(profile *domain.Profile) error {
 		})
 
 	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return result.Error
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+			return domain.ErrProfileAlreadyExists
 		}
+
+		var mysqlErr *mysql.MySQLError
+		if errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062 {
+			return domain.ErrProfileAlreadyExists
+		}
+
+		var sqliteErr sqlite3.Error
+		if errors.As(result.Error, &sqliteErr) &&
+			(errors.Is(sqliteErr.Code, sqlite3.ErrConstraint) || sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique) {
+			return domain.ErrProfileAlreadyExists
+		}
+
 		return result.Error
 	}
 

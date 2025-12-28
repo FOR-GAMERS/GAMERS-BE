@@ -4,6 +4,8 @@ import (
 	"GAMERS-BE/internal/user/domain"
 	"errors"
 
+	"github.com/go-sql-driver/mysql"
+	"github.com/mattn/go-sqlite3"
 	"gorm.io/gorm"
 )
 
@@ -23,10 +25,18 @@ func (r *MySQLUserRepository) Save(user *domain.User) error {
 		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
 			return domain.ErrUserAlreadyExists
 		}
-		// SQLite unique constraint error
-		if result.Error.Error() == "UNIQUE constraint failed: users.email" {
+
+		var mysqlErr *mysql.MySQLError
+		if errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062 {
 			return domain.ErrUserAlreadyExists
 		}
+
+		var sqliteErr sqlite3.Error
+		if errors.As(result.Error, &sqliteErr) &&
+			(errors.Is(sqliteErr.Code, sqlite3.ErrConstraint) || sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique) {
+			return domain.ErrUserAlreadyExists
+		}
+
 		return result.Error
 	}
 

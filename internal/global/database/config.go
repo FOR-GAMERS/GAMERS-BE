@@ -24,7 +24,7 @@ func NewConfigFromEnv() *Config {
 		Host:     getEnv("DB_HOST", "localhost"),
 		Port:     getEnv("DB_PORT", "3306"),
 		User:     getEnv("DB_USER", "root"),
-		Password: getEnv("DB_PASSWORD", ""),
+		Password: getEnv("DB_PASSWORD", "none"),
 		DBName:   getEnv("DB_NAME", "gamers"),
 	}
 }

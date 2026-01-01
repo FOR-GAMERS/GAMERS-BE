@@ -1,0 +1,155 @@
+name: Deploy to GCP Compute Engine
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Image to GHCR"]
+    types:
+      - completed
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - production
+          - staging
+        default: 'staging'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  CONTAINER_NAME: gamers-go-api
+  PORT: 8080
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    environment:
+      name: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set environment variables
+        id: set-env
+        run: |
+          if [[ "${{ github.event.inputs.environment }}" == "production" ]] || [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "DEPLOY_ENV=production" >> $GITHUB_OUTPUT
+            echo "VM_HOST=${{ secrets.GCP_VM_PROD_HOST }}" >> $GITHUB_OUTPUT
+            echo "VM_USER=${{ secrets.GCP_VM_PROD_USER }}" >> $GITHUB_OUTPUT
+          else
+            echo "DEPLOY_ENV=staging" >> $GITHUB_OUTPUT
+            echo "VM_HOST=${{ secrets.GCP_VM_STAGING_HOST }}" >> $GITHUB_OUTPUT
+            echo "VM_USER=${{ secrets.GCP_VM_STAGING_USER }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ steps.set-env.outputs.DEPLOY_ENV == 'production' && secrets.GCP_VM_PROD_SSH_KEY || secrets.GCP_VM_STAGING_SSH_KEY }}
+          known_hosts: 'placeholder'
+
+      - name: Add known hosts
+        run: |
+          ssh-keyscan -H ${{ steps.set-env.outputs.VM_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to GCP VM
+        env:
+          VM_HOST: ${{ steps.set-env.outputs.VM_HOST }}
+          VM_USER: ${{ steps.set-env.outputs.VM_USER }}
+          IMAGE_TAG: ${{ github.ref == 'refs/heads/main' && 'latest' || github.ref_name }}
+        run: |
+          ssh $VM_USER@$VM_HOST << 'ENDSSH'
+            set -e
+
+            echo "=========================================="
+            echo "🚀 Starting deployment process..."
+            echo "=========================================="
+
+            # Docker 로그인 (GHCR)
+            echo "📦 Logging in to GitHub Container Registry..."
+            echo ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # 최신 이미지 Pull
+            echo "⬇️  Pulling latest Docker image..."
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+            # 기존 컨테이너 중지 및 제거
+            echo "🛑 Stopping and removing existing container..."
+            docker stop ${{ env.CONTAINER_NAME }} 2>/dev/null || true
+            docker rm ${{ env.CONTAINER_NAME }} 2>/dev/null || true
+
+            # 새 컨테이너 실행
+            echo "▶️  Starting new container..."
+            docker run -d \
+              --name ${{ env.CONTAINER_NAME }} \
+              --restart unless-stopped \
+              -p ${{ env.PORT }}:${{ env.PORT }} \
+              -e PORT=${{ env.PORT }} \
+              --env-file /opt/gamers-go/.env \
+              --log-driver json-file \
+              --log-opt max-size=10m \
+              --log-opt max-file=3 \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+            # 컨테이너 시작 대기
+            echo "⏳ Waiting for container to start..."
+            sleep 5
+
+            # 헬스체크
+            echo "🏥 Performing health check..."
+            MAX_RETRIES=10
+            RETRY_COUNT=0
+
+            until [ $RETRY_COUNT -eq $MAX_RETRIES ]
+            do
+              if curl -f http://localhost:${{ env.PORT }}/health >/dev/null 2>&1; then
+                echo "✅ Health check passed!"
+                break
+              fi
+
+              RETRY_COUNT=$((RETRY_COUNT+1))
+              echo "⏳ Health check attempt $RETRY_COUNT/$MAX_RETRIES failed. Retrying in 3 seconds..."
+              sleep 3
+            done
+
+            if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+              echo "❌ Health check failed after $MAX_RETRIES attempts!"
+              echo "📋 Container logs:"
+              docker logs ${{ env.CONTAINER_NAME }} --tail 50
+              exit 1
+            fi
+
+            # 미사용 이미지 정리
+            echo "🧹 Cleaning up old images..."
+            docker image prune -af --filter "until=24h" || true
+
+            echo "=========================================="
+            echo "✅ Deployment completed successfully!"
+            echo "=========================================="
+
+            # 배포 정보 출력
+            echo ""
+            echo "📊 Deployment Information:"
+            echo "  - Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+            echo "  - Container: ${{ env.CONTAINER_NAME }}"
+            echo "  - Port: ${{ env.PORT }}"
+            echo "  - Status:"
+            docker ps --filter "name=${{ env.CONTAINER_NAME }}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          ENDSSH
+
+      - name: Deployment status notification
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Deployment to ${{ steps.set-env.outputs.DEPLOY_ENV }} succeeded!"
+          else
+            echo "❌ Deployment to ${{ steps.set-env.outputs.DEPLOY_ENV }} failed!"
+          fi

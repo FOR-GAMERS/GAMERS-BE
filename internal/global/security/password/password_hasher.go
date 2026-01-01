@@ -2,7 +2,7 @@ package password
 
 import "golang.org/x/crypto/bcrypt"
 
-type PasswordHasher interface {
+type Hasher interface {
 	HashPassword(password string) (string, error)
 	ComparePassword(hashedPassword, password string) error
 }

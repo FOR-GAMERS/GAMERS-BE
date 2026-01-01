@@ -26,6 +26,7 @@ DB_USER=your_user
 DB_PASSWORD=your_password
 DB_NAME=gamers_db
 PORT=8080
+...
 ```
 
 ### 2-A. Dockerで実行（推奨）
@@ -38,10 +39,6 @@ docker-compose up -d
 ```bash
 # 依存関係のインストール
 go mod download
-
-# Wire生成（初回のみ）
-go install github.com/google/wire/cmd/wire@latest
-wire ./cmd
 
 # Swaggerドキュメント生成
 go install github.com/swaggo/swag/cmd/swag@latest
@@ -81,8 +78,6 @@ go test ./test/user/...
 - SSH 経由で VM に安全にデプロイ
 - 自動ヘルスチェックとロールバック機能
 
-詳細な設定手順は [DEPLOYMENT.md](./docs/DEPLOYMENT.md) を参照してください。
-
 ### クイックデプロイメント
 ```bash
 # Production 環境
@@ -98,14 +93,6 @@ git push origin develop
 git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 ```
-
-## ドキュメント
-- [API リファレンス](./docs/API_REFERENCE.md) - RESTful API の詳細仕様
-- [アーキテクチャ](./docs/ARCHITECTURE.md) - システムアーキテクチャとデザインパターン
-- [デプロイメント](./docs/DEPLOYMENT.md) - GCP への自動デプロイ設定ガイド
-- [モニタリング](./docs/MONITORING.md) - 監視とロギング設定
-- [テスト](./docs/TESTING.md) - テスト戦略とカバレッジ
-- [ERD ダイアグラム](./docs/ERD_DIAGRAM.md) - データベーススキーマ設計
 
 ## Author
 | Sunwoo An                                                             |

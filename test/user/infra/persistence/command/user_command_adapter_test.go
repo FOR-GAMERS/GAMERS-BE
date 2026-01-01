@@ -1,195 +1,238 @@
 package command_test
 
 import (
+	"GAMERS-BE/internal/global/exception"
 	"GAMERS-BE/internal/user/domain"
 	"GAMERS-BE/internal/user/infra/persistence/command"
+	"GAMERS-BE/test/global/support"
+	"context"
 	"errors"
 	"testing"
 	"time"
 
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func setupUserTestDB() (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		return nil, err
-	}
-
-	err = db.AutoMigrate(&domain.User{})
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
-}
-
 func TestUserCommandAdapter_Save(t *testing.T) {
-	db, err := setupUserTestDB()
-	if err != nil {
-		t.Fatalf("Failed to setup test DB: %v", err)
-	}
+	ctx := context.Background()
+	container, err := support.SetupMySQLContainer(ctx)
+	require.NoError(t, err)
+	defer container.Teardown(ctx)
+
+	db := container.GetDB()
+	err = db.AutoMigrate(&domain.User{})
+	require.NoError(t, err)
 
 	adapter := command.NewMySQLUserRepository(db)
 
 	user := &domain.User{
-		Email:     "test@example.com",
-		Password:  "hashedPassword123",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Email:      "test@example.com",
+		Password:   "hashedPassword123",
+		Username:   "testuser",
+		Tag:        "12345",
+		Bio:        "Test bio",
+		Avatar:     "https://example.com/avatar.jpg",
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
 	}
 
 	err = adapter.Save(user)
-	if err != nil {
-		t.Errorf("Save() error = %v", err)
-	}
-
-	if user.Id == 0 {
-		t.Error("Expected user ID to be assigned")
-	}
+	require.NoError(t, err)
+	assert.NotZero(t, user.Id)
 
 	var savedUser domain.User
 	db.First(&savedUser, user.Id)
 
-	if savedUser.Email != "test@example.com" {
-		t.Errorf("Expected email %s, got %s", "test@example.com", savedUser.Email)
-	}
+	assert.Equal(t, "test@example.com", savedUser.Email)
+	assert.Equal(t, "testuser", savedUser.Username)
+	assert.Equal(t, "12345", savedUser.Tag)
 }
 
 func TestUserCommandAdapter_Save_DuplicateEmail(t *testing.T) {
-	db, err := setupUserTestDB()
-	if err != nil {
-		t.Fatalf("Failed to setup test DB: %v", err)
-	}
+	ctx := context.Background()
+	container, err := support.SetupMySQLContainer(ctx)
+	require.NoError(t, err)
+	defer container.Teardown(ctx)
+
+	db := container.GetDB()
+	err = db.AutoMigrate(&domain.User{})
+	require.NoError(t, err)
 
 	adapter := command.NewMySQLUserRepository(db)
 
 	user1 := &domain.User{
-		Email:     "test@example.com",
-		Password:  "hashedPassword123",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Email:      "test@example.com",
+		Password:   "hashedPassword123",
+		Username:   "user1",
+		Tag:        "12345",
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
 	}
 
 	err = adapter.Save(user1)
-	if err != nil {
-		t.Fatalf("Failed to save user: %v", err)
-	}
+	require.NoError(t, err)
 
 	user2 := &domain.User{
-		Email:     "test@example.com",
-		Password:  "hashedPassword456",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Email:      "test@example.com",
+		Password:   "hashedPassword456",
+		Username:   "user2",
+		Tag:        "67890",
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
 	}
 
 	err = adapter.Save(user2)
-	if !errors.Is(err, domain.ErrUserAlreadyExists) {
-		t.Errorf("Expected ErrUserAlreadyExists, got %v", err)
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, exception.ErrUserAlreadyExists))
+}
+
+func TestUserCommandAdapter_Save_DuplicateTag(t *testing.T) {
+	ctx := context.Background()
+	container, err := support.SetupMySQLContainer(ctx)
+	require.NoError(t, err)
+	defer container.Teardown(ctx)
+
+	db := container.GetDB()
+	err = db.AutoMigrate(&domain.User{})
+	require.NoError(t, err)
+
+	adapter := command.NewMySQLUserRepository(db)
+
+	user1 := &domain.User{
+		Email:      "user1@example.com",
+		Password:   "hashedPassword123",
+		Username:   "user1",
+		Tag:        "12345",
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
 	}
+
+	err = adapter.Save(user1)
+	require.NoError(t, err)
+
+	user2 := &domain.User{
+		Email:      "user2@example.com",
+		Password:   "hashedPassword456",
+		Username:   "user2",
+		Tag:        "12345",
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	}
+
+	err = adapter.Save(user2)
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, exception.ErrUserAlreadyExists))
 }
 
 func TestUserCommandAdapter_Update(t *testing.T) {
-	db, err := setupUserTestDB()
-	if err != nil {
-		t.Fatalf("Failed to setup test DB: %v", err)
-	}
+	ctx := context.Background()
+	container, err := support.SetupMySQLContainer(ctx)
+	require.NoError(t, err)
+	defer container.Teardown(ctx)
+
+	db := container.GetDB()
+	err = db.AutoMigrate(&domain.User{})
+	require.NoError(t, err)
 
 	adapter := command.NewMySQLUserRepository(db)
 
 	user := &domain.User{
-		Email:     "test@example.com",
-		Password:  "hashedPassword123",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Email:      "test@example.com",
+		Password:   "hashedPassword123",
+		Username:   "testuser",
+		Tag:        "12345",
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
 	}
 
 	err = adapter.Save(user)
-	if err != nil {
-		t.Fatalf("Failed to save user: %v", err)
-	}
+	require.NoError(t, err)
 
 	user.Password = "newHashedPassword456"
 
 	err = adapter.Update(user)
-	if err != nil {
-		t.Errorf("Update() error = %v", err)
-	}
+	require.NoError(t, err)
 
 	var updatedUser domain.User
 	db.First(&updatedUser, user.Id)
 
-	if updatedUser.Password != "newHashedPassword456" {
-		t.Errorf("Expected password %s, got %s", "newHashedPassword456", updatedUser.Password)
-	}
+	assert.Equal(t, "newHashedPassword456", updatedUser.Password)
 }
 
 func TestUserCommandAdapter_Update_NotFound(t *testing.T) {
-	db, err := setupUserTestDB()
-	if err != nil {
-		t.Fatalf("Failed to setup test DB: %v", err)
-	}
+	ctx := context.Background()
+	container, err := support.SetupMySQLContainer(ctx)
+	require.NoError(t, err)
+	defer container.Teardown(ctx)
+
+	db := container.GetDB()
+	err = db.AutoMigrate(&domain.User{})
+	require.NoError(t, err)
 
 	adapter := command.NewMySQLUserRepository(db)
 
 	user := &domain.User{
-		Id:        999,
-		Email:     "test@example.com",
-		Password:  "hashedPassword123",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Id:         999,
+		Email:      "test@example.com",
+		Password:   "hashedPassword123",
+		Username:   "testuser",
+		Tag:        "12345",
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
 	}
 
 	err = adapter.Update(user)
-	if !errors.Is(err, domain.ErrUserNotFound) {
-		t.Errorf("Expected ErrUserNotFound, got %v", err)
-	}
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, exception.ErrUserNotFound))
 }
 
 func TestUserCommandAdapter_DeleteById(t *testing.T) {
-	db, err := setupUserTestDB()
-	if err != nil {
-		t.Fatalf("Failed to setup test DB: %v", err)
-	}
+	ctx := context.Background()
+	container, err := support.SetupMySQLContainer(ctx)
+	require.NoError(t, err)
+	defer container.Teardown(ctx)
+
+	db := container.GetDB()
+	err = db.AutoMigrate(&domain.User{})
+	require.NoError(t, err)
 
 	adapter := command.NewMySQLUserRepository(db)
 
 	user := &domain.User{
-		Email:     "test@example.com",
-		Password:  "hashedPassword123",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Email:      "test@example.com",
+		Password:   "hashedPassword123",
+		Username:   "testuser",
+		Tag:        "12345",
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
 	}
 
 	err = adapter.Save(user)
-	if err != nil {
-		t.Fatalf("Failed to save user: %v", err)
-	}
+	require.NoError(t, err)
 
 	err = adapter.DeleteById(user.Id)
-	if err != nil {
-		t.Errorf("DeleteById() error = %v", err)
-	}
+	require.NoError(t, err)
 
 	var count int64
 	db.Model(&domain.User{}).Where("id = ?", user.Id).Count(&count)
 
-	if count != 0 {
-		t.Error("Expected user to be deleted")
-	}
+	assert.Equal(t, int64(0), count)
 }
 
 func TestUserCommandAdapter_DeleteById_NotFound(t *testing.T) {
-	db, err := setupUserTestDB()
-	if err != nil {
-		t.Fatalf("Failed to setup test DB: %v", err)
-	}
+	ctx := context.Background()
+	container, err := support.SetupMySQLContainer(ctx)
+	require.NoError(t, err)
+	defer container.Teardown(ctx)
+
+	db := container.GetDB()
+	err = db.AutoMigrate(&domain.User{})
+	require.NoError(t, err)
 
 	adapter := command.NewMySQLUserRepository(db)
 
 	err = adapter.DeleteById(999)
-	if !errors.Is(err, domain.ErrUserNotFound) {
-		t.Errorf("Expected ErrUserNotFound, got %v", err)
-	}
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, exception.ErrUserNotFound))
 }

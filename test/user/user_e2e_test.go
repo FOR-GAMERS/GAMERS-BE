@@ -1,7 +1,7 @@
 package user
 
 import (
-	"GAMERS-BE/internal/common/security/password"
+	"GAMERS-BE/internal/global/security/password"
 	"GAMERS-BE/internal/user/application"
 	"GAMERS-BE/internal/user/domain"
 	"GAMERS-BE/internal/user/infra/persistence/command"
@@ -29,18 +29,17 @@ func setupE2EServer() *gin.Engine {
 	}
 
 	// Run migrations
-	if err := db.AutoMigrate(&domain.User{}, &domain.Profile{}); err != nil {
+	if err := db.AutoMigrate(&domain.User{}); err != nil {
 		panic("failed to migrate database: " + err.Error())
 	}
 
 	// Create adapters
 	userQueryAdapter := query.NewMysqlUserRepository(db)
 	userCommandAdapter := command.NewMySQLUserRepository(db)
-	profileCommandAdapter := command.NewMysqlProfileCommandAdapter(db)
 	passwordHasher := password.NewBcryptPasswordHasher()
 
 	// Create service
-	userService := application.NewUserService(userQueryAdapter, userCommandAdapter, profileCommandAdapter, passwordHasher)
+	userService := application.NewUserService(userQueryAdapter, userCommandAdapter, passwordHasher)
 	userController := presentation.NewUserController(userService)
 
 	router := gin.Default()
@@ -71,6 +70,8 @@ func TestE2E_UserLifecycle(t *testing.T) {
 		reqBody := map[string]string{
 			"email":    "user@example.com",
 			"password": "SecurePass123!",
+			"username": "testuser",
+			"tag":      "12345",
 		}
 		body, _ := json.Marshal(reqBody)
 
@@ -205,6 +206,8 @@ func TestE2E_DuplicateEmailScenario(t *testing.T) {
 		reqBody := map[string]string{
 			"email":    "duplicate@example.com",
 			"password": "SecurePass123!",
+			"username": "testuser",
+			"tag":      "12345",
 		}
 		body, _ := json.Marshal(reqBody)
 
@@ -222,6 +225,8 @@ func TestE2E_DuplicateEmailScenario(t *testing.T) {
 		reqBody := map[string]string{
 			"email":    "duplicate@example.com",
 			"password": "DifferentPass456!",
+			"username": "testuser2",
+			"tag":      "67890",
 		}
 		body, _ := json.Marshal(reqBody)
 
@@ -243,6 +248,8 @@ func TestE2E_InvalidInputScenarios(t *testing.T) {
 		reqBody := map[string]string{
 			"email":    "not-an-email",
 			"password": "SecurePass123!",
+			"username": "testuser",
+			"tag":      "12345",
 		}
 		body, _ := json.Marshal(reqBody)
 
@@ -260,6 +267,8 @@ func TestE2E_InvalidInputScenarios(t *testing.T) {
 		reqBody := map[string]string{
 			"email":    "test@example.com",
 			"password": "weak",
+			"username": "testuser",
+			"tag":      "12345",
 		}
 		body, _ := json.Marshal(reqBody)
 
@@ -289,9 +298,9 @@ func TestE2E_MultipleUsersScenario(t *testing.T) {
 	router := setupE2EServer()
 
 	users := []map[string]string{
-		{"email": "user1@example.com", "password": "Password1!"},
-		{"email": "user2@example.com", "password": "Password2!"},
-		{"email": "user3@example.com", "password": "Password3!"},
+		{"email": "user1@example.com", "password": "Password1!", "username": "user1", "tag": "11111"},
+		{"email": "user2@example.com", "password": "Password2!", "username": "user2", "tag": "22222"},
+		{"email": "user3@example.com", "password": "Password3!", "username": "user3", "tag": "33333"},
 	}
 
 	t.Run("Create Multiple Users", func(t *testing.T) {

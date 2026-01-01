@@ -5,6 +5,10 @@ import "time"
 type CreateUserRequest struct {
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
+	Username string `json:"username" binding:"required"`
+	Tag      string `json:"tag" binding:"required"`
+	Bio      string `json:"bio"`
+	Avatar   string `json:"avatar"`
 }
 
 type UpdateUserRequest struct {
@@ -12,8 +16,8 @@ type UpdateUserRequest struct {
 }
 
 type UserResponse struct {
-	Id        int64     `json:"user_id"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Id         int64     `json:"user_id"`
+	Email      string    `json:"email"`
+	CreatedAt  time.Time `json:"created_at"`
+	ModifiedAt time.Time `json:"modified_at"`
 }

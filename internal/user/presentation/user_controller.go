@@ -1,10 +1,11 @@
 package presentation
 
 import (
-	"GAMERS-BE/internal/common/response"
+	"GAMERS-BE/internal/auth/presentation/middleware"
+	"GAMERS-BE/internal/global/exception"
+	"GAMERS-BE/internal/global/response"
 	"GAMERS-BE/internal/user/application"
 	"GAMERS-BE/internal/user/application/dto"
-	"GAMERS-BE/internal/user/domain"
 	"errors"
 	"strconv"
 
@@ -21,13 +22,27 @@ func NewUserController(userService *application.UserService) *UserController {
 	}
 }
 
-func (c *UserController) RegisterRoutes(router *gin.Engine) {
+func (c *UserController) RegisterRoutes(router *gin.Engine, authMiddleware ...*middleware.AuthMiddleware) {
 	userGroup := router.Group("/api/users")
 	{
+		// Public endpoint - no auth required for user creation (signup)
 		userGroup.POST("", c.CreateUser)
-		userGroup.GET("/:id", c.GetUser)
-		userGroup.PATCH("/:id", c.UpdateUser)
-		userGroup.DELETE("/:id", c.DeleteUser)
+
+		// Apply auth middleware to protected endpoints if provided
+		if len(authMiddleware) > 0 && authMiddleware[0] != nil {
+			protected := userGroup.Group("")
+			protected.Use(authMiddleware[0].RequireAuth())
+			{
+				protected.GET("/:id", c.GetUser)
+				protected.PATCH("/:id", c.UpdateUser)
+				protected.DELETE("/:id", c.DeleteUser)
+			}
+		} else {
+			// Backward compatibility: if no middleware provided, endpoints are public
+			userGroup.GET("/:id", c.GetUser)
+			userGroup.PATCH("/:id", c.UpdateUser)
+			userGroup.DELETE("/:id", c.DeleteUser)
+		}
 	}
 }
 
@@ -51,7 +66,12 @@ func (c *UserController) CreateUser(ctx *gin.Context) {
 
 	user, err := c.userService.CreateUser(req)
 	if err != nil {
-		c.handleError(ctx, err)
+		var businessErr *exception.BusinessError
+		if errors.As(err, &businessErr) {
+			ctx.JSON(businessErr.Status, businessErr)
+			return
+		}
+		response.JSON(ctx, response.BadRequest("cannot create user"))
 		return
 	}
 
@@ -64,9 +84,11 @@ func (c *UserController) CreateUser(ctx *gin.Context) {
 // @Tags users
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "User ID"
 // @Success 200 {object} response.Response{data=dto.UserResponse}
 // @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
 // @Failure 404 {object} response.Response
 // @Router /users/{id} [get]
 func (c *UserController) GetUser(ctx *gin.Context) {
@@ -78,7 +100,12 @@ func (c *UserController) GetUser(ctx *gin.Context) {
 
 	user, err := c.userService.GetUserById(id)
 	if err != nil {
-		c.handleError(ctx, err)
+		var businessErr *exception.BusinessError
+		if errors.As(err, &businessErr) {
+			ctx.JSON(businessErr.Status, businessErr)
+			return
+		}
+		response.JSON(ctx, response.InternalServerError("Internal server error"))
 		return
 	}
 
@@ -91,10 +118,12 @@ func (c *UserController) GetUser(ctx *gin.Context) {
 // @Tags users
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "User ID"
 // @Param user body dto.UpdateUserRequest true "User update request"
 // @Success 200 {object} response.Response{data=dto.UserResponse}
 // @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
 // @Failure 404 {object} response.Response
 // @Router /users/{id} [patch]
 func (c *UserController) UpdateUser(ctx *gin.Context) {
@@ -112,7 +141,12 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 
 	user, err := c.userService.UpdateUser(id, req)
 	if err != nil {
-		c.handleError(ctx, err)
+		var businessErr *exception.BusinessError
+		if errors.As(err, &businessErr) {
+			ctx.JSON(businessErr.Status, businessErr)
+			return
+		}
+		response.JSON(ctx, response.InternalServerError("Internal server error"))
 		return
 	}
 
@@ -125,9 +159,11 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 // @Tags users
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "User ID"
 // @Success 204 "No Content"
 // @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
 // @Failure 404 {object} response.Response
 // @Router /users/{id} [delete]
 func (c *UserController) DeleteUser(ctx *gin.Context) {
@@ -138,24 +174,14 @@ func (c *UserController) DeleteUser(ctx *gin.Context) {
 	}
 
 	if err := c.userService.DeleteUser(id); err != nil {
-		c.handleError(ctx, err)
+		var businessErr *exception.BusinessError
+		if errors.As(err, &businessErr) {
+			ctx.JSON(businessErr.Status, businessErr)
+			return
+		}
+		response.JSON(ctx, response.InternalServerError("Internal server error"))
 		return
 	}
 
 	response.SendNoContent(ctx)
-}
-
-func (c *UserController) handleError(ctx *gin.Context, err error) {
-	switch {
-	case errors.Is(err, domain.ErrUserNotFound):
-		response.JSON(ctx, response.NotFound(err.Error()))
-	case errors.Is(err, domain.ErrUserAlreadyExists):
-		response.JSON(ctx, response.Conflict(err.Error()))
-	case errors.Is(err, domain.ErrEmailCannotChange):
-		response.JSON(ctx, response.BadRequest(err.Error()))
-	case errors.Is(err, domain.ErrInvalidEmail), errors.Is(err, domain.ErrPasswordTooShort), errors.Is(err, domain.ErrPasswordTooWeak):
-		response.JSON(ctx, response.BadRequest(err.Error()))
-	default:
-		response.JSON(ctx, response.InternalServerError("Internal server error"))
-	}
 }

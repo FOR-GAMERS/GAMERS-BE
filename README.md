@@ -3,12 +3,12 @@
 GAMERSプラットフォームのバックエンドAPIサーバー
 
 ## 技術スタック
-- Go 1.25
+- Go **1.25**
 - Gin Framework
 - GORM
-- Wire (DI)
 - Swagger
 - Docker
+- GoLang-migrate 
 
 ## 実行方法
 
@@ -26,6 +26,7 @@ DB_USER=your_user
 DB_PASSWORD=your_password
 DB_NAME=gamers_db
 PORT=8080
+...
 ```
 
 ### 2-A. Dockerで実行（推奨）
@@ -38,10 +39,6 @@ docker-compose up -d
 ```bash
 # 依存関係のインストール
 go mod download
-
-# Wire生成（初回のみ）
-go install github.com/google/wire/cmd/wire@latest
-wire ./cmd
 
 # Swaggerドキュメント生成
 go install github.com/swaggo/swag/cmd/swag@latest
@@ -64,6 +61,37 @@ go test ./...
 
 # 特定パッケージのテスト
 go test ./test/user/...
+```
+
+## デプロイ
+
+### CI/CD パイプライン
+このプロジェクトは GitHub Actions を使用した自動デプロイメントをサポートします。
+
+#### 🐳 Docker イメージビルド
+- `main` / `develop` ブランチへの push 時に自動実行
+- GitHub Container Registry (GHCR) にイメージを公開
+- タグ戦略: `latest`, ブランチ名, セマンティックバージョン
+
+#### 🚀 GCP Compute Engine デプロイ
+- Docker イメージビルド完了後に自動実行
+- SSH 経由で VM に安全にデプロイ
+- 自動ヘルスチェックとロールバック機能
+
+### クイックデプロイメント
+```bash
+# Production 環境
+git checkout main
+git merge develop
+git push origin main
+
+# Staging 環境
+git checkout develop
+git push origin develop
+
+# バージョンタグ
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin v1.0.0
 ```
 
 ## Author

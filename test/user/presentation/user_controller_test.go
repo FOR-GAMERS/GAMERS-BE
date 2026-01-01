@@ -1,8 +1,8 @@
 package presentation_test
 
 import (
-	"GAMERS-BE/internal/common/response"
-	"GAMERS-BE/internal/common/security/password"
+	"GAMERS-BE/internal/global/response"
+	"GAMERS-BE/internal/global/security/password"
 	"GAMERS-BE/internal/user/application"
 	"GAMERS-BE/internal/user/application/dto"
 	"GAMERS-BE/internal/user/presentation"
@@ -21,10 +21,8 @@ func setupRouter() (*gin.Engine, *presentation.UserController) {
 
 	userQueryPort := newMockUserQueryPort()
 	userCommandPort := newMockUserCommandPort(userQueryPort)
-	profileQueryPort := newMockProfileQueryPort()
-	profileCommandPort := newMockProfileCommandPort(profileQueryPort)
 	hasher := password.NewBcryptPasswordHasher()
-	service := application.NewUserService(userQueryPort, userCommandPort, profileCommandPort, hasher)
+	service := application.NewUserService(userQueryPort, userCommandPort, hasher)
 	controller := presentation.NewUserController(service)
 
 	router := gin.Default()
@@ -39,6 +37,8 @@ func TestUserController_CreateUser(t *testing.T) {
 	reqBody := map[string]string{
 		"email":    "test@example.com",
 		"password": "SecurePass123!",
+		"username": "testuser",
+		"tag":      "12345",
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -78,6 +78,8 @@ func TestUserController_CreateUser_InvalidEmail(t *testing.T) {
 	reqBody := map[string]string{
 		"email":    "invalid-email",
 		"password": "SecurePass123!",
+		"username": "testuser",
+		"tag":      "12345",
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -98,6 +100,8 @@ func TestUserController_CreateUser_WeakPassword(t *testing.T) {
 	reqBody := map[string]string{
 		"email":    "test@example.com",
 		"password": "weak",
+		"username": "testuser",
+		"tag":      "12345",
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -118,6 +122,8 @@ func TestUserController_GetUser(t *testing.T) {
 	createReqBody := map[string]string{
 		"email":    "test@example.com",
 		"password": "SecurePass123!",
+		"username": "testuser",
+		"tag":      "12345",
 	}
 	body, _ := json.Marshal(createReqBody)
 
@@ -171,6 +177,8 @@ func TestUserController_UpdateUser(t *testing.T) {
 	createReqBody := map[string]string{
 		"email":    "test@example.com",
 		"password": "SecurePass123!",
+		"username": "testuser",
+		"tag":      "12345",
 	}
 	body, _ := json.Marshal(createReqBody)
 
@@ -229,6 +237,8 @@ func TestUserController_DeleteUser(t *testing.T) {
 	createReqBody := map[string]string{
 		"email":    "test@example.com",
 		"password": "SecurePass123!",
+		"username": "testuser",
+		"tag":      "12345",
 	}
 	body, _ := json.Marshal(createReqBody)
 

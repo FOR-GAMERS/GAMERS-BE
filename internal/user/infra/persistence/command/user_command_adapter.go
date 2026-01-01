@@ -1,11 +1,12 @@
 package command
 
 import (
+	"GAMERS-BE/internal/global/exception"
 	"GAMERS-BE/internal/user/domain"
 	"errors"
+	"strings"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/mattn/go-sqlite3"
 	"gorm.io/gorm"
 )
 
@@ -23,18 +24,17 @@ func (r *MySQLUserRepository) Save(user *domain.User) error {
 	result := r.db.Create(user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-			return domain.ErrUserAlreadyExists
+			return exception.ErrUserAlreadyExists
 		}
 
 		var mysqlErr *mysql.MySQLError
 		if errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062 {
-			return domain.ErrUserAlreadyExists
+			return exception.ErrUserAlreadyExists
 		}
 
-		var sqliteErr sqlite3.Error
-		if errors.As(result.Error, &sqliteErr) &&
-			(errors.Is(sqliteErr.Code, sqlite3.ErrConstraint) || sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique) {
-			return domain.ErrUserAlreadyExists
+		// SQLite UNIQUE constraint error
+		if strings.Contains(result.Error.Error(), "UNIQUE constraint failed") {
+			return exception.ErrUserAlreadyExists
 		}
 
 		return result.Error
@@ -55,7 +55,7 @@ func (r *MySQLUserRepository) Update(user *domain.User) error {
 	}
 
 	if result.RowsAffected == 0 {
-		return domain.ErrUserNotFound
+		return exception.ErrUserNotFound
 	}
 
 	return nil
@@ -69,7 +69,7 @@ func (r *MySQLUserRepository) DeleteById(id int64) error {
 	}
 
 	if result.RowsAffected == 0 {
-		return domain.ErrUserNotFound
+		return exception.ErrUserNotFound
 	}
 
 	return nil

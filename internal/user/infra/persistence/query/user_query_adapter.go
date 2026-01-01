@@ -1,6 +1,7 @@
 package query
 
 import (
+	"GAMERS-BE/internal/global/exception"
 	"GAMERS-BE/internal/user/domain"
 	"errors"
 
@@ -21,7 +22,7 @@ func (r *MYSQLUserRepository) FindById(id int64) (*domain.User, error) {
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrUserNotFound
+			return nil, exception.ErrUserNotFound
 		}
 		return nil, result.Error
 	}
@@ -35,7 +36,7 @@ func (r *MYSQLUserRepository) FindByEmail(email string) (*domain.User, error) {
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrUserNotFound
+			return nil, exception.ErrUserNotFound
 		}
 	}
 

@@ -4,6 +4,7 @@ import (
 	"GAMERS-BE/internal/auth"
 	"GAMERS-BE/internal/global/database"
 	"GAMERS-BE/internal/global/middleware"
+	"GAMERS-BE/internal/oauth2"
 	"GAMERS-BE/internal/user"
 	"context"
 	"log"
@@ -70,11 +71,12 @@ func main() {
 
 	ctx := context.Background()
 
-	authDeps := auth.ProvideAuthDependencies(db, redisClient, ctx)
-	userDeps := user.ProvideUserDependencies(db)
-
 	router := gin.Default()
 	router.Use(middleware.GlobalErrorHandler())
+
+	authDeps := auth.ProvideAuthDependencies(db, redisClient, ctx)
+	userDeps := user.ProvideUserDependencies(db)
+	_ = oauth2.NewOAuth2Provider(db, router)
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{

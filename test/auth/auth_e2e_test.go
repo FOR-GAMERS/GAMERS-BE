@@ -2,10 +2,8 @@ package auth
 
 import (
 	"GAMERS-BE/internal/auth/application"
-	"GAMERS-BE/internal/auth/application/port/command"
-	"GAMERS-BE/internal/auth/application/port/query"
 	"GAMERS-BE/internal/auth/infra/jwt"
-	"GAMERS-BE/internal/auth/infra/persistence/command"
+	authCommand "GAMERS-BE/internal/auth/infra/persistence/command"
 	authQuery "GAMERS-BE/internal/auth/infra/persistence/query"
 	"GAMERS-BE/internal/auth/presentation"
 	"GAMERS-BE/internal/global/security/password"
@@ -62,17 +60,18 @@ func setupE2EServer(t *testing.T) *testServer {
 	assert.NoError(t, err)
 
 	// Create adapters
-	authUserQueryAdapter := userQuery.NewMysqlAuthUserQueryRepository(db)
+	authUserQueryAdapter := userQuery.NewAuthUserQueryAdapter(db)
 	refreshTokenQueryAdapter := authQuery.NewRefreshTokenRedisQueryAdapter(redisClient)
-	refreshTokenCommandAdapter := authcommand.NewRefreshTokenRedisCommandAdapter(redisClient)
+	refreshTokenCommandAdapter := authCommand.NewRefreshTokenRedisCommandAdapter(redisClient)
 	passwordHasher := password.NewBcryptPasswordHasher()
 
 	// Setup JWT token provider
-	os.Setenv("JWT_SECRET_KEY", "test-secret-key-for-testing-only")
-	os.Setenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "15")
-	os.Setenv("JWT_REFRESH_TOKEN_EXPIRE_DAYS", "7")
+	os.Setenv("JWT_SECRET", "test-secret-key-for-testing-only")
+	os.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret-key-for-testing-only")
+	os.Setenv("JWT_ACCESS_DURATION", "15m")
+	os.Setenv("JWT_REFRESH_DURATION", "168h")
 
-	jwtConfig := jwt.NewJWTConfigFromEnv()
+	jwtConfig := jwt.NewConfigFromEnv()
 	tokenManager := jwt.NewTokenManager(jwtConfig)
 	tokenProvider := jwt.NewTokenProvider(tokenManager)
 

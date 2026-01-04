@@ -4,7 +4,6 @@ import (
 	"GAMERS-BE/internal/global/exception"
 	"GAMERS-BE/internal/user/domain"
 	"errors"
-	"strings"
 
 	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
@@ -29,11 +28,6 @@ func (r *MySQLUserRepository) Save(user *domain.User) error {
 
 		var mysqlErr *mysql.MySQLError
 		if errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062 {
-			return exception.ErrUserAlreadyExists
-		}
-
-		// SQLite UNIQUE constraint error
-		if strings.Contains(result.Error.Error(), "UNIQUE constraint failed") {
 			return exception.ErrUserAlreadyExists
 		}
 

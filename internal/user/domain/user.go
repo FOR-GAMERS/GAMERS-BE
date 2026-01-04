@@ -13,8 +13,8 @@ type User struct {
 	Id         int64     `gorm:"primaryKey;column:id;autoIncrement" json:"user_id"`
 	Email      string    `gorm:"uniqueIndex;column:email;type:varchar(255);not null" json:"email"`
 	Password   string    `gorm:"column:password;type:varchar(255);not null" json:"-"`
-	Username   string    `gorm:"column:username;type:varchar(16);not_null" json:"username"`
-	Tag        string    `gorm:"uniqueIndex;column:tag;type:varchar(6);not_null" json:"tag"`
+	Username   string    `gorm:"uniqueIndex:idx_username_tag;column:username;type:varchar(16);not_null" json:"username"`
+	Tag        string    `gorm:"uniqueIndex:idx_username_tag;column:tag;type:varchar(6);not_null" json:"tag"`
 	Bio        string    `gorm:"column:bio;type:varchar(256);" json:"bio"`
 	Avatar     string    `gorm:"column:avatar;type:text;" json:"avatar"`
 	CreatedAt  time.Time `gorm:"column:created_at;type:datetime;not null;autoCreateTime" json:"created_at"`

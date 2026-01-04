@@ -103,3 +103,32 @@ func GetMigrationVersion(db *sql.DB, migrationsPath string) (uint, bool, error) 
 
 	return version, dirty, nil
 }
+
+// ForceMigrationVersion forces database to specific version (useful for dirty state)
+func ForceMigrationVersion(db *sql.DB, migrationsPath string, version int) error {
+	absPath, err := filepath.Abs(migrationsPath)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
+	driver, err := mysql.WithInstance(db, &mysql.Config{})
+	if err != nil {
+		return fmt.Errorf("could not create migration driver: %w", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		fmt.Sprintf("file://%s", absPath),
+		"mysql",
+		driver,
+	)
+	if err != nil {
+		return fmt.Errorf("could not create migrate instance: %w", err)
+	}
+
+	if err := m.Force(version); err != nil {
+		return fmt.Errorf("could not force version: %w", err)
+	}
+
+	log.Printf("✅ Forced migration to version %d", version)
+	return nil
+}

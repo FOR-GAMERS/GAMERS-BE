@@ -1,5 +1,5 @@
 CREATE TABLE discord_accounts (
-    discord_id VARCHAR(255) AUTO_INCREMENT PRIMARY KEY,
+    discord_id VARCHAR(255) PRIMARY KEY,
     user_id BIGINT UNIQUE NOT NULL,
     discord_avatar VARCHAR(255),
     discord_verified BOOLEAN DEFAULT FALSE,

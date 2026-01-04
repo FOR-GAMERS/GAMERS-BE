@@ -9,10 +9,10 @@ import (
 )
 
 type DiscordController struct {
-	oauth2Service *application.OAuth2Service
+	oauth2Service *application.DiscordService
 }
 
-func NewDiscordController(oauth2Service *application.OAuth2Service) *DiscordController {
+func NewDiscordController(oauth2Service *application.DiscordService) *DiscordController {
 	return &DiscordController{
 		oauth2Service: oauth2Service,
 	}
@@ -35,7 +35,12 @@ func (c *DiscordController) RegisterRoutes(router *gin.Engine) {
 // @Success 302 {string} string "Redirect to Discord login page"
 // @Router /api/oauth2/discord/login [get]
 func (c *DiscordController) DiscordLogin(ctx *gin.Context) {
-	loginURL := c.oauth2Service.GetDiscordLoginURL()
+	loginURL, err := c.oauth2Service.GetDiscordLoginURL()
+
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
 
 	// Redirect to Discord login page
 	ctx.Redirect(302, loginURL)
@@ -56,13 +61,13 @@ func (c *DiscordController) DiscordLogin(ctx *gin.Context) {
 func (c *DiscordController) DiscordCallback(ctx *gin.Context) {
 	var req dto.DiscordCallbackRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		response.JSON(ctx, response.BadRequest("Invalid request parameters"))
+		ctx.Error(err)
 		return
 	}
 
 	result, err := c.oauth2Service.HandleDiscordCallback(&req)
 	if err != nil {
-		response.JSON(ctx, response.InternalServerError(err.Error()))
+		ctx.Error(err)
 		return
 	}
 

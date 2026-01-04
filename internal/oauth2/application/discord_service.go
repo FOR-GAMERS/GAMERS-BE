@@ -2,11 +2,13 @@ package application
 
 import (
 	"GAMERS-BE/internal/auth/infra/jwt"
+	"GAMERS-BE/internal/global/exception"
+	"GAMERS-BE/internal/global/utils"
 	"GAMERS-BE/internal/oauth2/application/dto"
 	"GAMERS-BE/internal/oauth2/application/port"
 	"GAMERS-BE/internal/oauth2/domain"
 	"GAMERS-BE/internal/oauth2/infra/discord"
-	userCommand "GAMERS-BE/internal/user/application/port/command"
+	"GAMERS-BE/internal/oauth2/infra/state"
 	userDomain "GAMERS-BE/internal/user/domain"
 	"context"
 	"errors"
@@ -15,51 +17,60 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type OAuth2Service struct {
+type DiscordService struct {
 	ctx                context.Context
 	config             *oauth2.Config
-	discordClient      *discord.DiscordClient
+	discordClient      *discord.Client
+	stateManager       *state.Manager
+	oauth2UserPort     port.OAuth2UserPort
 	oauth2DatabasePort port.OAuth2DatabasePort
-	userCommandPort    userCommand.UserCommandPort
 	tokenProvider      jwt.TokenProvider
 }
 
 func NewOAuth2Service(
 	ctx context.Context,
 	config *oauth2.Config,
-	discordClient *discord.DiscordClient,
+	discordClient *discord.Client,
+	stateManager *state.Manager,
+	oauth2UserPort port.OAuth2UserPort,
 	oauth2DatabasePort port.OAuth2DatabasePort,
-	userCommandPort userCommand.UserCommandPort,
 	tokenProvider jwt.TokenProvider,
-) *OAuth2Service {
-	return &OAuth2Service{
+) *DiscordService {
+	return &DiscordService{
 		ctx:                ctx,
 		config:             config,
 		discordClient:      discordClient,
+		stateManager:       stateManager,
+		oauth2UserPort:     oauth2UserPort,
 		oauth2DatabasePort: oauth2DatabasePort,
-		userCommandPort:    userCommandPort,
 		tokenProvider:      tokenProvider,
 	}
 }
 
-func (s *OAuth2Service) GetDiscordLoginURL() string {
-	return s.config.AuthCodeURL("state", oauth2.AccessTypeOnline)
+func (s *DiscordService) GetDiscordLoginURL() (string, error) {
+	randomState, err := s.stateManager.GenerateState()
+	if err != nil {
+		return "", err
+	}
+	return s.config.AuthCodeURL(randomState, oauth2.AccessTypeOnline), nil
 }
 
-func (s *OAuth2Service) HandleDiscordCallback(req *dto.DiscordCallbackRequest) (*dto.OAuth2LoginResponse, error) {
+func (s *DiscordService) HandleDiscordCallback(req *dto.DiscordCallbackRequest) (*dto.OAuth2LoginResponse, error) {
 	token, err := s.config.Exchange(s.ctx, req.Code)
 	if err != nil {
-		return nil, errors.New("failed to exchange code for token: " + err.Error())
+		return nil, exception.ErrDiscordTokenExchange
 	}
 
 	userInfo, err := s.discordClient.GetUserInfo(token)
 	if err != nil {
-		return nil, errors.New("failed to get user info from Discord: " + err.Error())
+		return nil, exception.ErrDiscordCannotGetUserInfo
 	}
 
 	discordAccount, err := s.oauth2DatabasePort.FindDiscordAccountByDiscordId(userInfo.Id)
 	if err != nil {
-		return nil, err
+		if !errors.Is(err, exception.ErrDiscordUserCannotFound) {
+			return nil, err
+		}
 	}
 
 	var userId int64
@@ -107,19 +118,29 @@ func (s *OAuth2Service) HandleDiscordCallback(req *dto.DiscordCallbackRequest) (
 	}, nil
 }
 
-func (s *OAuth2Service) createNewUser(userInfo *dto.DiscordUserInfo) (*userDomain.User, error) {
+func (s *DiscordService) createNewUser(userInfo *dto.DiscordUserInfo) (*userDomain.User, error) {
+	const retriesCnt = 10
+
 	user := &userDomain.User{
 		Email:    fmt.Sprintf("%s@discord.oauth", userInfo.Id),
-		Password: "",
+		Password: utils.GenerateSecurePassword(),
 		Username: userInfo.Username,
-		Tag:      "00000",
 		Bio:      "",
 		Avatar:   userInfo.Avatar,
 	}
 
-	if err := s.userCommandPort.Save(user); err != nil {
-		return nil, errors.New("failed to create user: " + err.Error())
+	var err error
+
+	for i := 0; i < retriesCnt; i++ {
+		user.Tag, err = utils.GenerateRandomTag()
+
+		if err == nil {
+			if err := s.oauth2UserPort.SaveRandomUser(user); err != nil {
+				return nil, errors.New("failed to create user: " + err.Error())
+			}
+			return user, err
+		}
 	}
 
-	return user, nil
+	return nil, err
 }

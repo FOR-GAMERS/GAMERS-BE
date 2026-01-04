@@ -6,27 +6,30 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	"golang.org/x/oauth2"
 )
 
 const (
-	DiscordAPIBaseURL = "https://discord.com/api/v10"
-	UserInfoEndpoint  = "/users/@me"
+	APIBaseURL       = "https://discord.com/api/v10"
+	UserInfoEndpoint = "/users/@me"
 )
 
-type DiscordClient struct {
+type Client struct {
 	httpClient *http.Client
 }
 
-func NewDiscordClient() *DiscordClient {
-	return &DiscordClient{
-		httpClient: &http.Client{},
+func NewDiscordClient() *Client {
+	return &Client{
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
 	}
 }
 
-func (c *DiscordClient) GetUserInfo(token *oauth2.Token) (*dto.DiscordUserInfo, error) {
-	req, err := http.NewRequest("GET", DiscordAPIBaseURL+UserInfoEndpoint, nil)
+func (c *Client) GetUserInfo(token *oauth2.Token) (*dto.DiscordUserInfo, error) {
+	req, err := http.NewRequest("GET", APIBaseURL+UserInfoEndpoint, nil)
 	if err != nil {
 		return nil, err
 	}

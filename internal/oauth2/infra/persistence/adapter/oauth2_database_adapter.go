@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"GAMERS-BE/internal/global/exception"
 	"GAMERS-BE/internal/oauth2/domain"
 	"errors"
 
@@ -22,7 +23,7 @@ func (a *OAuth2DatabaseAdapter) FindDiscordAccountByDiscordId(discordId string) 
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, exception.ErrDiscordUserCannotFound
 		}
 		return nil, result.Error
 	}
@@ -37,7 +38,7 @@ func (a *OAuth2DatabaseAdapter) FindDiscordAccountByUserId(userId int64) (*domai
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, exception.ErrDiscordUserCannotFound
 		}
 		return nil, result.Error
 	}

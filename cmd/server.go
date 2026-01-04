@@ -76,7 +76,7 @@ func main() {
 
 	authDeps := auth.ProvideAuthDependencies(db, redisClient, ctx)
 	userDeps := user.ProvideUserDependencies(db)
-	_ = oauth2.NewOAuth2Provider(db, router)
+	_ = oauth2.ProvideOAuth2Dependencies(db, router)
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{

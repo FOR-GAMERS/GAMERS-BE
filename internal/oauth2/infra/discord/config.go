@@ -15,12 +15,6 @@ const (
 	TokenUrl = "https://discord.com/api/oauth2/token"
 )
 
-type Config struct {
-	ClientId     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
-	RedirectUri  string `json:"redirect_uri"`
-}
-
 func NewConfigFromEnv() *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:     utils.GetEnv(ClientIDKey, ""),

@@ -1,5 +1,5 @@
 # Makefile
-.PHONY: help run build test migrate-up migrate-down migrate-create migrate-version docker-up docker-down
+.PHONY: help run build test migrate-up migrate-down migrate-create migrate-version migrate-force migrate-force-go docker-up docker-down
 
 ENV_FILE := env/.env
 
@@ -86,7 +86,7 @@ migrate-create: ## Create new migration (usage: make migrate-create name=create_
 migrate-version: ## Show current migration version
 	@migrate -path $(MIGRATIONS_PATH) -database "$(DB_URL)" version
 
-migrate-force: ## Force set migration version (usage: make migrate-force version=1)
+migrate-force: ## Force set migration version using migrate CLI (usage: make migrate-force version=1)
 	@if [ -z "$(version)" ]; then \
 		echo "❌ Error: version parameter is required"; \
 		echo "Usage: make migrate-force version=1"; \
@@ -94,6 +94,15 @@ migrate-force: ## Force set migration version (usage: make migrate-force version
 	fi
 	@echo "⚠️  Forcing migration version to $(version)..."
 	migrate -path $(MIGRATIONS_PATH) -database "$(DB_URL)" force $(version)
+
+migrate-force-go: ## Force set migration version using Go code (usage: make migrate-force-go version=1)
+	@if [ -z "$(version)" ]; then \
+		echo "❌ Error: version parameter is required"; \
+		echo "Usage: make migrate-force-go version=1"; \
+		exit 1; \
+	fi
+	@echo "⚠️  Forcing migration version to $(version) using Go..."
+	go run scripts/force-migration.go $(version)
 
 # ========================================
 # Docker Command

@@ -1,4 +1,4 @@
-package command
+package adapter
 
 import (
 	"GAMERS-BE/internal/global/exception"
@@ -9,17 +9,17 @@ import (
 	"gorm.io/gorm"
 )
 
-type MySQLUserRepository struct {
+type UserDatabaseAdapter struct {
 	db *gorm.DB
 }
 
-func NewMySQLUserRepository(db *gorm.DB) *MySQLUserRepository {
-	return &MySQLUserRepository{
+func NewUserDatabaseAdapter(db *gorm.DB) *UserDatabaseAdapter {
+	return &UserDatabaseAdapter{
 		db: db,
 	}
 }
 
-func (r *MySQLUserRepository) Save(user *domain.User) error {
+func (r *UserDatabaseAdapter) Save(user *domain.User) error {
 	result := r.db.Create(user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
@@ -37,7 +37,7 @@ func (r *MySQLUserRepository) Save(user *domain.User) error {
 	return nil
 }
 
-func (r *MySQLUserRepository) Update(user *domain.User) error {
+func (r *UserDatabaseAdapter) Update(user *domain.User) error {
 	result := r.db.Model(&domain.User{}).
 		Where("id = ?", user.Id).
 		Updates(map[string]interface{}{
@@ -55,7 +55,7 @@ func (r *MySQLUserRepository) Update(user *domain.User) error {
 	return nil
 }
 
-func (r *MySQLUserRepository) DeleteById(id int64) error {
+func (r *UserDatabaseAdapter) DeleteById(id int64) error {
 	result := r.db.Delete(&domain.User{}, id)
 
 	if result.Error != nil {
@@ -67,4 +67,32 @@ func (r *MySQLUserRepository) DeleteById(id int64) error {
 	}
 
 	return nil
+}
+
+func (r *UserDatabaseAdapter) FindById(id int64) (*domain.User, error) {
+	var user domain.User
+	result := r.db.First(&user, id)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, exception.ErrUserNotFound
+		}
+		return nil, result.Error
+	}
+
+	return &user, nil
+}
+
+func (r *UserDatabaseAdapter) FindByEmail(email string) (*domain.User, error) {
+	var user domain.User
+	result := r.db.First(&user, "email = ?", email)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, exception.ErrUserNotFound
+		}
+		return nil, result.Error
+	}
+
+	return &user, nil
 }

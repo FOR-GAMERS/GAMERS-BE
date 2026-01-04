@@ -47,6 +47,7 @@ func InitDB(config *Config) (*gorm.DB, error) {
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
+		SkipDefaultTransaction: true,
 	})
 
 	if err != nil {

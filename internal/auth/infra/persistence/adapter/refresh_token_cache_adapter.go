@@ -99,14 +99,14 @@ func (r RefreshTokenCacheAdapter) Delete(token *string) error {
 	}
 
 	userTokensKey := fmt.Sprintf("%s%d", userTokensPrefix, refreshToken.UserID)
-	if err := r.repository.SRem(*r.ctx, userTokensKey, token).Err(); err != nil {
+	if err := r.repository.SRem(*r.ctx, userTokensKey, *token).Err(); err != nil {
 		return exception.ErrRedisCannotDelete
 	}
 
 	return nil
 }
 
-func (r RefreshTokenCacheAdapter) DeleteByUserID(userID *uint) error {
+func (r RefreshTokenCacheAdapter) DeleteByUserID(userID *int64) error {
 	userTokensKey := fmt.Sprintf("%s%d", userTokensPrefix, *userID)
 
 	tokens, err := r.repository.SMembers(*r.ctx, userTokensKey).Result()

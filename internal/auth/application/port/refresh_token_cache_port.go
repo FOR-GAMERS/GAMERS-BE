@@ -9,5 +9,5 @@ type RefreshTokenCachePort interface {
 	FindByToken(token *string) (*domain.RefreshToken, error)
 	ExistsByToken(token *string) (bool, error)
 	Delete(token *string) error
-	DeleteByUserID(userID *uint) error
+	DeleteByUserID(userID *int64) error
 }

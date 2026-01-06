@@ -1,0 +1,616 @@
+basePath: /api
+definitions:
+  GAMERS-BE_internal_auth_application_dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  GAMERS-BE_internal_auth_application_dto.LogoutRequest:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    required:
+    - access_token
+    - refresh_token
+    type: object
+  GAMERS-BE_internal_auth_application_dto.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  GAMERS-BE_internal_contest_application_dto.ContestResponse:
+    properties:
+      auto_start:
+        type: boolean
+      contest_id:
+        type: integer
+      contest_status:
+        $ref: '#/definitions/GAMERS-BE_internal_contest_domain.ContestStatus'
+      contest_type:
+        $ref: '#/definitions/GAMERS-BE_internal_contest_domain.ContestType'
+      created_at:
+        type: string
+      description:
+        type: string
+      ended_at:
+        type: string
+      max_team_count:
+        type: integer
+      modified_at:
+        type: string
+      started_at:
+        type: string
+      title:
+        type: string
+      total_point:
+        type: integer
+    type: object
+  GAMERS-BE_internal_contest_application_dto.CreateContestRequest:
+    properties:
+      auto_start:
+        type: boolean
+      contest_type:
+        $ref: '#/definitions/GAMERS-BE_internal_contest_domain.ContestType'
+      description:
+        type: string
+      ended_at:
+        type: string
+      max_team_count:
+        type: integer
+      started_at:
+        type: string
+      title:
+        type: string
+      total_point:
+        type: integer
+    required:
+    - contest_type
+    - title
+    type: object
+  GAMERS-BE_internal_contest_application_dto.UpdateContestRequest:
+    properties:
+      auto_start:
+        type: boolean
+      contest_status:
+        $ref: '#/definitions/GAMERS-BE_internal_contest_domain.ContestStatus'
+      contest_type:
+        $ref: '#/definitions/GAMERS-BE_internal_contest_domain.ContestType'
+      description:
+        type: string
+      ended_at:
+        type: string
+      max_team_count:
+        type: integer
+      started_at:
+        type: string
+      title:
+        type: string
+      total_point:
+        type: integer
+    type: object
+  GAMERS-BE_internal_contest_domain.ContestStatus:
+    enum:
+    - PENDING
+    - ACTIVE
+    - FINISHED
+    - CANCELLED
+    type: string
+    x-enum-varnames:
+    - ContestStatusPending
+    - ContestStatusActive
+    - ContestStatusFinished
+    - ContestStatusCancelled
+  GAMERS-BE_internal_contest_domain.ContestType:
+    enum:
+    - TOURNAMENT
+    - LEAGUE
+    - CASUAL
+    type: string
+    x-enum-varnames:
+    - ContestTypeTournament
+    - ContestTypeLeague
+    - ContestTypeCasual
+  GAMERS-BE_internal_global_response.Response:
+    properties:
+      data: {}
+      message:
+        type: string
+      status:
+        type: integer
+    type: object
+  GAMERS-BE_internal_user_application_dto.CreateUserRequest:
+    properties:
+      avatar:
+        type: string
+      bio:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+      tag:
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - password
+    - tag
+    - username
+    type: object
+  GAMERS-BE_internal_user_application_dto.UpdateUserRequest:
+    properties:
+      password:
+        type: string
+    required:
+    - password
+    type: object
+  GAMERS-BE_internal_user_application_dto.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      modified_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@gamers.com
+    name: API Support
+  description: API Server for GAMERS platform
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: GAMERS API
+  version: "1.0"
+paths:
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_auth_application_dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      summary: User login
+      tags:
+      - auth
+  /api/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Revoke refresh token
+      parameters:
+      - description: Logout request
+        in: body
+        name: logout
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_auth_application_dto.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      summary: Logout
+      tags:
+      - auth
+  /api/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refresh access token using refresh token
+      parameters:
+      - description: Refresh token request
+        in: body
+        name: refresh
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_auth_application_dto.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      summary: Refresh access token
+      tags:
+      - auth
+  /api/contests:
+    post:
+      consumes:
+      - application/json
+      description: Create a new contest with contest details
+      parameters:
+      - description: Contest creation request
+        in: body
+        name: contest
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_contest_application_dto.CreateContestRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_contest_application_dto.ContestResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new contest
+      tags:
+      - contests
+  /api/contests/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete contest by contest ID
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete a contest
+      tags:
+      - contests
+    get:
+      consumes:
+      - application/json
+      description: Get contest details by contest ID
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_contest_application_dto.ContestResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      summary: Get a contest by ID
+      tags:
+      - contests
+    patch:
+      consumes:
+      - application/json
+      description: Update contest details by contest ID
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Contest update request
+        in: body
+        name: contest
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_contest_application_dto.UpdateContestRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_contest_application_dto.ContestResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a contest
+      tags:
+      - contests
+  /api/oauth2/discord/callback:
+    get:
+      consumes:
+      - application/json
+      description: Handle Discord OAuth2 callback
+      parameters:
+      - description: Authorization code
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: State
+        in: query
+        name: state
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      summary: Discord OAuth2 Callback
+      tags:
+      - oauth2
+  /api/oauth2/discord/login:
+    get:
+      consumes:
+      - application/json
+      description: Redirect to Discord OAuth2 login page
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirect to Discord login page
+          schema:
+            type: string
+      summary: Discord OAuth2 Login
+      tags:
+      - oauth2
+  /api/users:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user with email and password
+      parameters:
+      - description: User creation request
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_user_application_dto.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_user_application_dto.UserResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      summary: Create a new user
+      tags:
+      - users
+  /api/users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete user by user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete a user
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: Get user details by user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_user_application_dto.UserResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get a user by ID
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      description: Update user password by user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User update request
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_user_application_dto.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_user_application_dto.UserResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a user
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -44,7 +44,7 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("userId", claims)
+		c.Set("userId", claims.UserID)
 
 		c.Next()
 	}

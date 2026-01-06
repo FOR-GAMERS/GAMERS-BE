@@ -3,25 +3,27 @@ package presentation
 import (
 	"GAMERS-BE/internal/auth/application"
 	"GAMERS-BE/internal/auth/application/dto"
-	"GAMERS-BE/internal/auth/presentation/middleware"
+	"GAMERS-BE/internal/global/common/router"
 	"GAMERS-BE/internal/global/response"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthController struct {
+	router      *router.Router
 	authService *application.AuthService
 }
 
-func NewAuthController(authService *application.AuthService) *AuthController {
+func NewAuthController(router *router.Router, authService *application.AuthService) *AuthController {
 	return &AuthController{
+		router:      router,
 		authService: authService,
 	}
 }
 
 // RegisterRoutes registers all authentication routes
-func (c *AuthController) RegisterRoutes(router *gin.Engine, authMiddleware *middleware.AuthMiddleware) {
-	authGroup := router.Group("/api/auth")
+func (c *AuthController) RegisterRoutes() {
+	authGroup := c.router.PublicGroup("/api/auth")
 	{
 		authGroup.POST("/login", c.Login)
 		authGroup.POST("/logout", c.Logout)
@@ -81,6 +83,17 @@ func (c *AuthController) Logout(ctx *gin.Context) {
 	response.SendNoContent(ctx)
 }
 
+// Refresh godoc
+// @Summary Refresh access token
+// @Description Refresh access token using refresh token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param refresh body dto.RefreshRequest true "Refresh token request"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /api/auth/refresh [post]
 func (c *AuthController) Refresh(ctx *gin.Context) {
 	var req dto.RefreshRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {

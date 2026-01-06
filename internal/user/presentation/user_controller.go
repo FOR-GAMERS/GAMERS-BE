@@ -1,7 +1,7 @@
 package presentation
 
 import (
-	"GAMERS-BE/internal/auth/presentation/middleware"
+	"GAMERS-BE/internal/global/common/router"
 	"GAMERS-BE/internal/global/exception"
 	"GAMERS-BE/internal/global/response"
 	"GAMERS-BE/internal/user/application"
@@ -13,36 +13,28 @@ import (
 )
 
 type UserController struct {
+	router      *router.Router
 	userService *application.UserService
 }
 
-func NewUserController(userService *application.UserService) *UserController {
+func NewUserController(router *router.Router, userService *application.UserService) *UserController {
 	return &UserController{
+		router:      router,
 		userService: userService,
 	}
 }
 
-func (c *UserController) RegisterRoutes(router *gin.Engine, authMiddleware ...*middleware.AuthMiddleware) {
-	userGroup := router.Group("/api/users")
+func (c *UserController) RegisterRoutes() {
+	privateGroup := c.router.ProtectedGroup("/api/users")
 	{
-		// Public endpoint - no auth required for user creation (signup)
-		userGroup.POST("", c.CreateUser)
+		privateGroup.GET("/:id", c.GetUser)
+		privateGroup.PATCH("/:id", c.UpdateUser)
+		privateGroup.DELETE("/:id", c.DeleteUser)
+	}
 
-		// Apply auth middleware to protected endpoints if provided
-		if len(authMiddleware) > 0 && authMiddleware[0] != nil {
-			protected := userGroup.Group("")
-			protected.Use(authMiddleware[0].RequireAuth())
-			{
-				protected.GET("/:id", c.GetUser)
-				protected.PATCH("/:id", c.UpdateUser)
-				protected.DELETE("/:id", c.DeleteUser)
-			}
-		} else {
-			// Backward compatibility: if no middleware provided, endpoints are public
-			userGroup.GET("/:id", c.GetUser)
-			userGroup.PATCH("/:id", c.UpdateUser)
-			userGroup.DELETE("/:id", c.DeleteUser)
-		}
+	userGroup := c.router.PublicGroup("/api/users")
+	{
+		userGroup.POST("", c.CreateUser)
 	}
 }
 
@@ -56,7 +48,7 @@ func (c *UserController) RegisterRoutes(router *gin.Engine, authMiddleware ...*m
 // @Success 201 {object} response.Response{data=dto.UserResponse}
 // @Failure 400 {object} response.Response
 // @Failure 409 {object} response.Response
-// @Router /users [post]
+// @Router /api/users [post]
 func (c *UserController) CreateUser(ctx *gin.Context) {
 	var req dto.CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -90,7 +82,7 @@ func (c *UserController) CreateUser(ctx *gin.Context) {
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /users/{id} [get]
+// @Router /api/users/{id} [get]
 func (c *UserController) GetUser(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
@@ -125,7 +117,7 @@ func (c *UserController) GetUser(ctx *gin.Context) {
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /users/{id} [patch]
+// @Router /api/users/{id} [patch]
 func (c *UserController) UpdateUser(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
@@ -165,7 +157,7 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /users/{id} [delete]
+// @Router /api/users/{id} [delete]
 func (c *UserController) DeleteUser(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {

@@ -142,7 +142,7 @@ migrate-version-docker: ## Show migration version in Docker
 
 swagger: ## Generate swagger documentation
 	@echo "📚 Generating Swagger docs..."
-	swag init
+	swag init -g cmd/server.go --output docs --parseDependency --parseInternal
 
 deps: ## Download dependencies
 	@echo "📦 Downloading dependencies..."

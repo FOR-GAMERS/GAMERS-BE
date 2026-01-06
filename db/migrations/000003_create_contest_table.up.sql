@@ -8,6 +8,7 @@ CREATE TABLE contests(
     contest_status VARCHAR(16) NOT NULL,
     started_at DATETIME,
     ended_at DATETIME,
+    auto_start BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -20,7 +21,8 @@ CREATE TABLE contests(
 
     INDEX idx_contest_status (contest_status),
     INDEX idx_contest_type (contest_type),
-    INDEX idx_contest_dates (started_at, ended_at)
+    INDEX idx_contest_dates (started_at, ended_at),
+    INDEX idx_auto_start_status (auto_start, contest_status, started_at)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -39,7 +41,10 @@ CREATE TABLE contests_members(
     CONSTRAINT chk_point_range
         CHECK (point >= 0),
 
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    INDEX idx_contest_members_contest_id (contest_id),
+    INDEX idx_contest_members_type (member_type, leader_type),
+
+    FOREIGN KEY (user_id) REFERENCES users(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
     FOREIGN KEY (contest_id) REFERENCES contests(contest_id)

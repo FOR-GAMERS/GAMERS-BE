@@ -1,20 +1,21 @@
 package middleware
 
 import (
-	"GAMERS-BE/internal/auth/infra/jwt"
 	"GAMERS-BE/internal/global/response"
+	"GAMERS-BE/internal/global/security/jwt/application"
+	"GAMERS-BE/internal/global/security/jwt/domain"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthMiddleware struct {
-	tokenManager *jwt.TokenManager
+	tokenService *application.TokenService
 }
 
-func NewAuthMiddleware(tokenManager *jwt.TokenManager) *AuthMiddleware {
+func NewAuthMiddleware(tokenService *application.TokenService) *AuthMiddleware {
 	return &AuthMiddleware{
-		tokenManager: tokenManager,
+		tokenService: tokenService,
 	}
 }
 
@@ -36,14 +37,14 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 
 		token := parts[1]
 
-		claims, err := m.tokenManager.ValidateAccessToken(token)
+		claims, err := m.tokenService.Validate(domain.TokenTypeAccess, token)
 		if err != nil {
-			response.JSON(c, response.Error(401, "Invalid or expired token"))
+			response.JSON(c, response.Error(401, err.Error()))
 			c.Abort()
 			return
 		}
 
-		c.Set("userId", claims.UserId)
+		c.Set("userId", claims.UserID)
 
 		c.Next()
 	}

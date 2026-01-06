@@ -2,31 +2,27 @@ package application
 
 import (
 	"GAMERS-BE/internal/auth/application/dto"
-	"GAMERS-BE/internal/auth/application/port/command"
+	"GAMERS-BE/internal/auth/application/port"
 	"GAMERS-BE/internal/auth/application/port/query"
 	"GAMERS-BE/internal/auth/domain"
-	"GAMERS-BE/internal/auth/infra/jwt"
+	"GAMERS-BE/internal/global/security/jwt/application"
+	jwtToken "GAMERS-BE/internal/global/security/jwt/domain"
 	"GAMERS-BE/internal/global/security/password"
-	"context"
 )
 
 type AuthService struct {
-	ctx                     context.Context
-	authUserQueryPort       query.AuthUserQueryPort
-	refreshTokenQueryPort   query.RefreshTokenQueryPort
-	refreshTokenCommandPort command.RefreshTokenCommandPort
-	tokenProvider           jwt.TokenProvider
-	passwordHasher          password.Hasher
+	authUserQueryPort     query.AuthUserQueryPort
+	refreshTokenCachePort port.RefreshTokenCachePort
+	tokenService          application.TokenService
+	passwordHasher        password.Hasher
 }
 
-func NewAuthService(ctx context.Context, authUserQueryPort query.AuthUserQueryPort, refreshTokenCommandPort command.RefreshTokenCommandPort, refreshTokenQueryPort query.RefreshTokenQueryPort, tokenProvider jwt.TokenProvider, passwordHasher password.Hasher) *AuthService {
+func NewAuthService(authUserQueryPort query.AuthUserQueryPort, refreshTokenCachePort port.RefreshTokenCachePort, tokenService application.TokenService, passwordHasher password.Hasher) *AuthService {
 	return &AuthService{
-		ctx:                     ctx,
-		authUserQueryPort:       authUserQueryPort,
-		refreshTokenCommandPort: refreshTokenCommandPort,
-		refreshTokenQueryPort:   refreshTokenQueryPort,
-		tokenProvider:           tokenProvider,
-		passwordHasher:          passwordHasher,
+		authUserQueryPort:     authUserQueryPort,
+		refreshTokenCachePort: refreshTokenCachePort,
+		tokenService:          tokenService,
+		passwordHasher:        passwordHasher,
 	}
 }
 
@@ -41,15 +37,16 @@ func (s *AuthService) Login(req *dto.LoginRequest) (*dto.LoginResponse, error) {
 		return nil, err
 	}
 
-	token, err := s.tokenProvider.PublishToken(user.Id)
+	token, err := s.tokenService.GenerateTokenPair(user.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken := domain.NewRefreshToken(token.RefreshToken, user.Id, token.RefreshTokenExp)
+	ttl := s.tokenService.GetTTL(jwtToken.TokenTypeRefresh)
 
-	ttl := s.tokenProvider.GetRefreshTokenDuration()
-	err = s.refreshTokenCommandPort.Save(s.ctx, refreshToken, ttl)
+	refreshToken := domain.NewRefreshToken(token.RefreshToken, user.Id, *ttl)
+
+	err = s.refreshTokenCachePort.Save(refreshToken, ttl)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +58,7 @@ func (s *AuthService) Login(req *dto.LoginRequest) (*dto.LoginResponse, error) {
 }
 
 func (s *AuthService) Logout(req dto.LogoutRequest) error {
-	err := s.refreshTokenCommandPort.Delete(s.ctx, req.RefreshToken)
+	err := s.refreshTokenCachePort.Delete(&req.RefreshToken)
 	if err != nil {
 		return err
 	}
@@ -69,33 +66,34 @@ func (s *AuthService) Logout(req dto.LogoutRequest) error {
 	return nil
 }
 
-func (s *AuthService) Refresh(req dto.RefreshRequest) (*dto.TokenResponse, error) {
-	refreshToken, err := s.refreshTokenQueryPort.FindByToken(s.ctx, req.RefreshToken)
+func (s *AuthService) Refresh(req dto.RefreshRequest) (*dto.RefreshResponse, error) {
+	refreshToken, err := s.refreshTokenCachePort.FindByToken(&req.RefreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.refreshTokenCommandPort.Delete(s.ctx, req.RefreshToken)
+	err = s.refreshTokenCachePort.Delete(&req.RefreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := s.tokenProvider.PublishToken(refreshToken.UserID)
+	token, err := s.tokenService.GenerateTokenPair(refreshToken.UserID)
 	if err != nil {
 		return nil, err
 	}
 
-	newRefreshToken := domain.NewRefreshToken(token.RefreshToken, refreshToken.UserID, token.RefreshTokenExp)
-	ttl := s.tokenProvider.GetRefreshTokenDuration()
-	err = s.refreshTokenCommandPort.Save(s.ctx, newRefreshToken, ttl)
+	ttl := s.tokenService.GetTTL(jwtToken.TokenTypeRefresh)
+
+	newRefreshToken := domain.NewRefreshToken(token.RefreshToken, refreshToken.UserID, *ttl)
+
+	err = s.refreshTokenCachePort.Save(newRefreshToken, ttl)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return &dto.TokenResponse{
-		AccessToken:     token.AccessToken,
-		AccessTokenExp:  token.AccessTokenExp,
-		RefreshToken:    token.RefreshToken,
-		RefreshTokenExp: token.RefreshTokenExp,
+	return &dto.RefreshResponse{
+		AccessToken:  token.AccessToken,
+		RefreshToken: token.RefreshToken,
 	}, nil
 }

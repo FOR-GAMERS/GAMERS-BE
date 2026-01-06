@@ -1,8 +1,8 @@
 package application
 
 import (
-	"GAMERS-BE/internal/auth/infra/jwt"
 	"GAMERS-BE/internal/global/exception"
+	jwtApplication "GAMERS-BE/internal/global/security/jwt/application"
 	"GAMERS-BE/internal/global/utils"
 	"GAMERS-BE/internal/oauth2/application/dto"
 	"GAMERS-BE/internal/oauth2/application/port"
@@ -24,7 +24,7 @@ type DiscordService struct {
 	stateManager       *state.Manager
 	oauth2UserPort     port.OAuth2UserPort
 	oauth2DatabasePort port.OAuth2DatabasePort
-	tokenProvider      jwt.TokenProvider
+	tokenService       jwtApplication.TokenService
 }
 
 func NewOAuth2Service(
@@ -34,7 +34,7 @@ func NewOAuth2Service(
 	stateManager *state.Manager,
 	oauth2UserPort port.OAuth2UserPort,
 	oauth2DatabasePort port.OAuth2DatabasePort,
-	tokenProvider jwt.TokenProvider,
+	tokenService jwtApplication.TokenService,
 ) *DiscordService {
 	return &DiscordService{
 		ctx:                ctx,
@@ -43,7 +43,7 @@ func NewOAuth2Service(
 		stateManager:       stateManager,
 		oauth2UserPort:     oauth2UserPort,
 		oauth2DatabasePort: oauth2DatabasePort,
-		tokenProvider:      tokenProvider,
+		tokenService:       tokenService,
 	}
 }
 
@@ -106,7 +106,7 @@ func (s *DiscordService) HandleDiscordCallback(req *dto.DiscordCallbackRequest) 
 		userId = discordAccount.UserId
 	}
 
-	jwtToken, err := s.tokenProvider.PublishToken(userId)
+	jwtToken, err := s.tokenService.GenerateTokenPair(userId)
 	if err != nil {
 		return nil, errors.New("failed to generate JWT token: " + err.Error())
 	}

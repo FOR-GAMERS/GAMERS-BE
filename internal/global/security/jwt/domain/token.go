@@ -1,11 +1,11 @@
-package jwt
+package domain
 
 import (
 	"GAMERS-BE/internal/global/utils"
 	"time"
 )
 
-type Config struct {
+type Token struct {
 	SecretKey            string
 	RefreshSecretKey     string
 	AccessTokenDuration  time.Duration
@@ -13,8 +13,8 @@ type Config struct {
 	Issuer               string
 }
 
-func NewConfigFromEnv() *Config {
-	return &Config{
+func NewConfigFromEnv() *Token {
+	return &Token{
 		SecretKey:            utils.GetEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 		RefreshSecretKey:     utils.GetEnv("JWT_REFRESH_SECRET", "your-secret-key-change-in-production"),
 		AccessTokenDuration:  utils.GetDurationEnv("JWT_ACCESS_DURATION", 30*time.Minute),

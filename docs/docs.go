@@ -23,80 +23,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/auth/discord": {
-            "get": {
-                "description": "Get Discord OAuth authorization URL",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Initiate Discord OAuth login",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Redirect URL after login",
-                        "name": "redirect_url",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/auth/discord/callback": {
-            "post": {
-                "description": "Process Discord OAuth callback and login/register user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Handle Discord OAuth callback",
-                "parameters": [
-                    {
-                        "description": "OAuth callback data",
-                        "name": "callback",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.OAuthCallbackRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/api/auth/login": {
             "post": {
                 "description": "Authenticate user with email and password",
@@ -117,7 +43,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.LoginRequest"
+                            "$ref": "#/definitions/GAMERS-BE_internal_auth_application_dto.LoginRequest"
                         }
                     }
                 ],
@@ -125,19 +51,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     }
                 }
@@ -163,7 +89,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.LogoutRequest"
+                            "$ref": "#/definitions/GAMERS-BE_internal_auth_application_dto.LogoutRequest"
                         }
                     }
                 ],
@@ -174,38 +100,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/auth/logout-all": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Revoke all refresh tokens for current user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Logout from all devices",
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     }
                 }
@@ -213,7 +108,7 @@ const docTemplate = `{
         },
         "/api/auth/refresh": {
             "post": {
-                "description": "Get new access token using refresh token",
+                "description": "Refresh access token using refresh token",
                 "consumes": [
                     "application/json"
                 ],
@@ -226,12 +121,12 @@ const docTemplate = `{
                 "summary": "Refresh access token",
                 "parameters": [
                     {
-                        "description": "Refresh token",
+                        "description": "Refresh token request",
                         "name": "refresh",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RefreshTokenRequest"
+                            "$ref": "#/definitions/GAMERS-BE_internal_auth_application_dto.RefreshRequest"
                         }
                     }
                 ],
@@ -239,32 +134,32 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     }
                 }
             }
         },
-        "/profiles/{id}": {
-            "get": {
+        "/api/contests": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get profile details by profile ID",
+                "description": "Create a new contest with contest details",
                 "consumes": [
                     "application/json"
                 ],
@@ -272,13 +167,71 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "profiles"
+                    "contests"
                 ],
-                "summary": "Get a profile by ID",
+                "summary": "Create a new contest",
+                "parameters": [
+                    {
+                        "description": "Contest creation request",
+                        "name": "contest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_contest_application_dto.CreateContestRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_contest_application_dto.ContestResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contests/{id}": {
+            "get": {
+                "description": "Get contest details by contest ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contests"
+                ],
+                "summary": "Get a contest by ID",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Profile ID",
+                        "description": "Contest ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -290,13 +243,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.ProfileResponse"
+                                            "$ref": "#/definitions/GAMERS-BE_internal_contest_application_dto.ContestResponse"
                                         }
                                     }
                                 }
@@ -306,19 +259,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     }
                 }
@@ -329,7 +276,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Delete profile by profile ID",
+                "description": "Delete contest by contest ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -337,13 +284,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "profiles"
+                    "contests"
                 ],
-                "summary": "Delete a profile",
+                "summary": "Delete a contest",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Profile ID",
+                        "description": "Contest ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -356,19 +303,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     }
                 }
@@ -379,7 +326,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update profile information by profile ID",
+                "description": "Update contest details by contest ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -387,24 +334,24 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "profiles"
+                    "contests"
                 ],
-                "summary": "Update a profile",
+                "summary": "Update a contest",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Profile ID",
+                        "description": "Contest ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Profile update request",
-                        "name": "profile",
+                        "description": "Contest update request",
+                        "name": "contest",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateProfileRequest"
+                            "$ref": "#/definitions/GAMERS-BE_internal_contest_application_dto.UpdateContestRequest"
                         }
                     }
                 ],
@@ -414,13 +361,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.ProfileResponse"
+                                            "$ref": "#/definitions/GAMERS-BE_internal_contest_application_dto.ContestResponse"
                                         }
                                     }
                                 }
@@ -430,25 +377,98 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     }
                 }
             }
         },
-        "/users": {
+        "/api/oauth2/discord/callback": {
+            "get": {
+                "description": "Handle Discord OAuth2 callback",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "oauth2"
+                ],
+                "summary": "Discord OAuth2 Callback",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authorization code",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "State",
+                        "name": "state",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/oauth2/discord/login": {
+            "get": {
+                "description": "Redirect to Discord OAuth2 login page",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "oauth2"
+                ],
+                "summary": "Discord OAuth2 Login",
+                "responses": {
+                    "302": {
+                        "description": "Redirect to Discord login page",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users": {
             "post": {
                 "description": "Create a new user with email and password",
                 "consumes": [
@@ -468,7 +488,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateUserRequest"
+                            "$ref": "#/definitions/GAMERS-BE_internal_user_application_dto.CreateUserRequest"
                         }
                     }
                 ],
@@ -478,13 +498,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.UserResponse"
+                                            "$ref": "#/definitions/GAMERS-BE_internal_user_application_dto.UserResponse"
                                         }
                                     }
                                 }
@@ -494,19 +514,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     }
                 }
             }
         },
-        "/users/{id}": {
+        "/api/users/{id}": {
             "get": {
                 "security": [
                     {
@@ -539,13 +559,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.UserResponse"
+                                            "$ref": "#/definitions/GAMERS-BE_internal_user_application_dto.UserResponse"
                                         }
                                     }
                                 }
@@ -555,19 +575,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     }
                 }
@@ -605,19 +625,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     }
                 }
@@ -653,7 +673,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateUserRequest"
+                            "$ref": "#/definitions/GAMERS-BE_internal_user_application_dto.UpdateUserRequest"
                         }
                     }
                 ],
@@ -663,13 +683,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.UserResponse"
+                                            "$ref": "#/definitions/GAMERS-BE_internal_user_application_dto.UserResponse"
                                         }
                                     }
                                 }
@@ -679,19 +699,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     }
                 }
@@ -699,12 +719,8 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.CreateUserRequest": {
+        "GAMERS-BE_internal_auth_application_dto.LoginRequest": {
             "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
             "properties": {
                 "email": {
                     "type": "string"
@@ -714,65 +730,22 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LoginRequest": {
+        "GAMERS-BE_internal_auth_application_dto.LogoutRequest": {
             "type": "object",
             "required": [
-                "email",
-                "password"
+                "access_token",
+                "refresh_token"
             ],
             "properties": {
-                "email": {
+                "access_token": {
                     "type": "string"
                 },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.LogoutRequest": {
-            "type": "object",
-            "properties": {
                 "refresh_token": {
                     "type": "string"
                 }
             }
         },
-        "dto.OAuthCallbackRequest": {
-            "type": "object",
-            "required": [
-                "code",
-                "state"
-            ],
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "state": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.ProfileResponse": {
-            "type": "object",
-            "properties": {
-                "avatar": {
-                    "type": "string"
-                },
-                "bio": {
-                    "type": "string"
-                },
-                "profile_id": {
-                    "type": "integer"
-                },
-                "tag": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.RefreshTokenRequest": {
+        "GAMERS-BE_internal_auth_application_dto.RefreshRequest": {
             "type": "object",
             "required": [
                 "refresh_token"
@@ -783,9 +756,157 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UpdateProfileRequest": {
+        "GAMERS-BE_internal_contest_application_dto.ContestResponse": {
+            "type": "object",
+            "properties": {
+                "auto_start": {
+                    "type": "boolean"
+                },
+                "contest_id": {
+                    "type": "integer"
+                },
+                "contest_status": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_contest_domain.ContestStatus"
+                },
+                "contest_type": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_contest_domain.ContestType"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "ended_at": {
+                    "type": "string"
+                },
+                "max_team_count": {
+                    "type": "integer"
+                },
+                "modified_at": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "total_point": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_contest_application_dto.CreateContestRequest": {
             "type": "object",
             "required": [
+                "contest_type",
+                "title"
+            ],
+            "properties": {
+                "auto_start": {
+                    "type": "boolean"
+                },
+                "contest_type": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_contest_domain.ContestType"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "ended_at": {
+                    "type": "string"
+                },
+                "max_team_count": {
+                    "type": "integer"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "total_point": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_contest_application_dto.UpdateContestRequest": {
+            "type": "object",
+            "properties": {
+                "auto_start": {
+                    "type": "boolean"
+                },
+                "contest_status": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_contest_domain.ContestStatus"
+                },
+                "contest_type": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_contest_domain.ContestType"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "ended_at": {
+                    "type": "string"
+                },
+                "max_team_count": {
+                    "type": "integer"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "total_point": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_contest_domain.ContestStatus": {
+            "type": "string",
+            "enum": [
+                "PENDING",
+                "ACTIVE",
+                "FINISHED",
+                "CANCELLED"
+            ],
+            "x-enum-varnames": [
+                "ContestStatusPending",
+                "ContestStatusActive",
+                "ContestStatusFinished",
+                "ContestStatusCancelled"
+            ]
+        },
+        "GAMERS-BE_internal_contest_domain.ContestType": {
+            "type": "string",
+            "enum": [
+                "TOURNAMENT",
+                "LEAGUE",
+                "CASUAL"
+            ],
+            "x-enum-varnames": [
+                "ContestTypeTournament",
+                "ContestTypeLeague",
+                "ContestTypeCasual"
+            ]
+        },
+        "GAMERS-BE_internal_global_response.Response": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_user_application_dto.CreateUserRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
                 "tag",
                 "username"
             ],
@@ -796,6 +917,12 @@ const docTemplate = `{
                 "bio": {
                     "type": "string"
                 },
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
                 "tag": {
                     "type": "string"
                 },
@@ -804,7 +931,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UpdateUserRequest": {
+        "GAMERS-BE_internal_user_application_dto.UpdateUserRequest": {
             "type": "object",
             "required": [
                 "password"
@@ -815,7 +942,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UserResponse": {
+        "GAMERS-BE_internal_user_application_dto.UserResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -824,22 +951,10 @@ const docTemplate = `{
                 "email": {
                     "type": "string"
                 },
-                "updated_at": {
+                "modified_at": {
                     "type": "string"
                 },
                 "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "response.Response": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "message": {
-                    "type": "string"
-                },
-                "status": {
                     "type": "integer"
                 }
             }

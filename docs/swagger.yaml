@@ -116,6 +116,18 @@ definitions:
     - ContestTypeTournament
     - ContestTypeLeague
     - ContestTypeCasual
+  GAMERS-BE_internal_global_common_dto.PaginationResponse:
+    properties:
+      data: {}
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total_count:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
   GAMERS-BE_internal_global_response.Response:
     properties:
       data: {}
@@ -260,6 +272,46 @@ paths:
       tags:
       - auth
   /api/contests:
+    get:
+      consumes:
+      - application/json
+      description: Get all contests with pagination and sorting support
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 10, max: 100)'
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Sort field: created_at, started_at, ended_at (default: created_at)'
+        in: query
+        name: sort_by
+        type: string
+      - description: 'Sort order: asc, desc (default: desc)'
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_global_common_dto.PaginationResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      summary: Get all contests with pagination
+      tags:
+      - contests
     post:
       consumes:
       - application/json

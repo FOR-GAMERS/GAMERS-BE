@@ -153,6 +153,71 @@ const docTemplate = `{
             }
         },
         "/api/contests": {
+            "get": {
+                "description": "Get all contests with pagination and sorting support",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contests"
+                ],
+                "summary": "Get all contests with pagination",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 10, max: 100)",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort field: created_at, started_at, ended_at (default: created_at)",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order: asc, desc (default: desc)",
+                        "name": "order",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_global_common_dto.PaginationResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -889,6 +954,24 @@ const docTemplate = `{
                 "ContestTypeLeague",
                 "ContestTypeCasual"
             ]
+        },
+        "GAMERS-BE_internal_global_common_dto.PaginationResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                }
+            }
         },
         "GAMERS-BE_internal_global_response.Response": {
             "type": "object",

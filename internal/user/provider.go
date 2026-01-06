@@ -1,6 +1,7 @@
 package user
 
 import (
+	"GAMERS-BE/internal/global/common/router"
 	"GAMERS-BE/internal/global/security/password"
 	"GAMERS-BE/internal/user/application"
 	userCommand "GAMERS-BE/internal/user/infra/persistence/command"
@@ -14,7 +15,7 @@ type Dependencies struct {
 	Controller *presentation.UserController
 }
 
-func ProvideUserDependencies(db *gorm.DB) *Dependencies {
+func ProvideUserDependencies(db *gorm.DB, router *router.Router) *Dependencies {
 	passwordHasher := password.NewBcryptPasswordHasher()
 
 	userQueryAdapter := userQuery.NewMysqlUserRepository(db)
@@ -26,7 +27,7 @@ func ProvideUserDependencies(db *gorm.DB) *Dependencies {
 		passwordHasher,
 	)
 
-	userController := presentation.NewUserController(userService)
+	userController := presentation.NewUserController(router, userService)
 
 	return &Dependencies{
 		Controller: userController,

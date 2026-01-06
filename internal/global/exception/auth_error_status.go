@@ -11,4 +11,7 @@ var (
 
 	ErrPasswordMismatch = NewBadRequestError("Password Mismatch", "AU004")
 	ErrEmailMismatch    = NewNotFoundError("No user", "AU005")
+
+	ErrUnauthorized        = NewBusinessError(http.StatusUnauthorized, "Unauthorized access", "AU006")
+	ErrInternalServerError = NewBusinessError(http.StatusInternalServerError, "Internal server error", "AU007")
 )

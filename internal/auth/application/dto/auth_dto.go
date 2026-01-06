@@ -19,9 +19,7 @@ type LoginResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-type TokenResponse struct {
-	AccessToken     string `json:"access_token"`
-	RefreshToken    string `json:"refresh_token"`
-	AccessTokenExp  int64  `json:"access_token_exp"`
-	RefreshTokenExp int64  `json:"refresh_token_exp"`
+type RefreshResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }

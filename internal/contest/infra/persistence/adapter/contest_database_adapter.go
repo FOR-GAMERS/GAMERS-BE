@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"GAMERS-BE/internal/contest/domain"
+	"GAMERS-BE/internal/global/common/dto"
 	"GAMERS-BE/internal/global/exception"
 	"errors"
 	"strings"
@@ -45,9 +46,29 @@ func (c ContestDatabaseAdapter) GetContestById(contestId int64) (*domain.Contest
 	return &contest, nil
 }
 
-func (c ContestDatabaseAdapter) GetContests() ([]domain.Contest, error) {
-	//TODO implement me
-	panic("implement me")
+func (c ContestDatabaseAdapter) GetContests(offset, limit int, sortReq *dto.SortRequest) ([]domain.Contest, int64, error) {
+	var contests []domain.Contest
+	var totalCount int64
+
+	// Get total count
+	if err := c.db.Model(&domain.Contest{}).Count(&totalCount).Error; err != nil {
+		return nil, 0, c.translateError(err)
+	}
+
+	// Get paginated data with dynamic sorting
+	orderClause := "created_at DESC" // default
+	if sortReq != nil {
+		orderClause = sortReq.GetOrderClause()
+	}
+
+	if err := c.db.Order(orderClause).
+		Offset(offset).
+		Limit(limit).
+		Find(&contests).Error; err != nil {
+		return nil, 0, c.translateError(err)
+	}
+
+	return contests, totalCount, nil
 }
 
 func (c ContestDatabaseAdapter) DeleteContestById(contestId int64) error {

@@ -3,6 +3,7 @@ package presentation
 import (
 	"GAMERS-BE/internal/contest/application"
 	"GAMERS-BE/internal/contest/application/dto"
+	commonDto "GAMERS-BE/internal/global/common/dto"
 	"GAMERS-BE/internal/global/common/handler"
 	"GAMERS-BE/internal/global/common/router"
 	"GAMERS-BE/internal/global/response"
@@ -32,6 +33,7 @@ func (c *ContestController) RegisterRoute() {
 	privateGroup.DELETE("/:id", c.DeleteContest)
 
 	publicGroup := c.router.PublicGroup("/api/contests")
+	publicGroup.GET("", c.GetAllContests)
 	publicGroup.GET("/:id", c.GetContestById)
 }
 
@@ -56,6 +58,39 @@ func (c *ContestController) SaveContest(ctx *gin.Context) {
 
 	contest, err := c.service.SaveContest(&req)
 	c.helper.RespondCreated(ctx, contest, err, "contest created successfully")
+}
+
+// GetAllContests godoc
+// @Summary Get all contests with pagination
+// @Description Get all contests with pagination and sorting support
+// @Tags contests
+// @Accept json
+// @Produce json
+// @Param page query int false "Page number (default: 1)"
+// @Param page_size query int false "Page size (default: 10, max: 100)"
+// @Param sort_by query string false "Sort field: created_at, started_at, ended_at (default: created_at)"
+// @Param order query string false "Sort order: asc, desc (default: desc)"
+// @Success 200 {object} response.Response{data=commonDto.PaginationResponse}
+// @Failure 400 {object} response.Response
+// @Router /api/contests [get]
+func (c *ContestController) GetAllContests(ctx *gin.Context) {
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "10"))
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	order := ctx.DefaultQuery("order", "desc")
+
+	paginationReq := commonDto.NewPaginationRequest(page, pageSize)
+	allowedSortFields := []string{"created_at", "started_at", "ended_at"}
+	sortReq := commonDto.NewSortRequest(sortBy, order, allowedSortFields)
+
+	contests, totalCount, err := c.service.GetAllContests(paginationReq.GetOffset(), paginationReq.GetLimit(), sortReq)
+	if err != nil {
+		response.JSON(ctx, response.Error(400, err.Error()))
+		return
+	}
+
+	paginationResp := commonDto.NewPaginationResponse(contests, paginationReq.Page, paginationReq.PageSize, totalCount)
+	c.helper.RespondOK(ctx, paginationResp, nil, "contests retrieved successfully")
 }
 
 // GetContestById godoc

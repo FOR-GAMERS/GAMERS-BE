@@ -1,6 +1,7 @@
 package presentation
 
 import (
+	"GAMERS-BE/internal/global/common/router"
 	"GAMERS-BE/internal/global/response"
 	"GAMERS-BE/internal/oauth2/application"
 	"GAMERS-BE/internal/oauth2/application/dto"
@@ -9,17 +10,19 @@ import (
 )
 
 type DiscordController struct {
+	router        *router.Router
 	oauth2Service *application.DiscordService
 }
 
-func NewDiscordController(oauth2Service *application.DiscordService) *DiscordController {
+func NewDiscordController(router *router.Router, oauth2Service *application.DiscordService) *DiscordController {
 	return &DiscordController{
+		router:        router,
 		oauth2Service: oauth2Service,
 	}
 }
 
-func (c *DiscordController) RegisterRoutes(router *gin.Engine) {
-	oauth2Group := router.Group("/api/oauth2")
+func (c *DiscordController) RegisterRoutes() {
+	oauth2Group := c.router.PublicGroup("/api/oauth2")
 	{
 		oauth2Group.GET("/discord/login", c.DiscordLogin)
 		oauth2Group.GET("/discord/callback", c.DiscordCallback)

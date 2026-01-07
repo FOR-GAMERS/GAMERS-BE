@@ -68,7 +68,11 @@ jobs:
         env:
           VM_HOST: ${{ steps.set-env.outputs.VM_HOST }}
           VM_USER: ${{ steps.set-env.outputs.VM_USER }}
-          IMAGE_TAG: ${{ github.ref == 'refs/heads/main' && 'latest' || github.ref_name }}
+          IMAGE_TAG: >-
+            ${{ 
+              github.event_name == 'workflow_dispatch' && (github.ref_name == 'main' && 'latest' || github.ref_name) ||
+              github.event.workflow_run.head_branch == 'main' && 'latest' || github.event.workflow_run.head_branch
+            }}
         run: |
           ssh $VM_USER@$VM_HOST << 'ENDSSH'
             set -e
@@ -92,12 +96,13 @@ jobs:
 
             # 새 컨테이너 실행
             echo "▶️  Starting new container..."
+            echo "${{ secrets.ENV_FILE_PRODUCTION }}" > .env.temp
             docker run -d \
               --name ${{ env.CONTAINER_NAME }} \
               --restart unless-stopped \
               -p ${{ env.PORT }}:${{ env.PORT }} \
               -e PORT=${{ env.PORT }} \
-              --env-file /opt/gamers-go/.env \
+              --env-file .env.temp \
               --log-driver json-file \
               --log-opt max-size=10m \
               --log-opt max-file=3 \

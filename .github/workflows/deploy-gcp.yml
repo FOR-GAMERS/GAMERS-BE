@@ -22,8 +22,12 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  CONTAINER_NAME: gamers-go-api
+  CONTAINER_NAME: gamers-api-server
   PORT: 8080
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   deploy:

@@ -81,20 +81,25 @@ jobs:
             echo "🚀 Starting deployment process..."
             echo "=========================================="
 
-            # Docker 로그인 (GHCR)
+            # GitHub Repository changed to lowercase
+            REPO_NAME="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+            FULL_IMAGE_NAME=$(echo "$REPO_NAME" | tr '[:upper:]' '[:lower:]')
+            IMAGE_TAG="${{ env.IMAGE_TAG }}"
+
+            # Docker Login (GHCR)
             echo "📦 Logging in to GitHub Container Registry..."
             echo ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # 최신 이미지 Pull
+            # Latest Image Pull
             echo "⬇️  Pulling latest Docker image..."
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            docker pull $FULL_IMAGE_NAME:$IMAGE_TAG
 
-            # 기존 컨테이너 중지 및 제거
+            # Container stop and remove
             echo "🛑 Stopping and removing existing container..."
             docker stop ${{ env.CONTAINER_NAME }} 2>/dev/null || true
             docker rm ${{ env.CONTAINER_NAME }} 2>/dev/null || true
 
-            # 새 컨테이너 실행
+            # Execute new container
             echo "▶️  Starting new container..."
             echo "${{ secrets.ENV_FILE_PRODUCTION }}" > .env.temp
             docker run -d \
@@ -110,11 +115,11 @@ jobs:
 
             rm .env.temp
 
-            # 컨테이너 시작 대기
+            # wait for container
             echo "⏳ Waiting for container to start..."
             sleep 5
 
-            # 헬스체크
+            # healthy check
             echo "🏥 Performing health check..."
             MAX_RETRIES=10
             RETRY_COUNT=0
@@ -138,7 +143,7 @@ jobs:
               exit 1
             fi
 
-            # 미사용 이미지 정리
+            # delete unused image
             echo "🧹 Cleaning up old images..."
             docker image prune -af --filter "until=24h" || true
 
@@ -146,7 +151,7 @@ jobs:
             echo "✅ Deployment completed successfully!"
             echo "=========================================="
 
-            # 배포 정보 출력
+            # print deployment information
             echo ""
             echo "📊 Deployment Information:"
             echo "  - Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"

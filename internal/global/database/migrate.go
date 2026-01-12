@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -33,7 +34,7 @@ func RunMigrations(db *sql.DB, migrationsPath string) error {
 	}
 
 	version, dirty, err := m.Version()
-	if err != nil && err != migrate.ErrNilVersion {
+	if err != nil && !errors.Is(err, migrate.ErrNilVersion) {
 		return fmt.Errorf("could not get migration version: %w", err)
 	}
 
@@ -41,7 +42,7 @@ func RunMigrations(db *sql.DB, migrationsPath string) error {
 
 	// Migration 실행
 	if err := m.Up(); err != nil {
-		if err == migrate.ErrNoChange {
+		if errors.Is(err, migrate.ErrNoChange) {
 			log.Println("✅ No new migrations to apply")
 			return nil
 		}
@@ -95,7 +96,7 @@ func GetMigrationVersion(db *sql.DB, migrationsPath string) (uint, bool, error) 
 
 	version, dirty, err := m.Version()
 	if err != nil {
-		if err == migrate.ErrNilVersion {
+		if errors.Is(err, migrate.ErrNilVersion) {
 			return 0, false, nil
 		}
 		return 0, false, err

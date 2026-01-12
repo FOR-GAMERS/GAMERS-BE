@@ -35,21 +35,33 @@ type Contest struct {
 
 	AutoStart bool `gorm:"column:auto_start;type:boolean;default:false" json:"auto_start"`
 
+	DiscordGuildId       *string `gorm:"column:discord_guild_id;type:varchar(255)" json:"discord_guild_id,omitempty"`
+	DiscordTextChannelId *string `gorm:"column:discord_text_channel_id;type:varchar(255)" json:"discord_text_channel_id,omitempty"`
+
 	CreatedAt  time.Time `gorm:"column:created_at;type:timestamp;default:CURRENT_TIMESTAMP" json:"created_at"`
 	ModifiedAt time.Time `gorm:"column:modified_at;type:timestamp;default:CURRENT_TIMESTAMP" json:"modified_at"`
 }
 
-func NewContestInstance(title, description string, maxTeamCount, totalPoint int, contestType ContestType, startedAt, endedAt time.Time, autoStart bool) *Contest {
+func NewContestInstance(
+	title, description string,
+	maxTeamCount, totalPoint int,
+	contestType ContestType,
+	startedAt, endedAt time.Time,
+	autoStart bool,
+	discordGuildId, discordTextChannelId *string,
+) *Contest {
 	return &Contest{
-		Title:         title,
-		Description:   description,
-		MaxTeamCount:  maxTeamCount,
-		TotalPoint:    totalPoint,
-		ContestType:   contestType,
-		ContestStatus: ContestStatusPending,
-		StartedAt:     startedAt,
-		EndedAt:       endedAt,
-		AutoStart:     autoStart,
+		Title:                title,
+		Description:          description,
+		MaxTeamCount:         maxTeamCount,
+		TotalPoint:           totalPoint,
+		ContestType:          contestType,
+		ContestStatus:        ContestStatusPending,
+		StartedAt:            startedAt,
+		EndedAt:              endedAt,
+		AutoStart:            autoStart,
+		DiscordGuildId:       discordGuildId,
+		DiscordTextChannelId: discordTextChannelId,
 	}
 }
 
@@ -142,7 +154,27 @@ func (c *Contest) ValidateBusinessRules() error {
 		return exception.ErrInvalidTotalPoint
 	}
 
+	if err := c.ValidateDiscordFields(); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// ValidateDiscordFields checks if Discord fields are valid
+// If guild_id is provided, text_channel_id must also be provided
+func (c *Contest) ValidateDiscordFields() error {
+	if c.DiscordGuildId != nil && *c.DiscordGuildId != "" {
+		if c.DiscordTextChannelId == nil || *c.DiscordTextChannelId == "" {
+			return exception.ErrDiscordTextChannelRequired
+		}
+	}
+	return nil
+}
+
+// HasDiscordIntegration checks if the contest has Discord integration configured
+func (c *Contest) HasDiscordIntegration() bool {
+	return c.DiscordGuildId != nil && *c.DiscordGuildId != ""
 }
 
 func (c *Contest) Validate() error {

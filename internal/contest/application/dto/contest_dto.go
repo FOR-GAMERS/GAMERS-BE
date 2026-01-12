@@ -7,41 +7,47 @@ import (
 )
 
 type CreateContestRequest struct {
-	Title        string             `json:"title" binding:"required"`
-	Description  string             `json:"description,omitempty"`
-	MaxTeamCount int                `json:"max_team_count,omitempty"`
-	TotalPoint   int                `json:"total_point,omitempty"`
-	ContestType  domain.ContestType `json:"contest_type" binding:"required"`
-	StartedAt    time.Time          `json:"started_at,omitempty"`
-	EndedAt      time.Time          `json:"ended_at,omitempty"`
-	AutoStart    bool               `json:"auto_start,omitempty"`
+	Title                string             `json:"title" binding:"required"`
+	Description          string             `json:"description,omitempty"`
+	MaxTeamCount         int                `json:"max_team_count,omitempty"`
+	TotalPoint           int                `json:"total_point,omitempty"`
+	ContestType          domain.ContestType `json:"contest_type" binding:"required"`
+	StartedAt            time.Time          `json:"started_at,omitempty"`
+	EndedAt              time.Time          `json:"ended_at,omitempty"`
+	AutoStart            bool               `json:"auto_start,omitempty"`
+	DiscordGuildId       *string            `json:"discord_guild_id,omitempty"`
+	DiscordTextChannelId *string            `json:"discord_text_channel_id,omitempty"`
 }
 
 type UpdateContestRequest struct {
-	Title         *string               `json:"title,omitempty"`
-	Description   *string               `json:"description,omitempty"`
-	MaxTeamCount  *int                  `json:"max_team_count,omitempty"`
-	TotalPoint    *int                  `json:"total_point,omitempty"`
-	ContestType   *domain.ContestType   `json:"contest_type,omitempty"`
-	ContestStatus *domain.ContestStatus `json:"contest_status,omitempty"`
-	StartedAt     *time.Time            `json:"started_at,omitempty"`
-	EndedAt       *time.Time            `json:"ended_at,omitempty"`
-	AutoStart     *bool                 `json:"auto_start,omitempty"`
+	Title                *string               `json:"title,omitempty"`
+	Description          *string               `json:"description,omitempty"`
+	MaxTeamCount         *int                  `json:"max_team_count,omitempty"`
+	TotalPoint           *int                  `json:"total_point,omitempty"`
+	ContestType          *domain.ContestType   `json:"contest_type,omitempty"`
+	ContestStatus        *domain.ContestStatus `json:"contest_status,omitempty"`
+	StartedAt            *time.Time            `json:"started_at,omitempty"`
+	EndedAt              *time.Time            `json:"ended_at,omitempty"`
+	AutoStart            *bool                 `json:"auto_start,omitempty"`
+	DiscordGuildId       *string               `json:"discord_guild_id,omitempty"`
+	DiscordTextChannelId *string               `json:"discord_text_channel_id,omitempty"`
 }
 
 type ContestResponse struct {
-	ContestID     int64                `json:"contest_id"`
-	Title         string               `json:"title"`
-	Description   string               `json:"description,omitempty"`
-	MaxTeamCount  int                  `json:"max_team_count,omitempty"`
-	TotalPoint    int                  `json:"total_point"`
-	ContestType   domain.ContestType   `json:"contest_type"`
-	ContestStatus domain.ContestStatus `json:"contest_status"`
-	StartedAt     time.Time            `json:"started_at,omitempty"`
-	EndedAt       time.Time            `json:"ended_at,omitempty"`
-	AutoStart     bool                 `json:"auto_start,omitempty"`
-	CreatedAt     time.Time            `json:"created_at"`
-	ModifiedAt    time.Time            `json:"modified_at"`
+	ContestID            int64                `json:"contest_id"`
+	Title                string               `json:"title"`
+	Description          string               `json:"description,omitempty"`
+	MaxTeamCount         int                  `json:"max_team_count,omitempty"`
+	TotalPoint           int                  `json:"total_point"`
+	ContestType          domain.ContestType   `json:"contest_type"`
+	ContestStatus        domain.ContestStatus `json:"contest_status"`
+	StartedAt            time.Time            `json:"started_at,omitempty"`
+	EndedAt              time.Time            `json:"ended_at,omitempty"`
+	AutoStart            bool                 `json:"auto_start,omitempty"`
+	DiscordGuildId       *string              `json:"discord_guild_id,omitempty"`
+	DiscordTextChannelId *string              `json:"discord_text_channel_id,omitempty"`
+	CreatedAt            time.Time            `json:"created_at"`
+	ModifiedAt           time.Time            `json:"modified_at"`
 }
 
 func (req *UpdateContestRequest) ApplyTo(contest *domain.Contest) {
@@ -72,6 +78,12 @@ func (req *UpdateContestRequest) ApplyTo(contest *domain.Contest) {
 	if req.AutoStart != nil {
 		contest.AutoStart = *req.AutoStart
 	}
+	if req.DiscordGuildId != nil {
+		contest.DiscordGuildId = req.DiscordGuildId
+	}
+	if req.DiscordTextChannelId != nil {
+		contest.DiscordTextChannelId = req.DiscordTextChannelId
+	}
 }
 
 func (req *UpdateContestRequest) HasChanges() bool {
@@ -83,7 +95,9 @@ func (req *UpdateContestRequest) HasChanges() bool {
 		req.ContestStatus != nil ||
 		req.StartedAt != nil ||
 		req.EndedAt != nil ||
-		req.AutoStart != nil
+		req.AutoStart != nil ||
+		req.DiscordGuildId != nil ||
+		req.DiscordTextChannelId != nil
 }
 
 func (req *UpdateContestRequest) Validate() error {

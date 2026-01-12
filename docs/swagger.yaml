@@ -38,6 +38,10 @@ definitions:
         type: string
       description:
         type: string
+      discord_guild_id:
+        type: string
+      discord_text_channel_id:
+        type: string
       ended_at:
         type: string
       max_team_count:
@@ -59,6 +63,10 @@ definitions:
         $ref: '#/definitions/GAMERS-BE_internal_contest_domain.ContestType'
       description:
         type: string
+      discord_guild_id:
+        type: string
+      discord_text_channel_id:
+        type: string
       ended_at:
         type: string
       max_team_count:
@@ -73,6 +81,13 @@ definitions:
     - contest_type
     - title
     type: object
+  GAMERS-BE_internal_contest_application_dto.DiscordLinkRequiredResponse:
+    properties:
+      message:
+        type: string
+      oauth_url:
+        type: string
+    type: object
   GAMERS-BE_internal_contest_application_dto.UpdateContestRequest:
     properties:
       auto_start:
@@ -82,6 +97,10 @@ definitions:
       contest_type:
         $ref: '#/definitions/GAMERS-BE_internal_contest_domain.ContestType'
       description:
+        type: string
+      discord_guild_id:
+        type: string
+      discord_text_channel_id:
         type: string
       ended_at:
         type: string
@@ -343,11 +362,275 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_contest_application_dto.DiscordLinkRequiredResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Create a new contest
       tags:
       - contests
+  /api/contests/{contestId}/applications:
+    get:
+      consumes:
+      - application/json
+      description: Get all pending applications for a contest (Leader only)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get pending applications for a contest
+      tags:
+      - contest-applications
+    post:
+      consumes:
+      - application/json
+      description: Apply to participate in a contest
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_contest_application_dto.DiscordLinkRequiredResponse'
+              type: object
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Request to participate in a contest
+      tags:
+      - contest-applications
+  /api/contests/{contestId}/applications/{userId}/accept:
+    post:
+      consumes:
+      - application/json
+      description: Accept a user's application to join the contest (Leader only)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      - description: User ID to accept
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Accept a contest application
+      tags:
+      - contest-applications
+  /api/contests/{contestId}/applications/{userId}/reject:
+    post:
+      consumes:
+      - application/json
+      description: Reject a user's application to join the contest (Leader only)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      - description: User ID to reject
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Reject a contest application
+      tags:
+      - contest-applications
+  /api/contests/{contestId}/applications/cancel:
+    delete:
+      consumes:
+      - application/json
+      description: Cancel current user's pending application for a contest
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Cancel my pending application
+      tags:
+      - contest-applications
+  /api/contests/{contestId}/applications/me:
+    get:
+      consumes:
+      - application/json
+      description: Get current user's application status for a contest
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get my application status
+      tags:
+      - contest-applications
+  /api/contests/{contestId}/applications/withdraw:
+    delete:
+      consumes:
+      - application/json
+      description: Withdraw current user from a contest (Leader cannot withdraw)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Withdraw from a contest
+      tags:
+      - contest-applications
   /api/contests/{id}:
     delete:
       consumes:
@@ -457,6 +740,51 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a contest
+      tags:
+      - contests
+  /api/contests/{id}/start:
+    post:
+      consumes:
+      - application/json
+      description: Start a contest and migrate accepted applications to database (Leader
+        only)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_contest_application_dto.ContestResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Start a contest
       tags:
       - contests
   /api/oauth2/discord/callback:

@@ -63,6 +63,14 @@ func InternalServerError(message string) *ApiResponse[any] {
 	return Error(http.StatusInternalServerError, message)
 }
 
+func Forbidden[T any](data T, message string) *ApiResponse[T] {
+	return &ApiResponse[T]{
+		Status:  http.StatusForbidden,
+		Message: message,
+		Data:    data,
+	}
+}
+
 func JSON[T any](ctx *gin.Context, response *ApiResponse[T]) {
 	ctx.JSON(response.Status, response)
 }

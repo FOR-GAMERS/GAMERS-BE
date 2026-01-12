@@ -4,6 +4,7 @@ import (
 	"GAMERS-BE/internal/global/common/router"
 	jwtApplication "GAMERS-BE/internal/global/security/jwt"
 	"GAMERS-BE/internal/oauth2/application"
+	"GAMERS-BE/internal/oauth2/application/port"
 	"GAMERS-BE/internal/oauth2/infra/discord"
 	"GAMERS-BE/internal/oauth2/infra/persistence/adapter"
 	"GAMERS-BE/internal/oauth2/infra/state"
@@ -16,7 +17,8 @@ import (
 )
 
 type Dependencies struct {
-	Controller *presentation.DiscordController
+	Controller       *presentation.DiscordController
+	OAuth2Repository port.OAuth2DatabasePort
 }
 
 func ProvideOAuth2Dependencies(db *gorm.DB, router *router.Router) *Dependencies {
@@ -45,6 +47,7 @@ func ProvideOAuth2Dependencies(db *gorm.DB, router *router.Router) *Dependencies
 	discordController := presentation.NewDiscordController(router, oauth2Service)
 
 	return &Dependencies{
-		Controller: discordController,
+		Controller:       discordController,
+		OAuth2Repository: oauth2DatabaseAdapter,
 	}
 }

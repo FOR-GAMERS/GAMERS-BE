@@ -9,6 +9,7 @@ import (
 	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
 	"context"
 	"errors"
+	"log"
 	"time"
 )
 
@@ -148,36 +149,29 @@ func (c *ContestService) checkLeaderPermission(contestId, userId int64) error {
 	return nil
 }
 
-// StartContest - Contest 시작 (Leader만 가능)
 func (c *ContestService) StartContest(ctx context.Context, contestId, userId int64) (*domain.Contest, error) {
-	// Contest 조회
 	contest, err := c.repository.GetContestById(contestId)
 	if err != nil {
 		return nil, err
 	}
 
-	// Leader 권한 확인
 	if err := c.checkLeaderPermission(contestId, userId); err != nil {
 		return nil, err
 	}
 
-	// Contest 상태가 PENDING인지 확인
 	if contest.ContestStatus != domain.ContestStatusPending {
 		return nil, exception.ErrContestNotPending
 	}
 
-	// Contest 시작 시간이 되었는지 확인
 	if !contest.CanStart() {
 		return nil, exception.ErrContestCannotStart
 	}
 
-	// Redis에서 Accepted 신청을 DB로 마이그레이션
 	acceptedUserIDs, err := c.applicationRepository.GetAcceptedApplications(ctx, contestId)
 	if err != nil {
 		return nil, err
 	}
 
-	// Accepted된 user가 있으면 DB에 저장
 	if len(acceptedUserIDs) > 0 {
 		members := make([]*domain.ContestMember, 0, len(acceptedUserIDs))
 		for _, userID := range acceptedUserIDs {
@@ -190,7 +184,6 @@ func (c *ContestService) StartContest(ctx context.Context, contestId, userId int
 		}
 	}
 
-	// Contest 상태를 ACTIVE로 변경
 	if err := contest.TransitionTo(domain.ContestStatusActive); err != nil {
 		return nil, err
 	}
@@ -199,10 +192,8 @@ func (c *ContestService) StartContest(ctx context.Context, contestId, userId int
 		return nil, err
 	}
 
-	// Redis 정리
 	if err := c.applicationRepository.ClearApplications(ctx, contestId); err != nil {
-		// 로그만 남기고 계속 진행 (Contest는 이미 시작됨)
-		// TODO: 로깅 추가
+		log.Fatal(err)
 	}
 
 	return contest, nil

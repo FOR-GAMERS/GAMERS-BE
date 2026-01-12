@@ -263,6 +263,6 @@ func (c *ContestApplicationController) WithdrawFromContest(ctx *gin.Context) {
 		return
 	}
 
-	err = c.service.WithdrawFromContest(ctx.Request.Context(), contestId, userId)
+	err = c.service.WithdrawFromContest(contestId, userId)
 	c.helper.RespondOK(ctx, nil, err, "successfully withdrawn from contest")
 }

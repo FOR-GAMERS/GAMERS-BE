@@ -14,4 +14,6 @@ var (
 
 	ErrUnauthorized        = NewBusinessError(http.StatusUnauthorized, "Unauthorized access", "AU006")
 	ErrInternalServerError = NewBusinessError(http.StatusInternalServerError, "Internal server error", "AU007")
+
+	ErrPermissionDenied = NewBusinessError(http.StatusUnauthorized, "Permission denied", "AU008")
 )

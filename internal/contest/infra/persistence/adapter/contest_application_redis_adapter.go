@@ -23,9 +23,7 @@ func NewContestApplicationRedisAdapter(client *redis.Client) *ContestApplication
 	}
 }
 
-// RequestParticipate - 신청 요청
 func (c *ContestApplicationRedisAdapter) RequestParticipate(ctx context.Context, contestId, userId int64, ttl time.Duration) error {
-	// 중복 신청 확인
 	hasApplied, err := c.HasApplied(ctx, contestId, userId)
 	if err != nil {
 		return err
@@ -60,7 +58,7 @@ func (c *ContestApplicationRedisAdapter) RequestParticipate(ctx context.Context,
 
 	userAppKey := utils.GetUserApplicationsKey(userId)
 	pipe.SAdd(ctx, userAppKey, contestId)
-	pipe.Expire(ctx, userAppKey, 30*24*time.Hour) // 30일 유지
+	pipe.Expire(ctx, userAppKey, 30*24*time.Hour)
 
 	_, err = pipe.Exec(ctx)
 	return err
@@ -103,30 +101,24 @@ func (c *ContestApplicationRedisAdapter) AcceptRequest(ctx context.Context, cont
 	return err
 }
 
-// CancelApplication - Cancel a pending application (by user themselves)
 func (c *ContestApplicationRedisAdapter) CancelApplication(ctx context.Context, contestId, userId int64) error {
-	// Get application info
 	app, err := c.GetApplication(ctx, contestId, userId)
 	if err != nil {
 		return err
 	}
 
-	// Only pending applications can be cancelled
 	if app.Status != port.ApplicationStatusPending {
 		return exception.ErrApplicationNotPending
 	}
 
 	pipe := c.client.Pipeline()
 
-	// 1. Delete application data
 	appKey := utils.GetApplicationKey(contestId, userId)
 	pipe.Del(ctx, appKey)
 
-	// 2. Remove from pending set
 	pendingKey := utils.GetPendingKey(contestId)
 	pipe.ZRem(ctx, pendingKey, userId)
 
-	// 3. Remove from user's application list
 	userAppKey := utils.GetUserApplicationsKey(userId)
 	pipe.SRem(ctx, userAppKey, contestId)
 
@@ -262,13 +254,20 @@ func (c *ContestApplicationRedisAdapter) GetRejectedApplications(ctx context.Con
 }
 
 // HasApplied - 중복 신청 확인
+// Pending/Accepted 상태면 재신청 불가, Rejected 상태면 재신청 가능
 func (c *ContestApplicationRedisAdapter) HasApplied(ctx context.Context, contestId, userId int64) (bool, error) {
-	userAppKey := utils.GetUserApplicationsKey(userId)
-	exists, err := c.client.SIsMember(ctx, userAppKey, contestId).Result()
+	app, err := c.GetApplication(ctx, contestId, userId)
 	if err != nil {
+		if err == exception.ErrApplicationNotFound {
+			return false, nil
+		}
 		return false, err
 	}
-	return exists, nil
+	// Rejected 상태는 재신청 가능
+	if app.Status == port.ApplicationStatusRejected {
+		return false, nil
+	}
+	return true, nil
 }
 
 // ExtendTTL - TTL 연장

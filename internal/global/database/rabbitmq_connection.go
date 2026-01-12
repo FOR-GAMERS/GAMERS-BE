@@ -3,7 +3,9 @@ package database
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -15,16 +17,29 @@ type RabbitMQConnection struct {
 	mu          sync.RWMutex
 	closed      bool
 	reconnectCh chan struct{}
+	stopCh      chan struct{}
 }
 
 func NewRabbitMQConnection(config *RabbitMQConfig) *RabbitMQConnection {
 	return &RabbitMQConnection{
 		config:      config,
 		reconnectCh: make(chan struct{}, 1),
+		stopCh:      make(chan struct{}),
 	}
 }
 
 func (r *RabbitMQConnection) Connect() error {
+	if err := r.connect(); err != nil {
+		return err
+	}
+
+	// Start reconnect loop
+	go r.reconnectLoop()
+
+	return nil
+}
+
+func (r *RabbitMQConnection) connect() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -59,6 +74,66 @@ func (r *RabbitMQConnection) monitorConnection() {
 		case r.reconnectCh <- struct{}{}:
 		default:
 		}
+	}
+}
+
+func (r *RabbitMQConnection) reconnectLoop() {
+	for {
+		select {
+		case <-r.stopCh:
+			return
+		case <-r.reconnectCh:
+			r.handleReconnect()
+		}
+	}
+}
+
+func (r *RabbitMQConnection) handleReconnect() {
+	backoff := time.Second
+	maxBackoff := 30 * time.Second
+
+	for {
+		if r.closed {
+			return
+		}
+
+		log.Printf("RabbitMQ: attempting to reconnect...")
+
+		if err := r.connect(); err != nil {
+			log.Printf("RabbitMQ: reconnect failed: %v, retrying in %v", err, backoff)
+			time.Sleep(backoff)
+
+			// Exponential backoff
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+			continue
+		}
+
+		// Re-setup topology after reconnection
+		if err := r.SetupTopology(); err != nil {
+			log.Printf("RabbitMQ: failed to setup topology: %v, retrying...", err)
+			r.closeConnections()
+			continue
+		}
+
+		log.Printf("RabbitMQ: reconnected successfully")
+		return
+	}
+}
+
+func (r *RabbitMQConnection) closeConnections() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.channel != nil {
+		r.channel.Close()
+		r.channel = nil
+	}
+	if r.conn != nil {
+		r.conn.Close()
+		r.conn = nil
 	}
 }
 
@@ -131,7 +206,14 @@ func (r *RabbitMQConnection) Close() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if r.closed {
+		return nil
+	}
+
 	r.closed = true
+
+	// Stop reconnect loop
+	close(r.stopCh)
 
 	if r.channel != nil {
 		r.channel.Close()

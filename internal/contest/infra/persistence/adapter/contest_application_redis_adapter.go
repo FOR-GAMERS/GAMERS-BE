@@ -36,7 +36,6 @@ func (c *ContestApplicationRedisAdapter) RequestParticipate(ctx context.Context,
 
 	pipe := c.client.Pipeline()
 
-	// 1. 신청 정보 저장 (Hash)
 	appKey := utils.GetApplicationKey(contestId, userId)
 	application := port.ContestApplication{
 		UserID:      userId,
@@ -52,7 +51,6 @@ func (c *ContestApplicationRedisAdapter) RequestParticipate(ctx context.Context,
 
 	pipe.Set(ctx, appKey, appData, ttl)
 
-	// 2. Pending 목록에 추가 (Sorted Set - 신청 시간으로 정렬)
 	pendingKey := utils.GetPendingKey(contestId)
 	pipe.ZAdd(ctx, pendingKey, redis.Z{
 		Score:  float64(time.Now().Unix()),
@@ -60,7 +58,6 @@ func (c *ContestApplicationRedisAdapter) RequestParticipate(ctx context.Context,
 	})
 	pipe.Expire(ctx, pendingKey, ttl)
 
-	// 3. User의 신청 목록에 추가
 	userAppKey := utils.GetUserApplicationsKey(userId)
 	pipe.SAdd(ctx, userAppKey, contestId)
 	pipe.Expire(ctx, userAppKey, 30*24*time.Hour) // 30일 유지
@@ -69,9 +66,7 @@ func (c *ContestApplicationRedisAdapter) RequestParticipate(ctx context.Context,
 	return err
 }
 
-// AcceptRequest - 신청 승인
 func (c *ContestApplicationRedisAdapter) AcceptRequest(ctx context.Context, contestId, userId, processedBy int64) error {
-	// 신청 정보 조회
 	app, err := c.GetApplication(ctx, contestId, userId)
 	if err != nil {
 		return err
@@ -83,7 +78,6 @@ func (c *ContestApplicationRedisAdapter) AcceptRequest(ctx context.Context, cont
 
 	pipe := c.client.Pipeline()
 
-	// 1. 신청 상태 업데이트
 	appKey := utils.GetApplicationKey(contestId, userId)
 	now := time.Now()
 	app.Status = port.ApplicationStatusAccepted
@@ -95,15 +89,12 @@ func (c *ContestApplicationRedisAdapter) AcceptRequest(ctx context.Context, cont
 		return err
 	}
 
-	// 기존 TTL 유지
 	ttl := c.client.TTL(ctx, appKey).Val()
 	pipe.Set(ctx, appKey, appData, ttl)
 
-	// 2. Pending에서 제거
 	pendingKey := utils.GetPendingKey(contestId)
 	pipe.ZRem(ctx, pendingKey, userId)
 
-	// 3. Accepted Set에 추가
 	acceptedKey := utils.GetAcceptedKey(contestId)
 	pipe.SAdd(ctx, acceptedKey, userId)
 	pipe.Expire(ctx, acceptedKey, ttl)
@@ -112,9 +103,38 @@ func (c *ContestApplicationRedisAdapter) AcceptRequest(ctx context.Context, cont
 	return err
 }
 
-// RejectRequest - 신청 거절
+// CancelApplication - Cancel a pending application (by user themselves)
+func (c *ContestApplicationRedisAdapter) CancelApplication(ctx context.Context, contestId, userId int64) error {
+	// Get application info
+	app, err := c.GetApplication(ctx, contestId, userId)
+	if err != nil {
+		return err
+	}
+
+	// Only pending applications can be cancelled
+	if app.Status != port.ApplicationStatusPending {
+		return exception.ErrApplicationNotPending
+	}
+
+	pipe := c.client.Pipeline()
+
+	// 1. Delete application data
+	appKey := utils.GetApplicationKey(contestId, userId)
+	pipe.Del(ctx, appKey)
+
+	// 2. Remove from pending set
+	pendingKey := utils.GetPendingKey(contestId)
+	pipe.ZRem(ctx, pendingKey, userId)
+
+	// 3. Remove from user's application list
+	userAppKey := utils.GetUserApplicationsKey(userId)
+	pipe.SRem(ctx, userAppKey, contestId)
+
+	_, err = pipe.Exec(ctx)
+	return err
+}
+
 func (c *ContestApplicationRedisAdapter) RejectRequest(ctx context.Context, contestId, userId, processedBy int64) error {
-	// 신청 정보 조회
 	app, err := c.GetApplication(ctx, contestId, userId)
 	if err != nil {
 		return err
@@ -126,7 +146,6 @@ func (c *ContestApplicationRedisAdapter) RejectRequest(ctx context.Context, cont
 
 	pipe := c.client.Pipeline()
 
-	// 1. 신청 상태 업데이트
 	appKey := utils.GetApplicationKey(contestId, userId)
 	now := time.Now()
 	app.Status = port.ApplicationStatusRejected
@@ -138,18 +157,18 @@ func (c *ContestApplicationRedisAdapter) RejectRequest(ctx context.Context, cont
 		return err
 	}
 
-	// 기존 TTL 유지
 	ttl := c.client.TTL(ctx, appKey).Val()
 	pipe.Set(ctx, appKey, appData, ttl)
 
-	// 2. Pending에서 제거
 	pendingKey := utils.GetPendingKey(contestId)
 	pipe.ZRem(ctx, pendingKey, userId)
 
-	// 3. Rejected Set에 추가
 	rejectedKey := utils.GetRejectedKey(contestId)
 	pipe.SAdd(ctx, rejectedKey, userId)
 	pipe.Expire(ctx, rejectedKey, ttl)
+
+	userAppKey := utils.GetUserApplicationsKey(userId)
+	pipe.SRem(ctx, userAppKey, contestId)
 
 	_, err = pipe.Exec(ctx)
 	return err

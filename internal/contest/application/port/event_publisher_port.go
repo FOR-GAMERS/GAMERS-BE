@@ -12,6 +12,7 @@ const (
 	EventTypeApplicationRequested EventType = "application.requested"
 	EventTypeApplicationAccepted  EventType = "application.accepted"
 	EventTypeApplicationRejected  EventType = "application.rejected"
+	EventTypeApplicationCancelled EventType = "application.cancelled"
 	EventTypeMemberWithdrawn      EventType = "member.withdrawn"
 	EventTypeContestCreated       EventType = "contest.created"
 )

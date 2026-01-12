@@ -39,6 +39,7 @@ func (c *ContestApplicationController) RegisterRoute() {
 	privateGroup.GET("/me", c.GetMyApplication)
 	privateGroup.POST("/:userId/accept", c.AcceptApplication)
 	privateGroup.POST("/:userId/reject", c.RejectApplication)
+	privateGroup.DELETE("/cancel", c.CancelApplication)
 	privateGroup.DELETE("/withdraw", c.WithdrawFromContest)
 }
 
@@ -203,6 +204,36 @@ func (c *ContestApplicationController) RejectApplication(ctx *gin.Context) {
 
 	err = c.service.RejectApplication(ctx.Request.Context(), contestId, userId, leaderUserId)
 	c.helper.RespondOK(ctx, nil, err, "application rejected successfully")
+}
+
+// CancelApplication godoc
+// @Summary Cancel my pending application
+// @Description Cancel current user's pending application for a contest
+// @Tags contest-applications
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param contestId path int true "Contest ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Router /api/contests/{contestId}/applications/cancel [delete]
+func (c *ContestApplicationController) CancelApplication(ctx *gin.Context) {
+	contestId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	userId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	err = c.service.CancelApplication(ctx.Request.Context(), contestId, userId)
+	c.helper.RespondOK(ctx, nil, err, "application cancelled successfully")
 }
 
 // WithdrawFromContest godoc

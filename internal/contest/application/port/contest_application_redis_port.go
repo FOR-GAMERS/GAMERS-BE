@@ -27,6 +27,7 @@ type ContestApplicationRedisPort interface {
 	RequestParticipate(ctx context.Context, contestId, userId int64, ttl time.Duration) error
 	AcceptRequest(ctx context.Context, contestId, userId, processedBy int64) error
 	RejectRequest(ctx context.Context, contestId, userId, processedBy int64) error
+	CancelApplication(ctx context.Context, contestId, userId int64) error
 
 	// 조회
 	GetApplication(ctx context.Context, contestId, userId int64) (*ContestApplication, error)

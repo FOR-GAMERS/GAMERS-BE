@@ -170,6 +170,31 @@ func (s *ContestApplicationService) GetMyApplication(ctx context.Context, contes
 	return s.applicationRepo.GetApplication(ctx, contestId, userId)
 }
 
+// CancelApplication - Cancel a pending application (by user themselves)
+func (s *ContestApplicationService) CancelApplication(ctx context.Context, contestId, userId int64) error {
+	// Verify contest exists
+	contest, err := s.contestRepo.GetContestById(contestId)
+	if err != nil {
+		return err
+	}
+
+	// Verify contest is in PENDING status
+	if contest.ContestStatus != "PENDING" {
+		return exception.ErrCannotAcceptApplication
+	}
+
+	// Cancel the application in Redis
+	err = s.applicationRepo.CancelApplication(ctx, contestId, userId)
+	if err != nil {
+		return err
+	}
+
+	// Publish event (async)
+	go s.publishApplicationCancelledEvent(context.Background(), contest, userId)
+
+	return nil
+}
+
 // WithdrawFromContest - 대회 탈퇴 (멤버 본인만 가능, 리더는 불가)
 func (s *ContestApplicationService) WithdrawFromContest(ctx context.Context, contestId, userId int64) error {
 	// Contest 존재 확인
@@ -368,6 +393,33 @@ func (s *ContestApplicationService) publishMemberWithdrawnEvent(
 
 	if err := s.eventPublisher.PublishContestApplicationEvent(ctx, event); err != nil {
 		// 로그만 남기고 에러는 무시
+		_ = err
+	}
+}
+
+// publishApplicationCancelledEvent - Publish application cancelled event
+func (s *ContestApplicationService) publishApplicationCancelledEvent(
+	ctx context.Context,
+	contest *domain.Contest,
+	userId int64,
+) {
+	discordUserId := s.getDiscordIdByUserId(userId)
+
+	event := &port.ContestApplicationEvent{
+		EventType:            port.EventTypeApplicationCancelled,
+		ContestID:            contest.ContestID,
+		UserID:               userId,
+		DiscordUserID:        discordUserId,
+		DiscordGuildID:       getStringFromPtr(contest.DiscordGuildId),
+		DiscordTextChannelID: getStringFromPtr(contest.DiscordTextChannelId),
+		Data: map[string]interface{}{
+			"contest_title": contest.Title,
+			"status":        "CANCELLED",
+			"cancelled_at":  time.Now(),
+		},
+	}
+
+	if err := s.eventPublisher.PublishContestApplicationEvent(ctx, event); err != nil {
 		_ = err
 	}
 }

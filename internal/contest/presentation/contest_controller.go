@@ -1,12 +1,15 @@
 package presentation
 
 import (
+	"GAMERS-BE/internal/auth/middleware"
 	"GAMERS-BE/internal/contest/application"
 	"GAMERS-BE/internal/contest/application/dto"
 	commonDto "GAMERS-BE/internal/global/common/dto"
 	"GAMERS-BE/internal/global/common/handler"
 	"GAMERS-BE/internal/global/common/router"
+	"GAMERS-BE/internal/global/exception"
 	"GAMERS-BE/internal/global/response"
+	"errors"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -31,6 +34,7 @@ func (c *ContestController) RegisterRoute() {
 	privateGroup.POST("", c.SaveContest)
 	privateGroup.PATCH("/:id", c.UpdateContest)
 	privateGroup.DELETE("/:id", c.DeleteContest)
+	privateGroup.POST("/:id/start", c.StartContest)
 
 	publicGroup := c.router.PublicGroup("/api/contests")
 	publicGroup.GET("", c.GetAllContests)
@@ -48,6 +52,7 @@ func (c *ContestController) RegisterRoute() {
 // @Success 201 {object} response.Response{data=dto.ContestResponse}
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response{data=dto.DiscordLinkRequiredResponse}
 // @Router /api/contests [post]
 func (c *ContestController) SaveContest(ctx *gin.Context) {
 	var req dto.CreateContestRequest
@@ -56,7 +61,20 @@ func (c *ContestController) SaveContest(ctx *gin.Context) {
 		return
 	}
 
-	contest, err := c.service.SaveContest(&req)
+	userId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	contest, discordLinkRequired, err := c.service.SaveContest(&req, userId)
+
+	// Handle Discord link required error
+	if errors.Is(err, exception.ErrDiscordLinkRequired) {
+		response.JSON(ctx, response.Forbidden(discordLinkRequired, "discord linking required"))
+		return
+	}
+
 	c.helper.RespondCreated(ctx, contest, err, "contest created successfully")
 }
 
@@ -170,4 +188,35 @@ func (c *ContestController) DeleteContest(ctx *gin.Context) {
 
 	err = c.service.DeleteContestById(id)
 	c.helper.RespondNoContent(ctx, err)
+}
+
+// StartContest godoc
+// @Summary Start a contest
+// @Description Start a contest and migrate accepted applications to database (Leader only)
+// @Tags contests
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Contest ID"
+// @Success 200 {object} response.Response{data=dto.ContestResponse}
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Router /api/contests/{id}/start [post]
+func (c *ContestController) StartContest(ctx *gin.Context) {
+	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	userId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	contest, err := c.service.StartContest(ctx.Request.Context(), id, userId)
+	c.helper.RespondOK(ctx, contest, err, "contest started successfully")
 }

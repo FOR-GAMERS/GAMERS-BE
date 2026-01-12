@@ -45,10 +45,15 @@ import (
 func main() {
 	db := initDatabase()
 	redisClient := initRedis()
+	rabbitmqConn := initRabbitMQ()
 
 	defer func() {
 		if err := redisClient.Close(); err != nil {
 			log.Fatal("Failed to close Redis client:", err)
+		}
+
+		if err := rabbitmqConn.Close(); err != nil {
+			log.Fatal("Failed to close RabbitMQ connection:", err)
 		}
 
 		sqlDB, _ := db.DB()
@@ -71,7 +76,7 @@ func main() {
 	authDeps := auth.ProvideAuthDependencies(db, redisClient, &ctx, appRouter)
 	userDeps := user.ProvideUserDependencies(db, appRouter)
 	oauth2Deps := oauth2.ProvideOAuth2Dependencies(db, appRouter)
-	contestDeps := contest.ProvideContestDependencies(db, appRouter)
+	contestDeps := contest.ProvideContestDependencies(db, redisClient, rabbitmqConn, appRouter, oauth2Deps.OAuth2Repository)
 
 	setupRouter(appRouter, authDeps, userDeps, oauth2Deps, contestDeps)
 
@@ -116,6 +121,7 @@ func setupRouter(
 	userDeps.Controller.RegisterRoutes()
 	oauth2Deps.Controller.RegisterRoutes()
 	contestDeps.Controller.RegisterRoute()
+	contestDeps.ApplicationController.RegisterRoute()
 
 	return appRouter
 }
@@ -155,4 +161,14 @@ func initRedis() *redis.Client {
 		log.Fatal("Failed to initialize Redis:", err)
 	}
 	return redisClient
+}
+
+func initRabbitMQ() *database.RabbitMQConnection {
+	rabbitmqConfig := database.NewRabbitMQConfigFromEnv()
+	rabbitmqConn, err := database.InitRabbitMQ(rabbitmqConfig)
+
+	if err != nil {
+		log.Fatal("Failed to initialize RabbitMQ:", err)
+	}
+	return rabbitmqConn
 }

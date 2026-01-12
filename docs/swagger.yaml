@@ -522,6 +522,41 @@ paths:
       summary: Reject a contest application
       tags:
       - contest-applications
+  /api/contests/{contestId}/applications/cancel:
+    delete:
+      consumes:
+      - application/json
+      description: Cancel current user's pending application for a contest
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Cancel my pending application
+      tags:
+      - contest-applications
   /api/contests/{contestId}/applications/me:
     get:
       consumes:

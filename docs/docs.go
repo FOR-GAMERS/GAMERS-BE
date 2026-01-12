@@ -418,6 +418,61 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/contests/{contestId}/applications/cancel": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancel current user's pending application for a contest",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contest-applications"
+                ],
+                "summary": "Cancel my pending application",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "contestId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/contests/{contestId}/applications/me": {
             "get": {
                 "security": [

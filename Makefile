@@ -11,10 +11,9 @@ endif
 # Variable Setting
 APP_NAME := gamers-api
 BUILD_DIR := ./bin
-MIGRATIONS_PATH ?= ./migrations
+MIGRATIONS_PATH ?= ./db/migrations
 
-# Local DB URL
-DB_URL := mysql://$(LOCAL_DB_USER):$(LOCAL_DB_PASSWORD)@tcp($(LOCAL_DB_HOST):$(LOCAL_DB_PORT))/$(LOCAL_DB_NAME)
+DB_URL := mysql://$(DB_USER):$(DB_PASSWORD)@tcp($(DB_HOST):$(DB_PORT))/$(DB_NAME)
 
 # ========================================
 # Basic Command
@@ -22,7 +21,7 @@ DB_URL := mysql://$(LOCAL_DB_USER):$(LOCAL_DB_PASSWORD)@tcp($(LOCAL_DB_HOST):$(L
 
 help: ## Show this help message
 	@echo "GAMERS Backend - Available commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 run: ## Run the application
 	@echo "🚀 Starting GAMERS API..."
@@ -110,31 +109,67 @@ migrate-force-go: ## Force set migration version using Go code (usage: make migr
 
 docker-build: ## Build Docker image
 	@echo "🐳 Building Docker image..."
-	docker compose -f ./docker/docker-compose.yaml build
+	docker compose -p gamers-web-server -f ./docker/docker-compose.yaml build
 
 docker-up: ## Start Docker containers
 	@echo "🐳 Starting Docker containers..."
-	docker compose -f ./docker/docker-compose.yaml up -d
+	docker compose -p gamers-web-server -f ./docker/docker-compose.yaml up -d
 
 docker-down: ## Stop Docker containers
 	@echo "🐳 Stopping Docker containers..."
-	docker compose -f ./docker/docker-compose.yaml down
+	docker compose -p gamers-web-server -f ./docker/docker-compose.yaml down
 
 docker-logs: ## Show Docker logs
-	docker compose -f ./docker/docker-compose.yaml logs -f app
+	docker compose -p gamers-web-server -f ./docker/docker-compose.yaml logs -f app
 
 docker-restart: docker down docker-up ## Restart Docker containers
 
-migrate-up-docker: ## Run migrations in Docker environment
-	@echo "🔄 Running migrations (Docker)..."
-	migrate -path $(MIGRATIONS_PATH) -database "$(DB_URL)" up
+# Docker Network 기반 Migration (gamers-network 내에서 일회성 컨테이너로 실행)
+MIGRATE_DOCKER := docker run --rm --network gamers-network \
+	-v $(PWD)/db/migrations:/migrations \
+	migrate/migrate \
+	-path=/migrations \
+	-database "mysql://$(DB_USER):$(DB_PASSWORD)@tcp(gamers-mysql:$(DB_PORT))/$(DB_NAME)"
 
-migrate-down-docker: ## Rollback migration in Docker environment
-	@echo "⏪ Rolling back migration (Docker)..."
-	migrate -path $(MIGRATIONS_PATH) -database "$(DB_URL)" down 1
+migrate-up-network: ## Run migrations via Docker network
+	@echo "🔄 Running migrations via Docker network..."
+	$(MIGRATE_DOCKER) up
 
-migrate-version-docker: ## Show migration version in Docker
-	@migrate -path $(MIGRATIONS_PATH) -database "$(DB_URL)" version
+migrate-down-network: ## Rollback last migration via Docker network
+	@echo "⏪ Rolling back last migration via Docker network..."
+	$(MIGRATE_DOCKER) down 1
+
+migrate-version-network: ## Show migration version via Docker network
+	@echo "📊 Current migration version:"
+	@$(MIGRATE_DOCKER) version
+
+migrate-force-network: ## Force set migration version or fix dirty state via Docker network (usage: make migrate-force-network version=3)
+	@if [ -z "$(version)" ]; then \
+		echo "❌ Error: version parameter is required"; \
+		echo "Usage: make migrate-force-network version=3"; \
+		echo ""; \
+		echo "💡 Tip: This also fixes dirty migration state"; \
+		exit 1; \
+	fi
+	@echo "🔧 Forcing migration version to $(version) via Docker network..."
+	$(MIGRATE_DOCKER) force $(version)
+	@echo "✅ Migration version set to $(version)"
+
+# Legacy: Direct MySQL access (fallback)
+migrate-force-docker: ## Force set migration version via Docker MySQL (usage: make migrate-force-docker version=3)
+	@if [ -z "$(version)" ]; then \
+		echo "❌ Error: version parameter is required"; \
+		echo "Usage: make migrate-force-docker version=3"; \
+		exit 1; \
+	fi
+	@echo "🔧 Forcing migration version to $(version) via Docker..."
+	@docker exec gamers-mysql mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "UPDATE schema_migrations SET version=$(version), dirty=0;"
+	@echo "✅ Migration version set to $(version)"
+
+migrate-status-docker: ## Show migration status via Docker MySQL
+	@echo "📊 Current migration status:"
+	@docker exec gamers-mysql mysql -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) -e "SELECT * FROM schema_migrations;"
+
 
 # ========================================
 # Development Tools
@@ -151,9 +186,9 @@ deps: ## Download dependencies
 
 redis-dump: ## Show all Redis keys
 	@echo "🔍 Redis keys:"
-	@docker exec gamers-redis redis-cli --scan --pattern "*" | while read key; do \
-		value=$$(docker exec gamers-redis redis-cli GET "$$key"); \
-		ttl=$$(docker exec gamers-redis redis-cli TTL "$$key"); \
+	@redis-cli -h $(REDIS_HOST) -p $(REDIS_PORT) -a $(REDIS_PASSWORD) -n $(REDIS_DB) --scan --pattern "*" 2>/dev/null | while read key; do \
+		value=$$(redis-cli -h $(REDIS_HOST) -p $(REDIS_PORT) -a $(REDIS_PASSWORD) -n $(REDIS_DB) GET "$$key" 2>/dev/null); \
+		ttl=$$(redis-cli -h $(REDIS_HOST) -p $(REDIS_PORT) -a $(REDIS_PASSWORD) -n $(REDIS_DB) TTL "$$key" 2>/dev/null); \
 		echo "Key: $$key"; \
 		echo "Value: $$value"; \
 		echo "TTL: $$ttl seconds"; \
@@ -162,7 +197,7 @@ redis-dump: ## Show all Redis keys
 
 redis-clear: ## Clear Redis database
 	@echo "🗑️  Clearing Redis..."
-	@docker exec gamers-redis redis-cli FLUSHDB
+	@redis-cli -h $(REDIS_HOST) -p $(REDIS_PORT) -a $(REDIS_PASSWORD) -n $(REDIS_DB) FLUSHDB
 	@echo "✅ Redis cleared"
 
 # ========================================

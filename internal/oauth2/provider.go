@@ -3,6 +3,7 @@ package oauth2
 import (
 	"GAMERS-BE/internal/global/common/router"
 	jwtApplication "GAMERS-BE/internal/global/security/jwt"
+	"GAMERS-BE/internal/global/utils"
 	"GAMERS-BE/internal/oauth2/application"
 	"GAMERS-BE/internal/oauth2/application/port"
 	"GAMERS-BE/internal/oauth2/infra/discord"
@@ -44,7 +45,8 @@ func ProvideOAuth2Dependencies(db *gorm.DB, router *router.Router) *Dependencies
 		*tokenService,
 	)
 
-	discordController := presentation.NewDiscordController(router, oauth2Service)
+	webURL := utils.GetEnv("WEB_URL", "http://localhost:3000")
+	discordController := presentation.NewDiscordController(router, oauth2Service, webURL)
 
 	return &Dependencies{
 		Controller:       discordController,

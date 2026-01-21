@@ -33,4 +33,7 @@ var (
 	ErrContestCannotStart         = NewBadRequestError("contest start time has not arrived yet", "CT027")
 	ErrDiscordTextChannelRequired = NewBadRequestError("discord text channel id is required when guild id is provided", "CT028")
 	ErrLeaderCannotWithdraw       = NewBusinessError(http.StatusForbidden, "leader cannot withdraw from contest", "CT029")
+	ErrInvalidTotalTeamMember     = NewBadRequestError("total team member must be at least 1", "CT030")
+	ErrInvalidGameType            = NewBadRequestError("invalid game type", "CT031")
+	ErrContestNotActive           = NewBadRequestError("contest is not in active status", "CT032")
 )

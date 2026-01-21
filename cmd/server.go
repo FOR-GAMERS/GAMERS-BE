@@ -3,13 +3,19 @@ package main
 import (
 	"GAMERS-BE/internal/auth"
 	authMiddleware "GAMERS-BE/internal/auth/middleware"
+	"GAMERS-BE/internal/comment"
 	"GAMERS-BE/internal/contest"
+	"GAMERS-BE/internal/discord"
+	"GAMERS-BE/internal/game"
 	"GAMERS-BE/internal/global/common/router"
 	"GAMERS-BE/internal/global/database"
 	"GAMERS-BE/internal/global/middleware"
 	authProvider "GAMERS-BE/internal/global/security/jwt"
 	"GAMERS-BE/internal/oauth2"
+	"GAMERS-BE/internal/point"
+	"GAMERS-BE/internal/storage"
 	"GAMERS-BE/internal/user"
+	"GAMERS-BE/internal/valorant"
 	"context"
 	"log"
 	"os"
@@ -76,9 +82,51 @@ func main() {
 	authDeps := auth.ProvideAuthDependencies(db, redisClient, &ctx, appRouter)
 	userDeps := user.ProvideUserDependencies(db, appRouter)
 	oauth2Deps := oauth2.ProvideOAuth2Dependencies(db, appRouter)
-	contestDeps := contest.ProvideContestDependencies(db, redisClient, rabbitmqConn, appRouter, oauth2Deps.OAuth2Repository)
 
-	setupRouter(appRouter, authDeps, userDeps, oauth2Deps, contestDeps)
+	// Discord module - provides Discord API integration
+	discordDeps := discord.ProvideDiscordDependencies(appRouter)
+
+	// Game module - provides Game, Team, and GameTeam management
+	gameDeps := game.ProvideGameDependencies(
+		db,
+		redisClient,
+		rabbitmqConn,
+		appRouter,
+		nil, // Contest repository will be set after contest initialization
+		oauth2Deps.OAuth2Repository,
+		userDeps.UserQueryRepo,
+	)
+
+	// Contest module with full features (Discord validation + Tournament generation)
+	contestDeps := contest.ProvideContestDependenciesFull(
+		db,
+		redisClient,
+		rabbitmqConn,
+		appRouter,
+		oauth2Deps.OAuth2Repository,
+		userDeps.UserQueryRepo,
+		discordDeps.ValidationService,
+		gameDeps.GameRepository,
+		gameDeps.TeamRepository,
+	)
+
+	commentDeps := comment.ProvideCommentDependencies(db, appRouter, contestDeps.ContestRepository)
+
+	// Point module - provides Valorant score table management
+	pointDeps := point.ProvidePointDependencies(db, appRouter)
+
+	// Valorant module - provides Valorant MMR/Rank integration
+	valorantDeps := valorant.ProvideValorantDependencies(
+		appRouter,
+		userDeps.UserQueryRepo,
+		userDeps.UserCommandRepo,
+		pointDeps.ScoreTableRepository,
+	)
+
+	// Storage module - provides R2 storage integration for images
+	storageDeps := storage.ProvideStorageDependencies(appRouter)
+
+	setupRouter(appRouter, authDeps, userDeps, oauth2Deps, contestDeps, commentDeps, discordDeps, gameDeps, pointDeps, valorantDeps, storageDeps)
 
 	startServer(appRouter.Engine())
 }
@@ -110,6 +158,12 @@ func setupRouter(
 	userDeps *user.Dependencies,
 	oauth2Deps *oauth2.Dependencies,
 	contestDeps *contest.Dependencies,
+	commentDeps *comment.Dependencies,
+	discordDeps *discord.Dependencies,
+	gameDeps *game.Dependencies,
+	pointDeps *point.Dependencies,
+	valorantDeps *valorant.Dependencies,
+	storageDeps *storage.Dependencies,
 ) *router.Router {
 
 	appRouter.Engine().Use(middleware.GlobalErrorHandler())
@@ -122,6 +176,16 @@ func setupRouter(
 	oauth2Deps.Controller.RegisterRoutes()
 	contestDeps.Controller.RegisterRoute()
 	contestDeps.ApplicationController.RegisterRoute()
+	commentDeps.Controller.RegisterRoutes()
+	// discordDeps.Controller routes are registered in the constructor
+	gameDeps.GameController.RegisterRoutes()
+	gameDeps.TeamController.RegisterRoutes()
+	gameDeps.GameTeamController.RegisterRoutes()
+	pointDeps.ValorantController.RegisterRoutes()
+	valorantDeps.Controller.RegisterRoutes()
+	if storageDeps != nil {
+		storageDeps.Controller.RegisterRoutes()
+	}
 
 	return appRouter
 }

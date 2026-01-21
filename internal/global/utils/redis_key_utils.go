@@ -25,3 +25,40 @@ func GetUserApplicationsKey(userId int64) string {
 func GetContestPatternKey(contestId int64) string {
 	return fmt.Sprintf("contest:%d:application*", contestId)
 }
+
+// Team-related Redis keys
+
+// GetTeamKey returns the key for a team's data in a game
+func GetTeamKey(gameId int64) string {
+	return fmt.Sprintf("game:%d:team", gameId)
+}
+
+// GetTeamMemberKey returns the key for a specific member in a team
+func GetTeamMemberKey(gameId, userId int64) string {
+	return fmt.Sprintf("game:%d:team:member:%d", gameId, userId)
+}
+
+// GetTeamMembersKey returns the key for the set of all team members
+func GetTeamMembersKey(gameId int64) string {
+	return fmt.Sprintf("game:%d:team:members", gameId)
+}
+
+// GetTeamInvitesKey returns the key for pending team invites
+func GetTeamInvitesKey(gameId int64) string {
+	return fmt.Sprintf("game:%d:team:invites", gameId)
+}
+
+// GetTeamInviteKey returns the key for a specific invite
+func GetTeamInviteKey(gameId, userId int64) string {
+	return fmt.Sprintf("game:%d:team:invite:%d", gameId, userId)
+}
+
+// GetUserTeamsKey returns the key for tracking user's team memberships
+func GetUserTeamsKey(userId int64) string {
+	return fmt.Sprintf("user:%d:teams", userId)
+}
+
+// GetGameTeamPatternKey returns the pattern for all team-related keys of a game
+func GetGameTeamPatternKey(gameId int64) string {
+	return fmt.Sprintf("game:%d:team*", gameId)
+}

@@ -63,6 +63,10 @@ func InternalServerError(message string) *ApiResponse[any] {
 	return Error(http.StatusInternalServerError, message)
 }
 
+func Unauthorized(message string) *ApiResponse[any] {
+	return Error(http.StatusUnauthorized, message)
+}
+
 func Forbidden[T any](data T, message string) *ApiResponse[T] {
 	return &ApiResponse[T]{
 		Status:  http.StatusForbidden,

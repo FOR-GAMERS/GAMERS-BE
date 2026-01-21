@@ -13,6 +13,14 @@ const (
 	ApplicationStatusRejected ApplicationStatus = "REJECTED"
 )
 
+// SenderSnapshot stores user information at the time of application
+type SenderSnapshot struct {
+	UserID   int64  `json:"user_id"`
+	Username string `json:"username"`
+	Tag      string `json:"tag"`
+	Avatar   string `json:"avatar,omitempty"`
+}
+
 type ContestApplication struct {
 	UserID      int64             `json:"user_id"`
 	ContestID   int64             `json:"contest_id"`
@@ -20,11 +28,12 @@ type ContestApplication struct {
 	RequestedAt time.Time         `json:"requested_at"`
 	ProcessedAt *time.Time        `json:"processed_at,omitempty"`
 	ProcessedBy *int64            `json:"processed_by,omitempty"`
+	Sender      *SenderSnapshot   `json:"sender,omitempty"`
 }
 
 type ContestApplicationRedisPort interface {
 	// 신청 관리
-	RequestParticipate(ctx context.Context, contestId, userId int64, ttl time.Duration) error
+	RequestParticipate(ctx context.Context, contestId int64, sender *SenderSnapshot, ttl time.Duration) error
 	AcceptRequest(ctx context.Context, contestId, userId, processedBy int64) error
 	RejectRequest(ctx context.Context, contestId, userId, processedBy int64) error
 	CancelApplication(ctx context.Context, contestId, userId int64) error

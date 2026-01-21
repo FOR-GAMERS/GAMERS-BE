@@ -4,8 +4,10 @@ import (
 	"GAMERS-BE/internal/contest/application/dto"
 	"GAMERS-BE/internal/contest/application/port"
 	"GAMERS-BE/internal/contest/domain"
+	commonDto "GAMERS-BE/internal/global/common/dto"
 	"GAMERS-BE/internal/global/exception"
 	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
+	userQueryPort "GAMERS-BE/internal/user/application/port/port"
 	"context"
 	"errors"
 	"time"
@@ -17,6 +19,7 @@ type ContestApplicationService struct {
 	memberRepo       port.ContestMemberDatabasePort
 	eventPublisher   port.EventPublisherPort
 	oauth2Repository oauth2Port.OAuth2DatabasePort
+	userQueryRepo    userQueryPort.UserQueryPort
 }
 
 func NewContestApplicationService(
@@ -25,6 +28,7 @@ func NewContestApplicationService(
 	memberRepo port.ContestMemberDatabasePort,
 	eventPublisher port.EventPublisherPort,
 	oauth2Repository oauth2Port.OAuth2DatabasePort,
+	userQueryRepo userQueryPort.UserQueryPort,
 ) *ContestApplicationService {
 	return &ContestApplicationService{
 		applicationRepo:  applicationRepo,
@@ -32,6 +36,7 @@ func NewContestApplicationService(
 		memberRepo:       memberRepo,
 		eventPublisher:   eventPublisher,
 		oauth2Repository: oauth2Repository,
+		userQueryRepo:    userQueryRepo,
 	}
 }
 
@@ -59,12 +64,25 @@ func (s *ContestApplicationService) RequestParticipate(ctx context.Context, cont
 		return nil, exception.ErrContestAlreadyStarted
 	}
 
+	// Fetch user info and create sender snapshot
+	user, err := s.userQueryRepo.FindById(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	senderSnapshot := &port.SenderSnapshot{
+		UserID:   user.Id,
+		Username: user.Username,
+		Tag:      user.Tag,
+		Avatar:   user.Avatar,
+	}
+
 	ttl := time.Until(contest.StartedAt)
 	if ttl < 0 {
 		ttl = 24 * time.Hour
 	}
 
-	err = s.applicationRepo.RequestParticipate(ctx, contestId, userId, ttl)
+	err = s.applicationRepo.RequestParticipate(ctx, contestId, senderSnapshot, ttl)
 	if err != nil {
 		return nil, err
 	}
@@ -162,6 +180,36 @@ func (s *ContestApplicationService) GetPendingApplications(ctx context.Context, 
 // GetMyApplication - 내 신청 정보 조회
 func (s *ContestApplicationService) GetMyApplication(ctx context.Context, contestId, userId int64) (*port.ContestApplication, error) {
 	return s.applicationRepo.GetApplication(ctx, contestId, userId)
+}
+
+// GetContestMembers - Contest 참여 멤버 목록 조회 (Pagination)
+func (s *ContestApplicationService) GetContestMembers(
+	ctx context.Context,
+	contestId int64,
+	pagination *commonDto.PaginationRequest,
+	sort *commonDto.SortRequest,
+) (*commonDto.PaginationResponse, error) {
+	// Contest 존재 확인
+	_, err := s.contestRepo.GetContestById(contestId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get members with pagination
+	members, totalCount, err := s.memberRepo.GetMembersWithUserByContest(contestId, pagination, sort)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to response DTOs
+	memberResponses := dto.ToContestMemberResponses(members)
+
+	return commonDto.NewPaginationResponse(
+		memberResponses,
+		pagination.Page,
+		pagination.PageSize,
+		totalCount,
+	), nil
 }
 
 // CancelApplication - Cancel a pending application (by user themselves)

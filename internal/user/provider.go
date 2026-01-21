@@ -4,6 +4,8 @@ import (
 	"GAMERS-BE/internal/global/common/router"
 	"GAMERS-BE/internal/global/security/password"
 	"GAMERS-BE/internal/user/application"
+	userCommandPort "GAMERS-BE/internal/user/application/port/command"
+	userQueryPort "GAMERS-BE/internal/user/application/port/port"
 	userCommand "GAMERS-BE/internal/user/infra/persistence/command"
 	userQuery "GAMERS-BE/internal/user/infra/persistence/query"
 	"GAMERS-BE/internal/user/presentation"
@@ -12,7 +14,9 @@ import (
 )
 
 type Dependencies struct {
-	Controller *presentation.UserController
+	Controller      *presentation.UserController
+	UserQueryRepo   userQueryPort.UserQueryPort
+	UserCommandRepo userCommandPort.UserCommandPort
 }
 
 func ProvideUserDependencies(db *gorm.DB, router *router.Router) *Dependencies {
@@ -30,6 +34,8 @@ func ProvideUserDependencies(db *gorm.DB, router *router.Router) *Dependencies {
 	userController := presentation.NewUserController(router, userService)
 
 	return &Dependencies{
-		Controller: userController,
+		Controller:      userController,
+		UserQueryRepo:   userQueryAdapter,
+		UserCommandRepo: userCommandAdapter,
 	}
 }

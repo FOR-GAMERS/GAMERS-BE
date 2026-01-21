@@ -1,6 +1,7 @@
 package presentation
 
 import (
+	"GAMERS-BE/internal/auth/middleware"
 	"GAMERS-BE/internal/global/common/router"
 	"GAMERS-BE/internal/global/exception"
 	"GAMERS-BE/internal/global/response"
@@ -27,6 +28,7 @@ func NewUserController(router *router.Router, userService *application.UserServi
 func (c *UserController) RegisterRoutes() {
 	privateGroup := c.router.ProtectedGroup("/api/users")
 	{
+		privateGroup.GET("/my", c.GetMyInfo)
 		privateGroup.GET("/:id", c.GetUser)
 		privateGroup.PATCH("/:id", c.UpdateUser)
 		privateGroup.DELETE("/:id", c.DeleteUser)
@@ -36,6 +38,38 @@ func (c *UserController) RegisterRoutes() {
 	{
 		userGroup.POST("", c.CreateUser)
 	}
+}
+
+// GetMyInfo godoc
+// @Summary Get my user information
+// @Description Get authenticated user's information from access token
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Response{data=dto.MyUserResponse}
+// @Failure 401 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Router /api/users/my [get]
+func (c *UserController) GetMyInfo(ctx *gin.Context) {
+	userId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "User not authenticated"))
+		return
+	}
+
+	user, err := c.userService.GetMyInfo(userId)
+	if err != nil {
+		var businessErr *exception.BusinessError
+		if errors.As(err, &businessErr) {
+			ctx.JSON(businessErr.Status, businessErr)
+			return
+		}
+		response.JSON(ctx, response.InternalServerError("Internal server error"))
+		return
+	}
+
+	response.JSON(ctx, response.Success(user, "User information retrieved successfully"))
 }
 
 // CreateUser godoc

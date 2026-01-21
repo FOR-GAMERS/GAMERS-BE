@@ -63,6 +63,11 @@ func (h *ControllerHelper) RespondNoContent(ctx *gin.Context, err error) {
 }
 
 func (h *ControllerHelper) handleError(ctx *gin.Context, err error) {
+	h.HandleError(ctx, err)
+}
+
+// HandleError handles errors and sends appropriate HTTP responses
+func (h *ControllerHelper) HandleError(ctx *gin.Context, err error) {
 	var businessErr *exception.BusinessError
 	if errors.As(err, &businessErr) {
 		ctx.JSON(businessErr.Status, businessErr)

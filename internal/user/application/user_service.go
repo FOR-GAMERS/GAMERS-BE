@@ -72,11 +72,44 @@ func (s *UserService) DeleteUser(id int64) error {
 	return s.userCommandPort.DeleteById(id)
 }
 
+func (s *UserService) GetMyInfo(id int64) (*dto.MyUserResponse, error) {
+	user, err := s.userQueryPort.FindById(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return toMyUserResponse(user), nil
+}
+
 func toUserResponse(user *domain.User) *dto.UserResponse {
 	return &dto.UserResponse{
 		Id:         user.Id,
 		Email:      user.Email,
 		CreatedAt:  user.CreatedAt,
 		ModifiedAt: user.ModifiedAt,
+	}
+}
+
+func toMyUserResponse(user *domain.User) *dto.MyUserResponse {
+	return &dto.MyUserResponse{
+		Id:                 user.Id,
+		Email:              user.Email,
+		Username:           user.Username,
+		Tag:                user.Tag,
+		Bio:                user.Bio,
+		Avatar:             user.Avatar,
+		ProfileKey:         user.ProfileKey,
+		CreatedAt:          user.CreatedAt,
+		ModifiedAt:         user.ModifiedAt,
+		RiotName:           user.RiotName,
+		RiotTag:            user.RiotTag,
+		Region:             user.Region,
+		CurrentTier:        user.CurrentTier,
+		CurrentTierPatched: user.CurrentTierPatched,
+		Elo:                user.Elo,
+		RankingInTier:      user.RankingInTier,
+		PeakTier:           user.PeakTier,
+		PeakTierPatched:    user.PeakTierPatched,
+		ValorantUpdatedAt:  user.ValorantUpdatedAt,
 	}
 }

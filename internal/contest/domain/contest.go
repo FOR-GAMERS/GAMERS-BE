@@ -2,6 +2,7 @@ package domain
 
 import (
 	"GAMERS-BE/internal/global/exception"
+	gameDomain "GAMERS-BE/internal/game/domain"
 	"time"
 )
 
@@ -25,7 +26,7 @@ const (
 type Contest struct {
 	ContestID     int64         `gorm:"column:contest_id;primaryKey;autoIncrement" json:"contest_id"`
 	Title         string        `gorm:"column:title;type:varchar(255);not null" json:"title"`
-	Description   string        `gorm:"column:description;type:varchar(255)" json:"description,omitempty"`
+	Description   string        `gorm:"column:description;type:text" json:"description,omitempty"`
 	MaxTeamCount  int           `gorm:"column:max_team_count;type:int" json:"max_team_count,omitempty"`
 	TotalPoint    int           `gorm:"column:total_point;type:int;default:100" json:"total_point"`
 	ContestType   ContestType   `gorm:"column:contest_type;type:varchar(16);not null" json:"contest_type"`
@@ -35,8 +36,15 @@ type Contest struct {
 
 	AutoStart bool `gorm:"column:auto_start;type:boolean;default:false" json:"auto_start"`
 
+	GameType         *gameDomain.GameType `gorm:"column:game_type;type:varchar(32)" json:"game_type,omitempty"`
+	GamePointTableId *int64               `gorm:"column:game_point_table_id;type:bigint" json:"game_point_table_id,omitempty"`
+	TotalTeamMember  int                  `gorm:"column:total_team_member;type:int;default:5" json:"total_team_member"`
+
 	DiscordGuildId       *string `gorm:"column:discord_guild_id;type:varchar(255)" json:"discord_guild_id,omitempty"`
 	DiscordTextChannelId *string `gorm:"column:discord_text_channel_id;type:varchar(255)" json:"discord_text_channel_id,omitempty"`
+
+	Thumbnail *string `gorm:"column:thumbnail;type:varchar(512)" json:"thumbnail,omitempty"`
+	BannerKey *string `gorm:"column:banner_key;type:varchar(512)" json:"banner_key,omitempty"`
 
 	CreatedAt  time.Time `gorm:"column:created_at;type:timestamp;default:CURRENT_TIMESTAMP" json:"created_at"`
 	ModifiedAt time.Time `gorm:"column:modified_at;type:timestamp;default:CURRENT_TIMESTAMP" json:"modified_at"`
@@ -48,7 +56,11 @@ func NewContestInstance(
 	contestType ContestType,
 	startedAt, endedAt time.Time,
 	autoStart bool,
+	gameType *gameDomain.GameType,
+	gamePointTableId *int64,
+	totalTeamMember int,
 	discordGuildId, discordTextChannelId *string,
+	thumbnail *string,
 ) *Contest {
 	return &Contest{
 		Title:                title,
@@ -60,8 +72,12 @@ func NewContestInstance(
 		StartedAt:            startedAt,
 		EndedAt:              endedAt,
 		AutoStart:            autoStart,
+		GameType:             gameType,
+		GamePointTableId:     gamePointTableId,
+		TotalTeamMember:      totalTeamMember,
 		DiscordGuildId:       discordGuildId,
 		DiscordTextChannelId: discordTextChannelId,
+		Thumbnail:            thumbnail,
 	}
 }
 
@@ -113,6 +129,10 @@ func (c *Contest) CanStart() bool {
 	return c.ContestStatus == ContestStatusPending && time.Now().After(c.StartedAt)
 }
 
+func (c *Contest) CanStop() bool {
+	return c.ContestStatus == ContestStatusActive
+}
+
 func (c *Contest) IsBeforeStartTime() bool {
 	return time.Now().Before(c.StartedAt)
 }
@@ -154,10 +174,27 @@ func (c *Contest) ValidateBusinessRules() error {
 		return exception.ErrInvalidTotalPoint
 	}
 
+	if c.TotalTeamMember < 1 {
+		return exception.ErrInvalidTotalTeamMember
+	}
+
+	if err := c.ValidateGameFields(); err != nil {
+		return err
+	}
+
 	if err := c.ValidateDiscordFields(); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+// ValidateGameFields checks if Game fields are valid
+// If game_type is provided, game_point_table_id must also be provided
+func (c *Contest) ValidateGameFields() error {
+	if c.GameType != nil && !c.GameType.IsValid() {
+		return exception.ErrInvalidGameType
+	}
 	return nil
 }
 

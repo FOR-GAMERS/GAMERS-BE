@@ -1,5 +1,5 @@
 # Makefile
-.PHONY: help run build test migrate-up migrate-down migrate-create migrate-version migrate-force migrate-force-go docker-up docker-down
+.PHONY: help run build test migrate-up migrate-down migrate-create migrate-version migrate-force migrate-force-go docker-build docker-clean docker-clean-all docker-up docker-down
 
 ENV_FILE := env/.env
 
@@ -110,6 +110,19 @@ migrate-force-go: ## Force set migration version using Go code (usage: make migr
 docker-build: ## Build Docker image
 	@echo "🐳 Building Docker image..."
 	docker compose -p gamers-web-server -f ./docker/docker-compose.yaml build
+	@echo "🧹 Cleaning up dangling images..."
+	@docker image prune -f
+	@echo "✅ Docker build complete"
+
+docker-clean: ## Remove dangling images and unused resources
+	@echo "🧹 Removing dangling images..."
+	@docker image prune -f
+	@echo "✅ Dangling images removed"
+
+docker-clean-all: ## Remove all unused images, containers, and volumes (use with caution)
+	@echo "⚠️  Removing all unused Docker resources..."
+	@docker system prune -f
+	@echo "✅ Cleanup complete"
 
 docker-up: ## Start Docker containers
 	@echo "🐳 Starting Docker containers..."

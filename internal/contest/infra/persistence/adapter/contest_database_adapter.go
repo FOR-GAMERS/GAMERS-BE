@@ -33,7 +33,7 @@ func (c ContestDatabaseAdapter) Save(contest *domain.Contest) (*domain.Contest, 
 func (c ContestDatabaseAdapter) GetContestById(contestId int64) (*domain.Contest, error) {
 	var contest domain.Contest
 
-	result := c.db.First(&contest, contestId)
+	result := c.db.Where("contest_id = ?", contestId).First(&contest)
 
 	if result.Error != nil {
 		return nil, c.translateError(result.Error)
@@ -72,7 +72,7 @@ func (c ContestDatabaseAdapter) GetContests(offset, limit int, sortReq *dto.Sort
 }
 
 func (c ContestDatabaseAdapter) DeleteContestById(contestId int64) error {
-	result := c.db.Delete(&domain.Contest{}, contestId)
+	result := c.db.Where("contest_id = ?", contestId).Delete(&domain.Contest{})
 	if result.Error != nil {
 		return c.translateError(result.Error)
 	}

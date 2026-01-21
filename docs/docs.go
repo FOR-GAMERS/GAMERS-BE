@@ -298,6 +298,90 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/contests/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all contests that the authenticated user has joined with pagination, sorting, and filtering support",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contests"
+                ],
+                "summary": "Get contests I have joined",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 10, max: 100)",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort field: created_at, started_at, ended_at, point, contest_status (default: created_at)",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order: asc, desc (default: desc)",
+                        "name": "order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by contest status: PENDING, ACTIVE, FINISHED, CANCELLED",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_global_common_dto.PaginationResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/contests/{contestId}/applications": {
             "get": {
                 "security": [
@@ -701,6 +785,102 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/contests/{contestId}/members": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all members of a contest with user information and points, sorted by points",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contest-members"
+                ],
+                "summary": "Get contest members with pagination",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "contestId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page size (default: 10, max: 100)",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "point",
+                        "description": "Sort field (point, username)",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Sort order (asc, desc)",
+                        "name": "order",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_global_common_dto.PaginationResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/contests/{id}": {
             "get": {
                 "description": "Get contest details by contest ID",
@@ -881,6 +1061,434 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/contests/{id}/comments": {
+            "get": {
+                "description": "Get all comments for a contest with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contest-comments"
+                ],
+                "summary": "Get comments for a contest",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page size (default: 10, max: 100)",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "created_at",
+                        "description": "Sort field (created_at, modified_at)",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Sort order (asc, desc)",
+                        "name": "order",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_global_common_dto.PaginationResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new comment for a contest",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contest-comments"
+                ],
+                "summary": "Create a new comment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Comment creation request",
+                        "name": "comment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_comment_application_dto.CreateCommentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_comment_application_dto.CommentResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contests/{id}/comments/{commentId}": {
+            "get": {
+                "description": "Get a specific comment by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contest-comments"
+                ],
+                "summary": "Get a comment by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Comment ID",
+                        "name": "commentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_comment_application_dto.CommentResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a comment (owner only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contest-comments"
+                ],
+                "summary": "Delete a comment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Comment ID",
+                        "name": "commentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update a comment (owner only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contest-comments"
+                ],
+                "summary": "Update a comment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Comment ID",
+                        "name": "commentId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Comment update request",
+                        "name": "comment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_comment_application_dto.UpdateCommentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_comment_application_dto.CommentResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contests/{id}/games": {
+            "get": {
+                "description": "Get all games under a specific contest",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games"
+                ],
+                "summary": "Get all games for a contest",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.GameResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/contests/{id}/start": {
             "post": {
                 "security": [
@@ -954,6 +1562,1585 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/contests/{id}/stop": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stop an active contest and transition it to finished status (Leader only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contests"
+                ],
+                "summary": "Stop a contest",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_contest_application_dto.ContestResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contests/{id}/valorant-point": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Calculate and return the contest point for the authenticated user based on Valorant rank",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "valorant"
+                ],
+                "summary": "Get contest point",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Score Table ID",
+                        "name": "scoreTableId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_valorant_application_dto.ContestPointResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/game-teams": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Register a team to participate in a game with optional grade",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "game-teams"
+                ],
+                "summary": "Create a new game-team relationship",
+                "parameters": [
+                    {
+                        "description": "Game team creation request",
+                        "name": "gameTeam",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.CreateGameTeamRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.GameTeamResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/game-teams/{id}": {
+            "get": {
+                "description": "Get game-team details by game team ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "game-teams"
+                ],
+                "summary": "Get a game-team relationship by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game Team ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.GameTeamResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a team from a game",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "game-teams"
+                ],
+                "summary": "Delete a game-team relationship",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game Team ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new game under a contest (creator becomes the leader)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games"
+                ],
+                "summary": "Create a new game",
+                "parameters": [
+                    {
+                        "description": "Game creation request",
+                        "name": "game",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.CreateGameRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.GameResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}": {
+            "get": {
+                "description": "Get game details by game ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games"
+                ],
+                "summary": "Get a game by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.GameResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a game by game ID (Leader only, PENDING status only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games"
+                ],
+                "summary": "Delete a game",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update game details by game ID (Leader only, PENDING status only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games"
+                ],
+                "summary": "Update a game",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Game update request",
+                        "name": "game",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.UpdateGameRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.GameResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transition game status to CANCELLED (Leader only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games"
+                ],
+                "summary": "Cancel a game",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.GameResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/finish": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transition game status from ACTIVE to FINISHED (Leader only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games"
+                ],
+                "summary": "Finish a game",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.GameResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/game-teams": {
+            "get": {
+                "description": "Get all teams participating in a specific game",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "game-teams"
+                ],
+                "summary": "Get all game-teams for a game",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.GameTeamResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/members": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all members of a game team",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Get all team members",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.CachedMemberResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/members/{userId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a specific member of a game team by user ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Get a specific team member",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.CachedMemberResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/start": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transition game status from PENDING to ACTIVE (Leader only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games"
+                ],
+                "summary": "Start a game",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.GameResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/team": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all members and team details for a game (from Redis cache or DB)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Get team information",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete all team members (Leader only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Delete the entire team",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/team/finalize": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Finalize the team and persist to database (Leader only, team must be full)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Finalize the team",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/team/invite": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Invite a user to join the game team. Sends Discord notification if configured.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Invite a user to the team",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Invite member request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.InviteMemberRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.TeamInviteResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/team/invite/accept": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Accept a pending team invitation and join the team",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Accept a team invitation",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.CachedMemberResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/team/invite/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reject a pending team invitation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Reject a team invitation",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/team/kick": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a member from the game team (Leader only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Kick a member from the team",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Kick member request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.KickMemberRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/team/leave": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Leave the game team voluntarily (Members only, Leader cannot leave)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Leave the team",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/games/{id}/team/transfer": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transfer team leadership to another member (Leader only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Transfer leadership to another member",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Transfer leadership request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.TransferLeadershipRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/oauth2/discord/callback": {
             "get": {
                 "description": "Handle Discord OAuth2 callback",
@@ -983,10 +3170,10 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "302": {
+                        "description": "Redirect to frontend with cookies",
                         "schema": {
-                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                            "type": "string"
                         }
                     },
                     "400": {
@@ -1078,6 +3265,300 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/my": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get authenticated user's information from access token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get my user information",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_user_application_dto.MyUserResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/valorant": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the stored Valorant information for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "valorant"
+                ],
+                "summary": "Get Valorant info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_valorant_application_dto.ValorantInfoResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Link a Valorant account to the user by providing Riot ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "valorant"
+                ],
+                "summary": "Register Valorant account",
+                "parameters": [
+                    {
+                        "description": "Riot ID registration request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_valorant_application_dto.RegisterValorantRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_valorant_application_dto.ValorantInfoResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove the Valorant account link from the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "valorant"
+                ],
+                "summary": "Unlink Valorant account",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/valorant/refresh": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Refresh the Valorant MMR data from Valorant API",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "valorant"
+                ],
+                "summary": "Refresh Valorant data",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_valorant_application_dto.ValorantInfoResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
                         "schema": {
                             "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
@@ -1275,6 +3756,429 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/storage/contest-banner": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Upload a banner image for a contest. Maximum file size is 5MB. Allowed formats: jpeg, png, webp.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "storage"
+                ],
+                "summary": "Upload a contest banner image",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "contest_id",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Image file (max 5MB, jpeg/png/webp)",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_storage_application_dto.UploadResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/user-profile": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Upload a profile image for the authenticated user. Maximum file size is 2MB. Allowed formats: jpeg, png, webp.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "storage"
+                ],
+                "summary": "Upload a user profile image",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Image file (max 2MB, jpeg/png/webp)",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_storage_application_dto.UploadResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/valorant/score-tables": {
+            "get": {
+                "description": "Get all available score tables",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "valorant"
+                ],
+                "summary": "Get all Valorant score tables",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/GAMERS-BE_internal_point_application_dto.ValorantScoreTableResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new score table with points for each rank tier",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "valorant"
+                ],
+                "summary": "Create a new Valorant score table",
+                "parameters": [
+                    {
+                        "description": "Score table creation request",
+                        "name": "scoreTable",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_point_application_dto.CreateValorantScoreTableDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_point_application_dto.ValorantScoreTableResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/valorant/score-tables/{id}": {
+            "get": {
+                "description": "Get score table details by score table ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "valorant"
+                ],
+                "summary": "Get a Valorant score table by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Score Table ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_point_application_dto.ValorantScoreTableResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a score table by score table ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "valorant"
+                ],
+                "summary": "Delete a Valorant score table",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Score Table ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/discord/guilds": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all guilds the GAMERS bot is a member of",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Discord"
+                ],
+                "summary": "Get bot's guilds",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/GAMERS-BE_internal_discord_application_port.DiscordGuild"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/discord/guilds/{guildId}/channels": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all text channels in a guild that the bot has access to",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Discord"
+                ],
+                "summary": "Get guild's text channels",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Discord Guild ID",
+                        "name": "guildId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/GAMERS-BE_internal_discord_application_port.DiscordChannel"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1315,6 +4219,70 @@ const docTemplate = `{
                 }
             }
         },
+        "GAMERS-BE_internal_comment_application_dto.AuthorResponse": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "GAMERS-BE_internal_comment_application_dto.CommentResponse": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_comment_application_dto.AuthorResponse"
+                },
+                "comment_id": {
+                    "type": "integer"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "contest_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "modified_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "GAMERS-BE_internal_comment_application_dto.CreateCommentRequest": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
+        "GAMERS-BE_internal_comment_application_dto.UpdateCommentRequest": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
         "GAMERS-BE_internal_contest_application_dto.ContestResponse": {
             "type": "object",
             "properties": {
@@ -1345,6 +4313,12 @@ const docTemplate = `{
                 "ended_at": {
                     "type": "string"
                 },
+                "game_point_table_id": {
+                    "type": "integer"
+                },
+                "game_type": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_domain.GameType"
+                },
                 "max_team_count": {
                     "type": "integer"
                 },
@@ -1354,10 +4328,16 @@ const docTemplate = `{
                 "started_at": {
                     "type": "string"
                 },
+                "thumbnail": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 },
                 "total_point": {
+                    "type": "integer"
+                },
+                "total_team_member": {
                     "type": "integer"
                 }
             }
@@ -1387,16 +4367,28 @@ const docTemplate = `{
                 "ended_at": {
                     "type": "string"
                 },
+                "game_point_table_id": {
+                    "type": "integer"
+                },
+                "game_type": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_domain.GameType"
+                },
                 "max_team_count": {
                     "type": "integer"
                 },
                 "started_at": {
                     "type": "string"
                 },
+                "thumbnail": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 },
                 "total_point": {
+                    "type": "integer"
+                },
+                "total_team_member": {
                     "type": "integer"
                 }
             }
@@ -1436,16 +4428,28 @@ const docTemplate = `{
                 "ended_at": {
                     "type": "string"
                 },
+                "game_point_table_id": {
+                    "type": "integer"
+                },
+                "game_type": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_domain.GameType"
+                },
                 "max_team_count": {
                     "type": "integer"
                 },
                 "started_at": {
                     "type": "string"
                 },
+                "thumbnail": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 },
                 "total_point": {
+                    "type": "integer"
+                },
+                "total_team_member": {
                     "type": "integer"
                 }
             }
@@ -1478,6 +4482,292 @@ const docTemplate = `{
                 "ContestTypeCasual"
             ]
         },
+        "GAMERS-BE_internal_discord_application_port.DiscordChannel": {
+            "type": "object",
+            "properties": {
+                "guild_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_discord_application_port.DiscordGuild": {
+            "type": "object",
+            "properties": {
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "owner": {
+                    "type": "boolean"
+                },
+                "permissions": {
+                    "type": "string"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.CachedMemberResponse": {
+            "type": "object",
+            "properties": {
+                "discord_id": {
+                    "type": "string"
+                },
+                "game_id": {
+                    "type": "integer"
+                },
+                "member_type": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "team_id": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.CreateGameRequest": {
+            "type": "object",
+            "required": [
+                "contest_id",
+                "ended_at",
+                "game_team_type",
+                "started_at"
+            ],
+            "properties": {
+                "contest_id": {
+                    "type": "integer"
+                },
+                "ended_at": {
+                    "type": "string"
+                },
+                "game_team_type": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_domain.GameTeamType"
+                },
+                "started_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.CreateGameTeamRequest": {
+            "type": "object",
+            "required": [
+                "game_id",
+                "team_id"
+            ],
+            "properties": {
+                "game_id": {
+                    "type": "integer"
+                },
+                "grade": {
+                    "type": "integer"
+                },
+                "team_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.GameResponse": {
+            "type": "object",
+            "properties": {
+                "contest_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "ended_at": {
+                    "type": "string"
+                },
+                "game_id": {
+                    "type": "integer"
+                },
+                "game_status": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_domain.GameStatus"
+                },
+                "game_team_type": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_domain.GameTeamType"
+                },
+                "modified_at": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.GameTeamResponse": {
+            "type": "object",
+            "properties": {
+                "game_id": {
+                    "type": "integer"
+                },
+                "game_team_id": {
+                    "type": "integer"
+                },
+                "grade": {
+                    "type": "integer"
+                },
+                "team_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.InviteMemberRequest": {
+            "type": "object",
+            "required": [
+                "user_id"
+            ],
+            "properties": {
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.KickMemberRequest": {
+            "type": "object",
+            "required": [
+                "user_id"
+            ],
+            "properties": {
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.TeamInviteResponse": {
+            "type": "object",
+            "properties": {
+                "game_id": {
+                    "type": "integer"
+                },
+                "invitee_id": {
+                    "type": "integer"
+                },
+                "invitee_name": {
+                    "type": "string"
+                },
+                "inviter_id": {
+                    "type": "integer"
+                },
+                "inviter_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.TransferLeadershipRequest": {
+            "type": "object",
+            "required": [
+                "new_leader_user_id"
+            ],
+            "properties": {
+                "new_leader_user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.UpdateGameRequest": {
+            "type": "object",
+            "properties": {
+                "ended_at": {
+                    "type": "string"
+                },
+                "game_status": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_domain.GameStatus"
+                },
+                "game_team_type": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_domain.GameTeamType"
+                },
+                "started_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_domain.GameStatus": {
+            "type": "string",
+            "enum": [
+                "PENDING",
+                "ACTIVE",
+                "FINISHED",
+                "CANCELLED"
+            ],
+            "x-enum-varnames": [
+                "GameStatusPending",
+                "GameStatusActive",
+                "GameStatusFinished",
+                "GameStatusCancelled"
+            ]
+        },
+        "GAMERS-BE_internal_game_domain.GameTeamType": {
+            "type": "string",
+            "enum": [
+                "SINGLE",
+                "DUO",
+                "TRIO",
+                "FULL",
+                "HURUPA"
+            ],
+            "x-enum-comments": {
+                "GameTeamTypeDuo": "2 members",
+                "GameTeamTypeFull": "4 members",
+                "GameTeamTypeHurupa": "5 members",
+                "GameTeamTypeSingle": "1 member",
+                "GameTeamTypeTrio": "3 members"
+            },
+            "x-enum-descriptions": [
+                "1 member",
+                "2 members",
+                "3 members",
+                "4 members",
+                "5 members"
+            ],
+            "x-enum-varnames": [
+                "GameTeamTypeSingle",
+                "GameTeamTypeDuo",
+                "GameTeamTypeTrio",
+                "GameTeamTypeFull",
+                "GameTeamTypeHurupa"
+            ]
+        },
+        "GAMERS-BE_internal_game_domain.GameType": {
+            "type": "string",
+            "enum": [
+                "VALORANT",
+                "LOL"
+            ],
+            "x-enum-varnames": [
+                "GameTypeValorant",
+                "GameTypeLOL"
+            ]
+        },
         "GAMERS-BE_internal_global_common_dto.PaginationResponse": {
             "type": "object",
             "properties": {
@@ -1505,6 +4795,104 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_point_application_dto.CreateValorantScoreTableDto": {
+            "type": "object",
+            "required": [
+                "ascendant",
+                "bronze",
+                "diamond",
+                "gold",
+                "immortal",
+                "iron",
+                "platinum",
+                "radiant",
+                "silver"
+            ],
+            "properties": {
+                "ascendant": {
+                    "type": "integer"
+                },
+                "bronze": {
+                    "type": "integer"
+                },
+                "diamond": {
+                    "type": "integer"
+                },
+                "gold": {
+                    "type": "integer"
+                },
+                "immortal": {
+                    "type": "integer"
+                },
+                "iron": {
+                    "type": "integer"
+                },
+                "platinum": {
+                    "type": "integer"
+                },
+                "radiant": {
+                    "type": "integer"
+                },
+                "silver": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_point_application_dto.ValorantScoreTableResponse": {
+            "type": "object",
+            "properties": {
+                "ascendant": {
+                    "type": "integer"
+                },
+                "bronze": {
+                    "type": "integer"
+                },
+                "diamond": {
+                    "type": "integer"
+                },
+                "gold": {
+                    "type": "integer"
+                },
+                "immortal": {
+                    "type": "integer"
+                },
+                "iron": {
+                    "type": "integer"
+                },
+                "platinum": {
+                    "type": "integer"
+                },
+                "radiant": {
+                    "type": "integer"
+                },
+                "score_table_id": {
+                    "type": "integer"
+                },
+                "silver": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_storage_application_dto.UploadResponse": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "mime_type": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "uploaded_at": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
                 }
             }
         },
@@ -1537,6 +4925,68 @@ const docTemplate = `{
                 }
             }
         },
+        "GAMERS-BE_internal_user_application_dto.MyUserResponse": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "current_tier": {
+                    "type": "integer"
+                },
+                "current_tier_patched": {
+                    "type": "string"
+                },
+                "elo": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "modified_at": {
+                    "type": "string"
+                },
+                "peak_tier": {
+                    "type": "integer"
+                },
+                "peak_tier_patched": {
+                    "type": "string"
+                },
+                "profile_key": {
+                    "type": "string"
+                },
+                "ranking_in_tier": {
+                    "type": "integer"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "riot_name": {
+                    "type": "string"
+                },
+                "riot_tag": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "valorant_updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "GAMERS-BE_internal_user_application_dto.UpdateUserRequest": {
             "type": "object",
             "required": [
@@ -1562,6 +5012,132 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_valorant_application_dto.ContestPointResponse": {
+            "type": "object",
+            "properties": {
+                "current_tier_patched": {
+                    "type": "string",
+                    "example": "Diamond 1"
+                },
+                "current_tier_point": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "final_point": {
+                    "type": "integer",
+                    "example": 125
+                },
+                "peak_tier_patched": {
+                    "type": "string",
+                    "example": "Immortal 1"
+                },
+                "peak_tier_point": {
+                    "type": "integer",
+                    "example": 150
+                },
+                "refresh_message": {
+                    "type": "string",
+                    "example": "마지막 갱신 후 24시간이 지났습니다. 갱신이 필요합니다."
+                },
+                "refresh_needed": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "riot_name": {
+                    "type": "string",
+                    "example": "PlayerName"
+                },
+                "riot_tag": {
+                    "type": "string",
+                    "example": "KR1"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 123
+                }
+            }
+        },
+        "GAMERS-BE_internal_valorant_application_dto.RegisterValorantRequest": {
+            "type": "object",
+            "required": [
+                "region",
+                "riot_name",
+                "riot_tag"
+            ],
+            "properties": {
+                "region": {
+                    "type": "string",
+                    "enum": [
+                        "ap",
+                        "br",
+                        "eu",
+                        "kr",
+                        "latam",
+                        "na"
+                    ],
+                    "example": "ap"
+                },
+                "riot_name": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "example": "PlayerName"
+                },
+                "riot_tag": {
+                    "type": "string",
+                    "maxLength": 8,
+                    "example": "KR1"
+                }
+            }
+        },
+        "GAMERS-BE_internal_valorant_application_dto.ValorantInfoResponse": {
+            "type": "object",
+            "properties": {
+                "current_tier": {
+                    "type": "integer",
+                    "example": 21
+                },
+                "current_tier_patched": {
+                    "type": "string",
+                    "example": "Diamond 1"
+                },
+                "elo": {
+                    "type": "integer",
+                    "example": 1850
+                },
+                "peak_tier": {
+                    "type": "integer",
+                    "example": 24
+                },
+                "peak_tier_patched": {
+                    "type": "string",
+                    "example": "Immortal 1"
+                },
+                "ranking_in_tier": {
+                    "type": "integer",
+                    "example": 50
+                },
+                "refresh_needed": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "region": {
+                    "type": "string",
+                    "example": "ap"
+                },
+                "riot_name": {
+                    "type": "string",
+                    "example": "PlayerName"
+                },
+                "riot_tag": {
+                    "type": "string",
+                    "example": "KR1"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2024-01-15T10:30:00Z"
                 }
             }
         }

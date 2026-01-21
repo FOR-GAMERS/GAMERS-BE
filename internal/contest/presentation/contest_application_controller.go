@@ -4,6 +4,7 @@ import (
 	"GAMERS-BE/internal/auth/middleware"
 	"GAMERS-BE/internal/contest/application"
 	_ "GAMERS-BE/internal/contest/application/dto" // for swagger
+	commonDto "GAMERS-BE/internal/global/common/dto"
 	"GAMERS-BE/internal/global/common/handler"
 	"GAMERS-BE/internal/global/common/router"
 	"GAMERS-BE/internal/global/exception"
@@ -41,6 +42,10 @@ func (c *ContestApplicationController) RegisterRoute() {
 	privateGroup.POST("/:userId/reject", c.RejectApplication)
 	privateGroup.DELETE("/cancel", c.CancelApplication)
 	privateGroup.DELETE("/withdraw", c.WithdrawFromContest)
+
+	// Contest members endpoints
+	membersGroup := c.router.ProtectedGroup("/api/contests/:id/members")
+	membersGroup.GET("", c.GetContestMembers)
 }
 
 // RequestParticipate godoc
@@ -265,4 +270,42 @@ func (c *ContestApplicationController) WithdrawFromContest(ctx *gin.Context) {
 
 	err = c.service.WithdrawFromContest(contestId, userId)
 	c.helper.RespondOK(ctx, nil, err, "successfully withdrawn from contest")
+}
+
+// GetContestMembers godoc
+// @Summary Get contest members with pagination
+// @Description Get all members of a contest with user information and points, sorted by points
+// @Tags contest-members
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param contestId path int true "Contest ID"
+// @Param page query int false "Page number (default: 1)" minimum(1)
+// @Param page_size query int false "Page size (default: 10, max: 100)" minimum(1) maximum(100)
+// @Param sort_by query string false "Sort field (point, username)" default(point)
+// @Param order query string false "Sort order (asc, desc)" default(desc)
+// @Success 200 {object} response.Response{data=commonDto.PaginationResponse}
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Router /api/contests/{contestId}/members [get]
+func (c *ContestApplicationController) GetContestMembers(ctx *gin.Context) {
+	contestId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "10"))
+	pagination := commonDto.NewPaginationRequest(page, pageSize)
+
+	// Parse sort parameters
+	sortBy := ctx.DefaultQuery("sort_by", "point")
+	order := ctx.DefaultQuery("order", "desc")
+	sort := commonDto.NewSortRequest(sortBy, order, []string{"point", "username"})
+
+	result, err := c.service.GetContestMembers(ctx.Request.Context(), contestId, pagination, sort)
+	c.helper.RespondOK(ctx, result, err, "members retrieved successfully")
 }

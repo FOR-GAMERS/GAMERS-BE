@@ -23,8 +23,8 @@ func NewContestApplicationRedisAdapter(client *redis.Client) *ContestApplication
 	}
 }
 
-func (c *ContestApplicationRedisAdapter) RequestParticipate(ctx context.Context, contestId, userId int64, ttl time.Duration) error {
-	hasApplied, err := c.HasApplied(ctx, contestId, userId)
+func (c *ContestApplicationRedisAdapter) RequestParticipate(ctx context.Context, contestId int64, sender *port.SenderSnapshot, ttl time.Duration) error {
+	hasApplied, err := c.HasApplied(ctx, contestId, sender.UserID)
 	if err != nil {
 		return err
 	}
@@ -34,12 +34,13 @@ func (c *ContestApplicationRedisAdapter) RequestParticipate(ctx context.Context,
 
 	pipe := c.client.Pipeline()
 
-	appKey := utils.GetApplicationKey(contestId, userId)
+	appKey := utils.GetApplicationKey(contestId, sender.UserID)
 	application := port.ContestApplication{
-		UserID:      userId,
+		UserID:      sender.UserID,
 		ContestID:   contestId,
 		Status:      port.ApplicationStatusPending,
 		RequestedAt: time.Now(),
+		Sender:      sender,
 	}
 
 	appData, err := json.Marshal(application)
@@ -52,11 +53,11 @@ func (c *ContestApplicationRedisAdapter) RequestParticipate(ctx context.Context,
 	pendingKey := utils.GetPendingKey(contestId)
 	pipe.ZAdd(ctx, pendingKey, redis.Z{
 		Score:  float64(time.Now().Unix()),
-		Member: userId,
+		Member: sender.UserID,
 	})
 	pipe.Expire(ctx, pendingKey, ttl)
 
-	userAppKey := utils.GetUserApplicationsKey(userId)
+	userAppKey := utils.GetUserApplicationsKey(sender.UserID)
 	pipe.SAdd(ctx, userAppKey, contestId)
 	pipe.Expire(ctx, userAppKey, 30*24*time.Hour)
 

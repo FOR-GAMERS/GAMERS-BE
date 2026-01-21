@@ -56,7 +56,13 @@ func (a *OAuth2DatabaseAdapter) CreateDiscordAccount(account *domain.DiscordAcco
 }
 
 func (a *OAuth2DatabaseAdapter) UpdateDiscordAccount(account *domain.DiscordAccount) error {
-	result := a.db.Save(account)
+	result := a.db.Model(&domain.DiscordAccount{}).
+		Where("discord_id = ?", account.DiscordId).
+		Updates(map[string]interface{}{
+			"discord_avatar":   account.DiscordAvatar,
+			"discord_verified": account.DiscordVerified,
+		})
+
 	if result.Error != nil {
 		return result.Error
 	}

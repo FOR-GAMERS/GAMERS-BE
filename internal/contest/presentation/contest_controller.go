@@ -4,6 +4,7 @@ import (
 	"GAMERS-BE/internal/auth/middleware"
 	"GAMERS-BE/internal/contest/application"
 	"GAMERS-BE/internal/contest/application/dto"
+	"GAMERS-BE/internal/contest/domain"
 	commonDto "GAMERS-BE/internal/global/common/dto"
 	"GAMERS-BE/internal/global/common/handler"
 	"GAMERS-BE/internal/global/common/router"
@@ -11,6 +12,7 @@ import (
 	"GAMERS-BE/internal/global/response"
 	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,9 +34,11 @@ func NewContestController(router *router.Router, service *application.ContestSer
 func (c *ContestController) RegisterRoute() {
 	privateGroup := c.router.ProtectedGroup("/api/contests")
 	privateGroup.POST("", c.SaveContest)
+	privateGroup.GET("/me", c.GetMyContests)
 	privateGroup.PATCH("/:id", c.UpdateContest)
 	privateGroup.DELETE("/:id", c.DeleteContest)
 	privateGroup.POST("/:id/start", c.StartContest)
+	privateGroup.POST("/:id/stop", c.StopContest)
 
 	publicGroup := c.router.PublicGroup("/api/contests")
 	publicGroup.GET("", c.GetAllContests)
@@ -219,4 +223,92 @@ func (c *ContestController) StartContest(ctx *gin.Context) {
 
 	contest, err := c.service.StartContest(ctx.Request.Context(), id, userId)
 	c.helper.RespondOK(ctx, contest, err, "contest started successfully")
+}
+
+// StopContest godoc
+// @Summary Stop a contest
+// @Description Stop an active contest and transition it to finished status (Leader only)
+// @Tags contests
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Contest ID"
+// @Success 200 {object} response.Response{data=dto.ContestResponse}
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Router /api/contests/{id}/stop [post]
+func (c *ContestController) StopContest(ctx *gin.Context) {
+	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	userId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	contest, err := c.service.StopContest(ctx.Request.Context(), id, userId)
+	c.helper.RespondOK(ctx, contest, err, "contest stopped successfully")
+}
+
+// GetMyContests godoc
+// @Summary Get contests I have joined
+// @Description Get all contests that the authenticated user has joined with pagination, sorting, and filtering support
+// @Tags contests
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number (default: 1)"
+// @Param page_size query int false "Page size (default: 10, max: 100)"
+// @Param sort_by query string false "Sort field: created_at, started_at, ended_at, point, contest_status (default: created_at)"
+// @Param order query string false "Sort order: asc, desc (default: desc)"
+// @Param status query string false "Filter by contest status: PENDING, ACTIVE, FINISHED, CANCELLED"
+// @Success 200 {object} response.Response{data=commonDto.PaginationResponse}
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /api/contests/me [get]
+func (c *ContestController) GetMyContests(ctx *gin.Context) {
+	userId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "10"))
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	order := ctx.DefaultQuery("order", "desc")
+	statusParam := ctx.Query("status")
+
+	// Parse and validate status filter
+	var status *domain.ContestStatus
+	if statusParam != "" {
+		normalizedStatus := domain.ContestStatus(strings.ToUpper(statusParam))
+		switch normalizedStatus {
+		case domain.ContestStatusPending, domain.ContestStatusActive, domain.ContestStatusFinished, domain.ContestStatusCancelled:
+			status = &normalizedStatus
+		default:
+			response.JSON(ctx, response.BadRequest("invalid status value. allowed: PENDING, ACTIVE, FINISHED, CANCELLED"))
+			return
+		}
+	}
+
+	paginationReq := commonDto.NewPaginationRequest(page, pageSize)
+	allowedSortFields := []string{"created_at", "started_at", "ended_at", "point", "contest_status"}
+	sortReq := commonDto.NewSortRequest(sortBy, order, allowedSortFields)
+
+	contests, totalCount, err := c.service.GetMyContests(userId, paginationReq, sortReq, status)
+	if err != nil {
+		response.JSON(ctx, response.Error(400, err.Error()))
+		return
+	}
+
+	contestResponses := dto.ToMyContestResponses(contests)
+	paginationResp := commonDto.NewPaginationResponse(contestResponses, paginationReq.Page, paginationReq.PageSize, totalCount)
+	c.helper.RespondOK(ctx, paginationResp, nil, "my contests retrieved successfully")
 }

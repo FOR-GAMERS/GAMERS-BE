@@ -1,19 +1,33 @@
 package application
 
 import (
+	"GAMERS-BE/internal/discord/application/dto"
 	"GAMERS-BE/internal/discord/application/port"
 	"GAMERS-BE/internal/global/exception"
+	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
+	"time"
 )
 
 // DiscordValidationService handles Discord validation logic for contests
 type DiscordValidationService struct {
-	botClient port.DiscordBotPort
+	botClient        port.DiscordBotPort
+	userClient       port.DiscordUserPort
+	discordTokenPort port.DiscordTokenPort
+	oauth2DBPort     oauth2Port.OAuth2DatabasePort
 }
 
 // NewDiscordValidationService creates a new Discord validation service
-func NewDiscordValidationService(botClient port.DiscordBotPort) *DiscordValidationService {
+func NewDiscordValidationService(
+	botClient port.DiscordBotPort,
+	userClient port.DiscordUserPort,
+	discordTokenPort port.DiscordTokenPort,
+	oauth2DBPort oauth2Port.OAuth2DatabasePort,
+) *DiscordValidationService {
 	return &DiscordValidationService{
-		botClient: botClient,
+		botClient:        botClient,
+		userClient:       userClient,
+		discordTokenPort: discordTokenPort,
+		oauth2DBPort:     oauth2DBPort,
 	}
 }
 
@@ -77,7 +91,7 @@ func (s *DiscordValidationService) ValidateUserInGuild(guildID, userDiscordID st
 }
 
 // GetGuildTextChannels returns all text channels in a guild
-func (s *DiscordValidationService) GetGuildTextChannels(guildID string) ([]port.DiscordChannel, error) {
+func (s *DiscordValidationService) GetGuildTextChannels(guildID string) ([]dto.DiscordChannel, error) {
 	// First verify bot is in the guild
 	if err := s.ValidateBotInGuild(guildID); err != nil {
 		return nil, err
@@ -92,10 +106,88 @@ func (s *DiscordValidationService) GetGuildTextChannels(guildID string) ([]port.
 }
 
 // GetBotGuilds returns all guilds the bot is a member of
-func (s *DiscordValidationService) GetBotGuilds() ([]port.DiscordGuild, error) {
+func (s *DiscordValidationService) GetBotGuilds() ([]dto.DiscordGuild, error) {
 	guilds, err := s.botClient.GetBotGuilds()
 	if err != nil {
 		return nil, exception.ErrDiscordAPIError
 	}
 	return guilds, nil
+}
+
+// GetAvailableGuilds returns guilds where both the GAMERS bot and the user are members.
+// This is used to determine which guilds a user can create contests in.
+func (s *DiscordValidationService) GetAvailableGuilds(userID int64) ([]dto.DiscordGuild, error) {
+	// Get user's Discord token from Redis
+	discordToken, err := s.discordTokenPort.GetToken(userID)
+	if err != nil {
+		return nil, exception.ErrDiscordTokenNotFound
+	}
+
+	// Check if token is expired
+	if time.Now().Unix() > discordToken.ExpiresAt {
+		return nil, exception.ErrDiscordTokenExpired
+	}
+
+	// Get all guilds the user is a member of using their access token
+	userGuilds, err := s.userClient.GetUserGuilds(discordToken.AccessToken)
+	if err != nil {
+		return nil, exception.ErrDiscordAPIError
+	}
+
+	// Get all guilds the bot is a member of
+	botGuilds, err := s.botClient.GetBotGuilds()
+	if err != nil {
+		return nil, exception.ErrDiscordAPIError
+	}
+
+	// Create a map of bot guilds for efficient lookup
+	botGuildMap := make(map[string]bool)
+	for _, guild := range botGuilds {
+		botGuildMap[guild.ID] = true
+	}
+
+	// Find intersection: guilds where both user and bot are members
+	availableGuilds := make([]dto.DiscordGuild, 0)
+	for _, guild := range userGuilds {
+		if botGuildMap[guild.ID] {
+			availableGuilds = append(availableGuilds, guild)
+		}
+	}
+
+	return availableGuilds, nil
+}
+
+// GetAvailableGuildTextChannels returns text channels for a guild where both the bot and user are members.
+func (s *DiscordValidationService) GetAvailableGuildTextChannels(guildID string, userID int64) ([]dto.DiscordChannel, error) {
+	// Get user's Discord token from Redis
+	discordToken, err := s.discordTokenPort.GetToken(userID)
+	if err != nil {
+		return nil, exception.ErrDiscordTokenNotFound
+	}
+
+	// Check if token is expired
+	if time.Now().Unix() > discordToken.ExpiresAt {
+		return nil, exception.ErrDiscordTokenExpired
+	}
+
+	// Check if bot is in the guild
+	if err := s.ValidateBotInGuild(guildID); err != nil {
+		return nil, err
+	}
+
+	// Check if user is in the guild using their access token
+	userInGuild, err := s.userClient.IsUserInGuild(discordToken.AccessToken, guildID)
+	if err != nil {
+		return nil, exception.ErrDiscordAPIError
+	}
+	if !userInGuild {
+		return nil, exception.ErrUserNotInGuild
+	}
+
+	channels, err := s.botClient.GetGuildTextChannels(guildID)
+	if err != nil {
+		return nil, exception.ErrDiscordAPIError
+	}
+
+	return channels, nil
 }

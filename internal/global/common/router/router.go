@@ -15,6 +15,7 @@ type Router struct {
 
 func NewRouter(authMiddleware *middleware.AuthMiddleware) *Router {
 	engine := gin.New()
+	engine.SetTrustedProxies(nil)
 	engine.Use(gin.Logger())
 	engine.Use(gin.Recovery())
 

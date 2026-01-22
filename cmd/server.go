@@ -23,11 +23,19 @@ import (
 	_ "GAMERS-BE/docs"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 )
+
+func init() {
+	// Load .env file from env directory
+	if err := godotenv.Load("env/.env"); err != nil {
+		log.Println("No env/.env file found, using system environment variables")
+	}
+}
 
 // @title GAMERS API
 // @version 1.0
@@ -81,10 +89,12 @@ func main() {
 
 	authDeps := auth.ProvideAuthDependencies(db, redisClient, &ctx, appRouter)
 	userDeps := user.ProvideUserDependencies(db, appRouter)
-	oauth2Deps := oauth2.ProvideOAuth2Dependencies(db, appRouter)
 
-	// Discord module - provides Discord API integration
-	discordDeps := discord.ProvideDiscordDependencies(appRouter)
+	// Discord module - provides Discord API integration (must be initialized before OAuth2)
+	discordDeps := discord.ProvideDiscordDependencies(appRouter, db, redisClient, &ctx)
+
+	// OAuth2 module - uses Discord token port for storing Discord tokens
+	oauth2Deps := oauth2.ProvideOAuth2Dependencies(db, appRouter, discordDeps.DiscordTokenPort)
 
 	// Game module - provides Game, Team, and GameTeam management
 	gameDeps := game.ProvideGameDependencies(

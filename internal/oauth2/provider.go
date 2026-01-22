@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	discordPort "GAMERS-BE/internal/discord/application/port"
 	"GAMERS-BE/internal/global/common/router"
 	jwtApplication "GAMERS-BE/internal/global/security/jwt"
 	"GAMERS-BE/internal/global/utils"
@@ -22,7 +23,7 @@ type Dependencies struct {
 	OAuth2Repository port.OAuth2DatabasePort
 }
 
-func ProvideOAuth2Dependencies(db *gorm.DB, router *router.Router) *Dependencies {
+func ProvideOAuth2Dependencies(db *gorm.DB, router *router.Router, discordTokenPort discordPort.DiscordTokenPort) *Dependencies {
 	ctx := context.Background()
 
 	discordConfig := discord.NewConfigFromEnv()
@@ -42,6 +43,7 @@ func ProvideOAuth2Dependencies(db *gorm.DB, router *router.Router) *Dependencies
 		stateManager,
 		oauth2UserAdapter,
 		oauth2DatabaseAdapter,
+		discordTokenPort,
 		*tokenService,
 	)
 

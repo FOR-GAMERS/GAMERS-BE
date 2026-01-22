@@ -251,6 +251,22 @@ func (u *User) GetPeakTierName() string {
 	return extractBaseTierName(*u.PeakTierPatched)
 }
 
+// GetCurrentTierFullName returns the full tier name from CurrentTierPatched (e.g., "Diamond 1")
+func (u *User) GetCurrentTierFullName() string {
+	if u.CurrentTierPatched == nil || *u.CurrentTierPatched == "" {
+		return ""
+	}
+	return *u.CurrentTierPatched
+}
+
+// GetPeakTierFullName returns the full tier name from PeakTierPatched (e.g., "Diamond 1")
+func (u *User) GetPeakTierFullName() string {
+	if u.PeakTierPatched == nil || *u.PeakTierPatched == "" {
+		return ""
+	}
+	return *u.PeakTierPatched
+}
+
 // extractBaseTierName extracts the tier name without the number (e.g., "Diamond 1" -> "Diamond")
 func extractBaseTierName(tierPatched string) string {
 	parts := strings.Split(tierPatched, " ")

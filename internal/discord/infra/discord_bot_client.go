@@ -1,7 +1,7 @@
 package infra
 
 import (
-	"GAMERS-BE/internal/discord/application/port"
+	"GAMERS-BE/internal/discord/application/dto"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -72,13 +72,13 @@ func (c *DiscordBotClient) doRequest(method, endpoint string) ([]byte, error) {
 }
 
 // GetBotGuilds returns all guilds the bot is a member of
-func (c *DiscordBotClient) GetBotGuilds() ([]port.DiscordGuild, error) {
+func (c *DiscordBotClient) GetBotGuilds() ([]dto.DiscordGuild, error) {
 	body, err := c.doRequest("GET", "/users/@me/guilds")
 	if err != nil {
 		return nil, err
 	}
 
-	var guilds []port.DiscordGuild
+	var guilds []dto.DiscordGuild
 	if err := json.Unmarshal(body, &guilds); err != nil {
 		return nil, err
 	}
@@ -87,13 +87,13 @@ func (c *DiscordBotClient) GetBotGuilds() ([]port.DiscordGuild, error) {
 }
 
 // GetGuildChannels returns all channels in a guild
-func (c *DiscordBotClient) GetGuildChannels(guildID string) ([]port.DiscordChannel, error) {
+func (c *DiscordBotClient) GetGuildChannels(guildID string) ([]dto.DiscordChannel, error) {
 	body, err := c.doRequest("GET", "/guilds/"+guildID+"/channels")
 	if err != nil {
 		return nil, err
 	}
 
-	var channels []port.DiscordChannel
+	var channels []dto.DiscordChannel
 	if err := json.Unmarshal(body, &channels); err != nil {
 		return nil, err
 	}
@@ -102,15 +102,15 @@ func (c *DiscordBotClient) GetGuildChannels(guildID string) ([]port.DiscordChann
 }
 
 // GetGuildTextChannels returns only text channels in a guild
-func (c *DiscordBotClient) GetGuildTextChannels(guildID string) ([]port.DiscordChannel, error) {
+func (c *DiscordBotClient) GetGuildTextChannels(guildID string) ([]dto.DiscordChannel, error) {
 	channels, err := c.GetGuildChannels(guildID)
 	if err != nil {
 		return nil, err
 	}
 
-	textChannels := make([]port.DiscordChannel, 0)
+	textChannels := make([]dto.DiscordChannel, 0)
 	for _, ch := range channels {
-		if ch.Type == port.ChannelTypeGuildText {
+		if ch.Type == dto.ChannelTypeGuildText {
 			textChannels = append(textChannels, ch)
 		}
 	}
@@ -142,7 +142,7 @@ func (c *DiscordBotClient) ValidateGuildChannel(guildID, channelID string) (bool
 	}
 
 	for _, ch := range channels {
-		if ch.ID == channelID && ch.Type == port.ChannelTypeGuildText {
+		if ch.ID == channelID && ch.Type == dto.ChannelTypeGuildText {
 			return true, nil
 		}
 	}
@@ -161,7 +161,7 @@ type guildMemberResponse struct {
 }
 
 // GetGuildMember returns information about a guild member
-func (c *DiscordBotClient) GetGuildMember(guildID, discordUserID string) (*port.DiscordGuildMember, error) {
+func (c *DiscordBotClient) GetGuildMember(guildID, discordUserID string) (*dto.DiscordGuildMember, error) {
 	body, err := c.doRequest("GET", fmt.Sprintf("/guilds/%s/members/%s", guildID, discordUserID))
 	if err != nil {
 		return nil, err
@@ -172,7 +172,7 @@ func (c *DiscordBotClient) GetGuildMember(guildID, discordUserID string) (*port.
 		return nil, err
 	}
 
-	return &port.DiscordGuildMember{
+	return &dto.DiscordGuildMember{
 		UserID:   member.User.ID,
 		Nick:     member.Nick,
 		Roles:    member.Roles,
@@ -237,7 +237,7 @@ func (c *DiscordUserClient) doRequest(method, endpoint, accessToken string) ([]b
 }
 
 // GetUserGuilds returns all guilds the user is a member of
-func (c *DiscordUserClient) GetUserGuilds(accessToken string) ([]port.DiscordGuild, error) {
+func (c *DiscordUserClient) GetUserGuilds(accessToken string) ([]dto.DiscordGuild, error) {
 	if accessToken == "" {
 		return nil, errors.New("access token is required")
 	}
@@ -247,7 +247,7 @@ func (c *DiscordUserClient) GetUserGuilds(accessToken string) ([]port.DiscordGui
 		return nil, err
 	}
 
-	var guilds []port.DiscordGuild
+	var guilds []dto.DiscordGuild
 	if err := json.Unmarshal(body, &guilds); err != nil {
 		return nil, err
 	}

@@ -3,7 +3,7 @@ package adapter
 import (
 	"GAMERS-BE/internal/contest/application/port"
 	discordApplication "GAMERS-BE/internal/discord/application"
-	discordPort "GAMERS-BE/internal/discord/application/port"
+	discordDto "GAMERS-BE/internal/discord/application/dto"
 )
 
 // DiscordValidationAdapter adapts the Discord validation service to the contest port
@@ -41,7 +41,7 @@ func (a *DiscordValidationAdapter) GetGuildTextChannels(guildID string) ([]port.
 		return nil, err
 	}
 
-	// Convert discord port channels to contest port channels
+	// Convert discord dto channels to contest port channels
 	result := make([]port.DiscordChannel, len(channels))
 	for i, ch := range channels {
 		result[i] = convertChannel(ch)
@@ -56,7 +56,7 @@ func (a *DiscordValidationAdapter) GetBotGuilds() ([]port.DiscordGuild, error) {
 		return nil, err
 	}
 
-	// Convert discord port guilds to contest port guilds
+	// Convert discord dto guilds to contest port guilds
 	result := make([]port.DiscordGuild, len(guilds))
 	for i, g := range guilds {
 		result[i] = convertGuild(g)
@@ -64,7 +64,7 @@ func (a *DiscordValidationAdapter) GetBotGuilds() ([]port.DiscordGuild, error) {
 	return result, nil
 }
 
-func convertChannel(ch discordPort.DiscordChannel) port.DiscordChannel {
+func convertChannel(ch discordDto.DiscordChannel) port.DiscordChannel {
 	return port.DiscordChannel{
 		ID:       ch.ID,
 		Name:     ch.Name,
@@ -74,7 +74,7 @@ func convertChannel(ch discordPort.DiscordChannel) port.DiscordChannel {
 	}
 }
 
-func convertGuild(g discordPort.DiscordGuild) port.DiscordGuild {
+func convertGuild(g discordDto.DiscordGuild) port.DiscordGuild {
 	return port.DiscordGuild{
 		ID:   g.ID,
 		Name: g.Name,

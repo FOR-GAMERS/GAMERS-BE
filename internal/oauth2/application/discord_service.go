@@ -1,6 +1,8 @@
 package application
 
 import (
+	discordDto "GAMERS-BE/internal/discord/application/dto"
+	discordPort "GAMERS-BE/internal/discord/application/port"
 	"GAMERS-BE/internal/global/exception"
 	jwtApplication "GAMERS-BE/internal/global/security/jwt/application"
 	"GAMERS-BE/internal/global/utils"
@@ -24,6 +26,7 @@ type DiscordService struct {
 	stateManager       *state.Manager
 	oauth2UserPort     port.OAuth2UserPort
 	oauth2DatabasePort port.OAuth2DatabasePort
+	discordTokenPort   discordPort.DiscordTokenPort
 	tokenService       jwtApplication.TokenService
 }
 
@@ -34,6 +37,7 @@ func NewOAuth2Service(
 	stateManager *state.Manager,
 	oauth2UserPort port.OAuth2UserPort,
 	oauth2DatabasePort port.OAuth2DatabasePort,
+	discordTokenPort discordPort.DiscordTokenPort,
 	tokenService jwtApplication.TokenService,
 ) *DiscordService {
 	return &DiscordService{
@@ -43,6 +47,7 @@ func NewOAuth2Service(
 		stateManager:       stateManager,
 		oauth2UserPort:     oauth2UserPort,
 		oauth2DatabasePort: oauth2DatabasePort,
+		discordTokenPort:   discordTokenPort,
 		tokenService:       tokenService,
 	}
 }
@@ -104,6 +109,20 @@ func (s *DiscordService) HandleDiscordCallback(req *dto.DiscordCallbackRequest) 
 		}
 
 		userId = discordAccount.UserId
+	}
+
+	// Save Discord OAuth2 token to Redis for future API calls
+	discordToken := &discordDto.DiscordToken{
+		UserID:       userId,
+		AccessToken:  token.AccessToken,
+		RefreshToken: token.RefreshToken,
+		TokenType:    token.TokenType,
+		ExpiresAt:    token.Expiry.Unix(),
+	}
+	if err := s.discordTokenPort.SaveToken(discordToken); err != nil {
+		// Log the error but don't fail the login
+		// The user can still use the app, just guild features may be limited
+		fmt.Printf("Warning: failed to save Discord token to Redis: %v\n", err)
 	}
 
 	jwtToken, err := s.tokenService.GenerateTokenPair(userId)

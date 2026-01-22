@@ -3,3 +3,12 @@ env/*.env
 *.env
 
 .idea/*
+
+# Build outputs
+bin/
+
+# Claude Code
+CLAUDE.md
+
+# Scripts (local use only)
+scripts/

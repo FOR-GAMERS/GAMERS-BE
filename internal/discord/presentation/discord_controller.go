@@ -1,8 +1,9 @@
 package presentation
 
 import (
+	"GAMERS-BE/internal/auth/middleware"
 	"GAMERS-BE/internal/discord/application"
-	"GAMERS-BE/internal/discord/application/port"
+	"GAMERS-BE/internal/discord/application/dto"
 	"GAMERS-BE/internal/global/common/handler"
 	"GAMERS-BE/internal/global/common/router"
 	"GAMERS-BE/internal/global/response"
@@ -13,8 +14,8 @@ import (
 
 // Swagger type aliases for documentation
 var (
-	_ port.DiscordGuild
-	_ port.DiscordChannel
+	_ dto.DiscordGuild
+	_ dto.DiscordChannel
 	_ response.Response
 )
 
@@ -43,23 +44,32 @@ func NewDiscordController(
 func (c *DiscordController) RegisterRoutes(r *router.Router) {
 	discordGroup := r.ProtectedGroup("/api/discord")
 	{
-		discordGroup.GET("/guilds", c.GetBotGuilds)
-		discordGroup.GET("/guilds/:guildId/channels", c.GetGuildTextChannels)
+		discordGroup.GET("/guilds", c.GetAvailableGuilds)
+		discordGroup.GET("/guilds/:guildId/channels", c.GetAvailableGuildTextChannels)
 	}
 }
 
-// GetBotGuilds godoc
-// @Summary Get bot's guilds
-// @Description Returns all guilds the GAMERS bot is a member of
+// GetAvailableGuilds godoc
+// @Summary Get available guilds for contest creation
+// @Description Returns all guilds where both the GAMERS bot and the authenticated user are members
 // @Tags Discord
 // @Accept json
 // @Produce json
-// @Success 200 {array} port.DiscordGuild
+// @Success 200 {array} dto.DiscordGuild
+// @Failure 401 {object} response.Response
 // @Failure 500 {object} response.Response
 // @Security BearerAuth
 // @Router /discord/guilds [get]
-func (c *DiscordController) GetBotGuilds(ctx *gin.Context) {
-	guilds, err := c.validationService.GetBotGuilds()
+func (c *DiscordController) GetAvailableGuilds(ctx *gin.Context) {
+	userID, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "user not authenticated",
+		})
+		return
+	}
+
+	guilds, err := c.validationService.GetAvailableGuilds(userID)
 	if err != nil {
 		c.helper.HandleError(ctx, err)
 		return
@@ -70,19 +80,29 @@ func (c *DiscordController) GetBotGuilds(ctx *gin.Context) {
 	})
 }
 
-// GetGuildTextChannels godoc
+// GetAvailableGuildTextChannels godoc
 // @Summary Get guild's text channels
-// @Description Returns all text channels in a guild that the bot has access to
+// @Description Returns all text channels in a guild where both the bot and the authenticated user are members
 // @Tags Discord
 // @Accept json
 // @Produce json
 // @Param guildId path string true "Discord Guild ID"
-// @Success 200 {array} port.DiscordChannel
+// @Success 200 {array} dto.DiscordChannel
 // @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
 // @Failure 500 {object} response.Response
 // @Security BearerAuth
 // @Router /discord/guilds/{guildId}/channels [get]
-func (c *DiscordController) GetGuildTextChannels(ctx *gin.Context) {
+func (c *DiscordController) GetAvailableGuildTextChannels(ctx *gin.Context) {
+	userID, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "user not authenticated",
+		})
+		return
+	}
+
 	guildID := ctx.Param("guildId")
 	if guildID == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -91,7 +111,7 @@ func (c *DiscordController) GetGuildTextChannels(ctx *gin.Context) {
 		return
 	}
 
-	channels, err := c.validationService.GetGuildTextChannels(guildID)
+	channels, err := c.validationService.GetAvailableGuildTextChannels(guildID, userID)
 	if err != nil {
 		c.helper.HandleError(ctx, err)
 		return

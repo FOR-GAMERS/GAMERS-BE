@@ -22,14 +22,14 @@ func NewValorantService(
 func (s *ValorantService) CreateScoreTable(req *dto.CreateValorantScoreTableDto) (*domain.ValorantScoreTable, error) {
 	scoreTable := domain.NewValorantScoreTable(
 		req.Radiant,
-		req.Immortal,
-		req.Ascendant,
-		req.Diamond,
-		req.Platinum,
-		req.Gold,
-		req.Silver,
-		req.Bronze,
-		req.Iron,
+		req.Immortal3, req.Immortal2, req.Immortal1,
+		req.Ascendant3, req.Ascendant2, req.Ascendant1,
+		req.Diamond3, req.Diamond2, req.Diamond1,
+		req.Platinum3, req.Platinum2, req.Platinum1,
+		req.Gold3, req.Gold2, req.Gold1,
+		req.Silver3, req.Silver2, req.Silver1,
+		req.Bronze3, req.Bronze2, req.Bronze1,
+		req.Iron3, req.Iron2, req.Iron1,
 	)
 
 	return s.scoreTableRepository.Save(scoreTable)

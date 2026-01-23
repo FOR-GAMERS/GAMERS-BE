@@ -10,7 +10,7 @@ type CreateBannerRequest struct {
 	ImageKey     string  `json:"image_key" binding:"required"`
 	Title        *string `json:"title"`
 	LinkURL      *string `json:"link_url"`
-	DisplayOrder int     `json:"display_order"`
+	DisplayOrder int     `json:"display_order" binding:"min=0"`
 	IsActive     *bool   `json:"is_active"`
 }
 
@@ -19,7 +19,7 @@ type UpdateBannerRequest struct {
 	ImageKey     *string `json:"image_key"`
 	Title        *string `json:"title"`
 	LinkURL      *string `json:"link_url"`
-	DisplayOrder *int    `json:"display_order"`
+	DisplayOrder *int    `json:"display_order" binding:"omitempty,min=0"`
 	IsActive     *bool   `json:"is_active"`
 }
 

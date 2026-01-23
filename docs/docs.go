@@ -5358,9 +5358,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "contest_id",
-                "ended_at",
-                "game_team_type",
-                "started_at"
+                "game_team_type"
             ],
             "properties": {
                 "contest_id": {

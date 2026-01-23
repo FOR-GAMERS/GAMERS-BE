@@ -371,9 +371,7 @@ definitions:
         type: string
     required:
     - contest_id
-    - ended_at
     - game_team_type
-    - started_at
     type: object
   GAMERS-BE_internal_game_application_dto.CreateGameTeamRequest:
     properties:

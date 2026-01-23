@@ -12,6 +12,7 @@ import (
 	"GAMERS-BE/internal/global/database"
 	"GAMERS-BE/internal/global/middleware"
 	authProvider "GAMERS-BE/internal/global/security/jwt"
+	"GAMERS-BE/internal/notification"
 	"GAMERS-BE/internal/oauth2"
 	"GAMERS-BE/internal/point"
 	"GAMERS-BE/internal/storage"
@@ -143,7 +144,14 @@ func main() {
 	// Banner module - provides main banner management for homepage
 	bannerDeps := banner.ProvideBannerDependencies(db, appRouter)
 
-	setupRouter(appRouter, authDeps, userDeps, oauth2Deps, contestDeps, commentDeps, discordDeps, gameDeps, pointDeps, valorantDeps, storageDeps, bannerDeps)
+	// Notification module - provides SSE real-time notifications
+	notificationDeps := notification.ProvideNotificationDependencies(db, appRouter)
+
+	// Wire notification handler to contest and game services
+	contestDeps.ApplicationService.SetNotificationHandler(notificationDeps.Service)
+	gameDeps.TeamService.SetNotificationHandler(notificationDeps.Service)
+
+	setupRouter(appRouter, authDeps, userDeps, oauth2Deps, contestDeps, commentDeps, discordDeps, gameDeps, pointDeps, valorantDeps, storageDeps, bannerDeps, notificationDeps)
 
 	startServer(appRouter.Engine())
 }
@@ -182,6 +190,7 @@ func setupRouter(
 	valorantDeps *valorant.Dependencies,
 	storageDeps *storage.Dependencies,
 	bannerDeps *banner.Dependencies,
+	notificationDeps *notification.Dependencies,
 ) *router.Router {
 
 	appRouter.Engine().Use(middleware.GlobalErrorHandler())
@@ -207,6 +216,8 @@ func setupRouter(
 	if bannerDeps != nil {
 		bannerDeps.Controller.RegisterRoutes()
 	}
+	// Notification routes are registered in provider
+	_ = notificationDeps
 
 	return appRouter
 }

@@ -6,20 +6,23 @@ import (
 	"GAMERS-BE/internal/contest/domain"
 	commonDto "GAMERS-BE/internal/global/common/dto"
 	"GAMERS-BE/internal/global/exception"
+	notificationPort "GAMERS-BE/internal/notification/application/port"
 	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
 	userQueryPort "GAMERS-BE/internal/user/application/port/port"
 	"context"
 	"errors"
+	"log"
 	"time"
 )
 
 type ContestApplicationService struct {
-	applicationRepo  port.ContestApplicationRedisPort
-	contestRepo      port.ContestDatabasePort
-	memberRepo       port.ContestMemberDatabasePort
-	eventPublisher   port.EventPublisherPort
-	oauth2Repository oauth2Port.OAuth2DatabasePort
-	userQueryRepo    userQueryPort.UserQueryPort
+	applicationRepo     port.ContestApplicationRedisPort
+	contestRepo         port.ContestDatabasePort
+	memberRepo          port.ContestMemberDatabasePort
+	eventPublisher      port.EventPublisherPort
+	oauth2Repository    oauth2Port.OAuth2DatabasePort
+	userQueryRepo       userQueryPort.UserQueryPort
+	notificationHandler notificationPort.NotificationHandlerPort
 }
 
 func NewContestApplicationService(
@@ -38,6 +41,11 @@ func NewContestApplicationService(
 		oauth2Repository: oauth2Repository,
 		userQueryRepo:    userQueryRepo,
 	}
+}
+
+// SetNotificationHandler sets the notification handler (to avoid circular dependency)
+func (s *ContestApplicationService) SetNotificationHandler(handler notificationPort.NotificationHandlerPort) {
+	s.notificationHandler = handler
 }
 
 // RequestParticipate - Contest 참가 신청
@@ -134,6 +142,9 @@ func (s *ContestApplicationService) AcceptApplication(ctx context.Context, conte
 
 	go s.publishApplicationAcceptedEvent(context.Background(), contest, userId, leaderUserId)
 
+	// Send SSE notification to the applicant
+	go s.sendApplicationAcceptedNotification(contest, userId)
+
 	return nil
 }
 
@@ -162,6 +173,9 @@ func (s *ContestApplicationService) RejectApplication(ctx context.Context, conte
 
 	// 이벤트 발행 (비동기)
 	go s.publishApplicationRejectedEvent(context.Background(), contest, userId, leaderUserId)
+
+	// Send SSE notification to the applicant
+	go s.sendApplicationRejectedNotification(contest, userId, "")
 
 	return nil
 }
@@ -520,5 +534,27 @@ func (s *ContestApplicationService) publishApplicationCancelledEvent(
 
 	if err := s.eventPublisher.PublishContestApplicationEvent(ctx, event); err != nil {
 		_ = err
+	}
+}
+
+// sendApplicationAcceptedNotification sends SSE notification when application is accepted
+func (s *ContestApplicationService) sendApplicationAcceptedNotification(contest *domain.Contest, userId int64) {
+	if s.notificationHandler == nil {
+		return
+	}
+
+	if err := s.notificationHandler.HandleApplicationAccepted(userId, contest.ContestID, contest.Title); err != nil {
+		log.Printf("Failed to send application accepted notification: %v", err)
+	}
+}
+
+// sendApplicationRejectedNotification sends SSE notification when application is rejected
+func (s *ContestApplicationService) sendApplicationRejectedNotification(contest *domain.Contest, userId int64, reason string) {
+	if s.notificationHandler == nil {
+		return
+	}
+
+	if err := s.notificationHandler.HandleApplicationRejected(userId, contest.ContestID, contest.Title, reason); err != nil {
+		log.Printf("Failed to send application rejected notification: %v", err)
 	}
 }

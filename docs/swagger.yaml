@@ -530,6 +530,49 @@ definitions:
       status:
         type: integer
     type: object
+  GAMERS-BE_internal_notification_application_dto.NotificationListResponse:
+    properties:
+      notifications:
+        items:
+          $ref: '#/definitions/GAMERS-BE_internal_notification_application_dto.NotificationResponse'
+        type: array
+      total:
+        type: integer
+      unread_count:
+        type: integer
+    type: object
+  GAMERS-BE_internal_notification_application_dto.NotificationResponse:
+    properties:
+      created_at:
+        type: string
+      data:
+        additionalProperties: true
+        type: object
+      id:
+        type: integer
+      is_read:
+        type: boolean
+      message:
+        type: string
+      title:
+        type: string
+      type:
+        $ref: '#/definitions/GAMERS-BE_internal_notification_domain.NotificationType'
+    type: object
+  GAMERS-BE_internal_notification_domain.NotificationType:
+    enum:
+    - TEAM_INVITE_RECEIVED
+    - TEAM_INVITE_ACCEPTED
+    - TEAM_INVITE_REJECTED
+    - APPLICATION_ACCEPTED
+    - APPLICATION_REJECTED
+    type: string
+    x-enum-varnames:
+    - NotificationTypeTeamInviteReceived
+    - NotificationTypeTeamInviteAccepted
+    - NotificationTypeTeamInviteRejected
+    - NotificationTypeApplicationAccepted
+    - NotificationTypeApplicationRejected
   GAMERS-BE_internal_point_application_dto.CreateValorantScoreTableDto:
     properties:
       ascendant_1:
@@ -3077,6 +3120,110 @@ paths:
       summary: Transfer leadership to another member
       tags:
       - teams
+  /api/notifications:
+    get:
+      description: Retrieves notifications for the authenticated user with pagination
+      parameters:
+      - description: 'Number of notifications to return (default: 20, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      - description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      - description: Filter only unread notifications
+        in: query
+        name: unread
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_notification_application_dto.NotificationListResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get notifications
+      tags:
+      - notifications
+  /api/notifications/{id}/read:
+    patch:
+      description: Marks a specific notification as read
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Mark notification as read
+      tags:
+      - notifications
+  /api/notifications/read-all:
+    patch:
+      description: Marks all notifications as read for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Mark all notifications as read
+      tags:
+      - notifications
+  /api/notifications/stream:
+    get:
+      description: Establishes an SSE connection for receiving real-time notifications
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Subscribe to real-time notifications
+      tags:
+      - notifications
   /api/oauth2/discord/callback:
     get:
       consumes:

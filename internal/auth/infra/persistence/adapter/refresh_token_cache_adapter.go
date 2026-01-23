@@ -33,7 +33,7 @@ func NewRefreshTokenCacheAdapter(ctx *context.Context, repository *redis.Client)
 func (r RefreshTokenCacheAdapter) Save(token *domain.RefreshToken, ttl *int64) error {
 	key := refreshTokenPrefix + token.Token
 
-	log.Printf("[DEBUG] Saving refresh token - Key: %s, UserID: %d", key, token.UserID)
+	log.Printf("[DEBUG] Saving refresh token for UserID: %d", token.UserID)
 
 	data, err := json.Marshal(token)
 	if err != nil {
@@ -66,11 +66,11 @@ func (r RefreshTokenCacheAdapter) Save(token *domain.RefreshToken, ttl *int64) e
 func (r RefreshTokenCacheAdapter) FindByToken(token *string) (*domain.RefreshToken, error) {
 	key := refreshTokenPrefix + *token
 
-	log.Printf("[DEBUG] Looking for refresh token - Key: %s", key)
+	log.Printf("[DEBUG] Looking for refresh token")
 
 	data, err := r.repository.Get(*r.ctx, key).Result()
 	if errors.Is(err, redis.Nil) {
-		log.Printf("[DEBUG] Refresh token NOT FOUND in Redis - Key: %s", key)
+		log.Printf("[DEBUG] Refresh token NOT FOUND in Redis")
 		return nil, fmt.Errorf("refresh token not found")
 	}
 	if err != nil {

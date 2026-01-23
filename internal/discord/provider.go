@@ -4,29 +4,45 @@ import (
 	"GAMERS-BE/internal/discord/application"
 	"GAMERS-BE/internal/discord/application/port"
 	"GAMERS-BE/internal/discord/infra"
+	discordAdapter "GAMERS-BE/internal/discord/infra/persistence/adapter"
 	"GAMERS-BE/internal/discord/presentation"
 	"GAMERS-BE/internal/global/common/handler"
 	"GAMERS-BE/internal/global/common/router"
+	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
+	oauth2Adapter "GAMERS-BE/internal/oauth2/infra/persistence/adapter"
+	"context"
+
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 type Dependencies struct {
 	BotClient         port.DiscordBotPort
 	UserClient        port.DiscordUserPort
+	DiscordTokenPort  port.DiscordTokenPort
 	ValidationService *application.DiscordValidationService
 	Controller        *presentation.DiscordController
 }
 
-func ProvideDiscordDependencies(r *router.Router) *Dependencies {
+func ProvideDiscordDependencies(r *router.Router, db *gorm.DB, redisClient *redis.Client, ctx *context.Context) *Dependencies {
 	controllerHelper := handler.NewControllerHelper()
 
 	botClient := infra.NewDiscordBotClient()
 	userClient := infra.NewDiscordUserClient()
-	validationService := application.NewDiscordValidationService(botClient)
+
+	// Create Discord token Redis adapter for storing Discord OAuth2 tokens
+	discordTokenAdapter := discordAdapter.NewDiscordTokenRedisAdapter(ctx, redisClient)
+
+	// Create OAuth2 database adapter to look up user's Discord account
+	var oauth2DBPort oauth2Port.OAuth2DatabasePort = oauth2Adapter.NewOAuth2DatabaseAdapter(db)
+
+	validationService := application.NewDiscordValidationService(botClient, userClient, discordTokenAdapter, oauth2DBPort)
 	controller := presentation.NewDiscordController(r, validationService, controllerHelper)
 
 	return &Dependencies{
 		BotClient:         botClient,
 		UserClient:        userClient,
+		DiscordTokenPort:  discordTokenAdapter,
 		ValidationService: validationService,
 		Controller:        controller,
 	}

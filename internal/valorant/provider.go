@@ -2,6 +2,7 @@ package valorant
 
 import (
 	"GAMERS-BE/internal/global/common/router"
+	"GAMERS-BE/internal/global/utils"
 	pointPort "GAMERS-BE/internal/point/application/port"
 	userCommandPort "GAMERS-BE/internal/user/application/port/command"
 	userQueryPort "GAMERS-BE/internal/user/application/port/port"
@@ -21,7 +22,8 @@ func ProvideValorantDependencies(
 	scoreTableRepo pointPort.ValorantScoreTableDatabasePort,
 ) *Dependencies {
 	// Infrastructure
-	valorantApiClient := infra.NewValorantApiClient()
+	apiKey := utils.GetEnv("HENRIK_RIOT_API_KEY", "")
+	valorantApiClient := infra.NewValorantApiClient(apiKey)
 
 	// Services
 	valorantUserService := application.NewValorantUserService(

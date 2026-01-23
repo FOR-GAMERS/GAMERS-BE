@@ -13,4 +13,7 @@ var (
 	ErrDiscordAccessTokenRequired = NewBusinessError(http.StatusUnauthorized, "discord access token is required", "DC007")
 	ErrDiscordGuildRequired       = NewBusinessError(http.StatusBadRequest, "discord guild id is required for tournament contests", "DC008")
 	ErrDiscordChannelRequired     = NewBusinessError(http.StatusBadRequest, "discord text channel id is required when guild is specified", "DC009")
+	ErrDiscordAccountNotFound     = NewBusinessError(http.StatusNotFound, "discord account not linked to this user", "DC010")
+	ErrDiscordTokenNotFound       = NewBusinessError(http.StatusUnauthorized, "discord token not found, please re-authenticate with Discord", "DC011")
+	ErrDiscordTokenExpired        = NewBusinessError(http.StatusUnauthorized, "discord token expired, please re-authenticate with Discord", "DC012")
 )

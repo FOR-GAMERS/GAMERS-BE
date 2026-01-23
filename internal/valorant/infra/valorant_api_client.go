@@ -11,9 +11,15 @@ type ValorantApiClient struct {
 	client *govapi.VAPI
 }
 
-func NewValorantApiClient() *ValorantApiClient {
+func NewValorantApiClient(apiKey string) *ValorantApiClient {
+	var client *govapi.VAPI
+	if apiKey != "" {
+		client = govapi.New(govapi.WithKey(apiKey))
+	} else {
+		client = govapi.New()
+	}
 	return &ValorantApiClient{
-		client: govapi.New(),
+		client: client,
 	}
 }
 

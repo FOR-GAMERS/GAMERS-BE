@@ -212,8 +212,8 @@ func (s *ValorantUserService) CalculateContestPoint(userId int64, scoreTableId i
 	}
 
 	// Calculate points
-	currentTierPoint := getTierPoint(user.GetCurrentTierName(), scoreTable)
-	peakTierPoint := getTierPoint(user.GetPeakTierName(), scoreTable)
+	currentTierPoint := getTierPoint(user.GetCurrentTierFullName(), scoreTable)
+	peakTierPoint := getTierPoint(user.GetPeakTierFullName(), scoreTable)
 	finalPoint := int(math.Round(float64(currentTierPoint+peakTierPoint) / 2))
 
 	refreshNeeded := user.IsValorantRefreshNeeded()
@@ -248,27 +248,59 @@ func isValidRegion(region string) bool {
 	return validRegions[strings.ToLower(region)]
 }
 
-func getTierPoint(tierName string, scoreTable *pointDomain.ValorantScoreTable) int {
-	tierName = strings.ToLower(tierName)
-	switch tierName {
+func getTierPoint(tierFullName string, scoreTable *pointDomain.ValorantScoreTable) int {
+	tierFullName = strings.ToLower(tierFullName)
+	switch tierFullName {
 	case "radiant":
 		return scoreTable.Radiant
-	case "immortal":
-		return scoreTable.Immortal
-	case "ascendant":
-		return scoreTable.Ascendant
-	case "diamond":
-		return scoreTable.Diamond
-	case "platinum":
-		return scoreTable.Platinum
-	case "gold":
-		return scoreTable.Gold
-	case "silver":
-		return scoreTable.Silver
-	case "bronze":
-		return scoreTable.Bronze
-	case "iron":
-		return scoreTable.Iron
+	case "immortal 3":
+		return scoreTable.Immortal3
+	case "immortal 2":
+		return scoreTable.Immortal2
+	case "immortal 1":
+		return scoreTable.Immortal1
+	case "ascendant 3":
+		return scoreTable.Ascendant3
+	case "ascendant 2":
+		return scoreTable.Ascendant2
+	case "ascendant 1":
+		return scoreTable.Ascendant1
+	case "diamond 3":
+		return scoreTable.Diamond3
+	case "diamond 2":
+		return scoreTable.Diamond2
+	case "diamond 1":
+		return scoreTable.Diamond1
+	case "platinum 3":
+		return scoreTable.Platinum3
+	case "platinum 2":
+		return scoreTable.Platinum2
+	case "platinum 1":
+		return scoreTable.Platinum1
+	case "gold 3":
+		return scoreTable.Gold3
+	case "gold 2":
+		return scoreTable.Gold2
+	case "gold 1":
+		return scoreTable.Gold1
+	case "silver 3":
+		return scoreTable.Silver3
+	case "silver 2":
+		return scoreTable.Silver2
+	case "silver 1":
+		return scoreTable.Silver1
+	case "bronze 3":
+		return scoreTable.Bronze3
+	case "bronze 2":
+		return scoreTable.Bronze2
+	case "bronze 1":
+		return scoreTable.Bronze1
+	case "iron 3":
+		return scoreTable.Iron3
+	case "iron 2":
+		return scoreTable.Iron2
+	case "iron 1":
+		return scoreTable.Iron1
 	default:
 		return 0
 	}

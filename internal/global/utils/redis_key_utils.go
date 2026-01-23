@@ -62,3 +62,10 @@ func GetUserTeamsKey(userId int64) string {
 func GetGameTeamPatternKey(gameId int64) string {
 	return fmt.Sprintf("game:%d:team*", gameId)
 }
+
+// Discord token related Redis keys
+
+// GetDiscordTokenKey returns the key for a user's Discord OAuth2 token
+func GetDiscordTokenKey(userId int64) string {
+	return fmt.Sprintf("discord:token:%d", userId)
+}

@@ -4098,7 +4098,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all guilds the GAMERS bot is a member of",
+                "description": "Returns all guilds where both the GAMERS bot and the authenticated user are members",
                 "consumes": [
                     "application/json"
                 ],
@@ -4108,15 +4108,21 @@ const docTemplate = `{
                 "tags": [
                     "Discord"
                 ],
-                "summary": "Get bot's guilds",
+                "summary": "Get available guilds for contest creation",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/GAMERS-BE_internal_discord_application_port.DiscordGuild"
+                                "$ref": "#/definitions/GAMERS-BE_internal_discord_application_dto.DiscordGuild"
                             }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
                     },
                     "500": {
@@ -4135,7 +4141,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all text channels in a guild that the bot has access to",
+                "description": "Returns all text channels in a guild where both the bot and the authenticated user are members",
                 "consumes": [
                     "application/json"
                 ],
@@ -4161,12 +4167,24 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/GAMERS-BE_internal_discord_application_port.DiscordChannel"
+                                "$ref": "#/definitions/GAMERS-BE_internal_discord_application_dto.DiscordChannel"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
@@ -4482,7 +4500,7 @@ const docTemplate = `{
                 "ContestTypeCasual"
             ]
         },
-        "GAMERS-BE_internal_discord_application_port.DiscordChannel": {
+        "GAMERS-BE_internal_discord_application_dto.DiscordChannel": {
             "type": "object",
             "properties": {
                 "guild_id": {
@@ -4505,7 +4523,7 @@ const docTemplate = `{
                 }
             }
         },
-        "GAMERS-BE_internal_discord_application_port.DiscordGuild": {
+        "GAMERS-BE_internal_discord_application_dto.DiscordGuild": {
             "type": "object",
             "properties": {
                 "icon": {
@@ -4801,42 +4819,106 @@ const docTemplate = `{
         "GAMERS-BE_internal_point_application_dto.CreateValorantScoreTableDto": {
             "type": "object",
             "required": [
-                "ascendant",
-                "bronze",
-                "diamond",
-                "gold",
-                "immortal",
-                "iron",
-                "platinum",
+                "ascendant_1",
+                "ascendant_2",
+                "ascendant_3",
+                "bronze_1",
+                "bronze_2",
+                "bronze_3",
+                "diamond_1",
+                "diamond_2",
+                "diamond_3",
+                "gold_1",
+                "gold_2",
+                "gold_3",
+                "immortal_1",
+                "immortal_2",
+                "immortal_3",
+                "iron_1",
+                "iron_2",
+                "iron_3",
+                "platinum_1",
+                "platinum_2",
+                "platinum_3",
                 "radiant",
-                "silver"
+                "silver_1",
+                "silver_2",
+                "silver_3"
             ],
             "properties": {
-                "ascendant": {
+                "ascendant_1": {
                     "type": "integer"
                 },
-                "bronze": {
+                "ascendant_2": {
                     "type": "integer"
                 },
-                "diamond": {
+                "ascendant_3": {
                     "type": "integer"
                 },
-                "gold": {
+                "bronze_1": {
                     "type": "integer"
                 },
-                "immortal": {
+                "bronze_2": {
                     "type": "integer"
                 },
-                "iron": {
+                "bronze_3": {
                     "type": "integer"
                 },
-                "platinum": {
+                "diamond_1": {
+                    "type": "integer"
+                },
+                "diamond_2": {
+                    "type": "integer"
+                },
+                "diamond_3": {
+                    "type": "integer"
+                },
+                "gold_1": {
+                    "type": "integer"
+                },
+                "gold_2": {
+                    "type": "integer"
+                },
+                "gold_3": {
+                    "type": "integer"
+                },
+                "immortal_1": {
+                    "type": "integer"
+                },
+                "immortal_2": {
+                    "type": "integer"
+                },
+                "immortal_3": {
+                    "type": "integer"
+                },
+                "iron_1": {
+                    "type": "integer"
+                },
+                "iron_2": {
+                    "type": "integer"
+                },
+                "iron_3": {
+                    "type": "integer"
+                },
+                "platinum_1": {
+                    "type": "integer"
+                },
+                "platinum_2": {
+                    "type": "integer"
+                },
+                "platinum_3": {
                     "type": "integer"
                 },
                 "radiant": {
                     "type": "integer"
                 },
-                "silver": {
+                "silver_1": {
+                    "type": "integer"
+                },
+                "silver_2": {
+                    "type": "integer"
+                },
+                "silver_3": {
                     "type": "integer"
                 }
             }
@@ -4844,25 +4926,67 @@ const docTemplate = `{
         "GAMERS-BE_internal_point_application_dto.ValorantScoreTableResponse": {
             "type": "object",
             "properties": {
-                "ascendant": {
+                "ascendant_1": {
                     "type": "integer"
                 },
-                "bronze": {
+                "ascendant_2": {
                     "type": "integer"
                 },
-                "diamond": {
+                "ascendant_3": {
                     "type": "integer"
                 },
-                "gold": {
+                "bronze_1": {
                     "type": "integer"
                 },
-                "immortal": {
+                "bronze_2": {
                     "type": "integer"
                 },
-                "iron": {
+                "bronze_3": {
                     "type": "integer"
                 },
-                "platinum": {
+                "diamond_1": {
+                    "type": "integer"
+                },
+                "diamond_2": {
+                    "type": "integer"
+                },
+                "diamond_3": {
+                    "type": "integer"
+                },
+                "gold_1": {
+                    "type": "integer"
+                },
+                "gold_2": {
+                    "type": "integer"
+                },
+                "gold_3": {
+                    "type": "integer"
+                },
+                "immortal_1": {
+                    "type": "integer"
+                },
+                "immortal_2": {
+                    "type": "integer"
+                },
+                "immortal_3": {
+                    "type": "integer"
+                },
+                "iron_1": {
+                    "type": "integer"
+                },
+                "iron_2": {
+                    "type": "integer"
+                },
+                "iron_3": {
+                    "type": "integer"
+                },
+                "platinum_1": {
+                    "type": "integer"
+                },
+                "platinum_2": {
+                    "type": "integer"
+                },
+                "platinum_3": {
                     "type": "integer"
                 },
                 "radiant": {
@@ -4871,7 +4995,13 @@ const docTemplate = `{
                 "score_table_id": {
                     "type": "integer"
                 },
-                "silver": {
+                "silver_1": {
+                    "type": "integer"
+                },
+                "silver_2": {
+                    "type": "integer"
+                },
+                "silver_3": {
                     "type": "integer"
                 }
             }

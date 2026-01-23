@@ -90,16 +90,18 @@ func main() {
 	appRouter := router.NewRouter(authInterceptor)
 
 	authDeps := auth.ProvideAuthDependencies(db, redisClient, &ctx, appRouter)
-	userDeps := user.ProvideUserDependencies(db, appRouter)
-
-	// Set user query port for admin middleware after user dependencies are initialized
-	authInterceptor.SetUserQueryPort(userDeps.UserQueryRepo)
 
 	// Discord module - provides Discord API integration (must be initialized before OAuth2)
 	discordDeps := discord.ProvideDiscordDependencies(appRouter, db, redisClient, &ctx)
 
 	// OAuth2 module - uses Discord token port for storing Discord tokens
 	oauth2Deps := oauth2.ProvideOAuth2Dependencies(db, redisClient, &ctx, appRouter, discordDeps.DiscordTokenPort)
+
+	// User module - uses OAuth2 repository for Discord avatar URL generation
+	userDeps := user.ProvideUserDependencies(db, appRouter, oauth2Deps.OAuth2Repository)
+
+	// Set user query port for admin middleware after user dependencies are initialized
+	authInterceptor.SetUserQueryPort(userDeps.UserQueryRepo)
 
 	// Game module - provides Game, Team, and GameTeam management
 	gameDeps := game.ProvideGameDependencies(

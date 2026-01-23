@@ -3,6 +3,7 @@ package dto
 import (
 	"GAMERS-BE/internal/comment/application/port"
 	"GAMERS-BE/internal/comment/domain"
+	"GAMERS-BE/internal/global/utils"
 	"time"
 )
 
@@ -42,6 +43,14 @@ func ToCommentResponse(comment *domain.Comment, author *AuthorResponse) *Comment
 }
 
 func ToCommentResponseFromWithUser(c *port.CommentWithUser) *CommentResponse {
+	// Build Discord avatar URL if Discord account exists
+	avatar := c.Avatar
+	if c.DiscordId != nil && c.DiscordAvatar != nil {
+		if url := utils.BuildDiscordAvatarURL(*c.DiscordId, *c.DiscordAvatar); url != "" {
+			avatar = &url
+		}
+	}
+
 	return &CommentResponse{
 		CommentID:  c.CommentID,
 		ContestID:  c.ContestID,
@@ -52,7 +61,7 @@ func ToCommentResponseFromWithUser(c *port.CommentWithUser) *CommentResponse {
 			UserID:   c.UserID,
 			Username: c.Username,
 			Tag:      c.Tag,
-			Avatar:   c.Avatar,
+			Avatar:   avatar,
 		},
 	}
 }

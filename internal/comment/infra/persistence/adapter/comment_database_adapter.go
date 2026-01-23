@@ -66,8 +66,9 @@ func (a *CommentDatabaseAdapter) GetByContestID(
 
 	var results []*port.CommentWithUser
 	query := a.db.Table("contest_comments cc").
-		Select("cc.comment_id, cc.contest_id, cc.user_id, cc.content, cc.created_at, cc.modified_at, u.username, u.tag, u.avatar").
+		Select("cc.comment_id, cc.contest_id, cc.user_id, cc.content, cc.created_at, cc.modified_at, u.username, u.tag, u.avatar, da.discord_id, da.discord_avatar").
 		Joins("JOIN users u ON cc.user_id = u.id").
+		Joins("LEFT JOIN discord_accounts da ON u.id = da.user_id").
 		Where("cc.contest_id = ?", contestID).
 		Order(orderClause)
 

@@ -2,23 +2,32 @@ package application
 
 import (
 	"GAMERS-BE/internal/global/security/password"
+	"GAMERS-BE/internal/global/utils"
+	"GAMERS-BE/internal/oauth2/application/port"
 	"GAMERS-BE/internal/user/application/dto"
 	"GAMERS-BE/internal/user/application/port/command"
-	"GAMERS-BE/internal/user/application/port/port"
+	userPort "GAMERS-BE/internal/user/application/port/port"
 	"GAMERS-BE/internal/user/domain"
 )
 
 type UserService struct {
-	userQueryPort   port.UserQueryPort
-	userCommandPort command.UserCommandPort
-	passwordHasher  password.Hasher
+	userQueryPort    userPort.UserQueryPort
+	userCommandPort  command.UserCommandPort
+	passwordHasher   password.Hasher
+	oauth2DbPort     port.OAuth2DatabasePort
 }
 
-func NewUserService(userQueryPort port.UserQueryPort, userCommandPort command.UserCommandPort, passwordHasher password.Hasher) *UserService {
+func NewUserService(
+	userQueryPort userPort.UserQueryPort,
+	userCommandPort command.UserCommandPort,
+	passwordHasher password.Hasher,
+	oauth2DbPort port.OAuth2DatabasePort,
+) *UserService {
 	return &UserService{
 		userQueryPort:   userQueryPort,
 		userCommandPort: userCommandPort,
 		passwordHasher:  passwordHasher,
+		oauth2DbPort:    oauth2DbPort,
 	}
 }
 
@@ -78,7 +87,18 @@ func (s *UserService) GetMyInfo(id int64) (*dto.MyUserResponse, error) {
 		return nil, err
 	}
 
-	return toMyUserResponse(user), nil
+	// Try to build Discord avatar URL if user has Discord account
+	avatarURL := user.Avatar
+	if s.oauth2DbPort != nil {
+		discordAccount, err := s.oauth2DbPort.FindDiscordAccountByUserId(id)
+		if err == nil && discordAccount != nil {
+			if url := utils.BuildDiscordAvatarURL(discordAccount.DiscordId, discordAccount.DiscordAvatar); url != "" {
+				avatarURL = url
+			}
+		}
+	}
+
+	return toMyUserResponseWithAvatar(user, avatarURL), nil
 }
 
 func toUserResponse(user *domain.User) *dto.UserResponse {
@@ -91,13 +111,17 @@ func toUserResponse(user *domain.User) *dto.UserResponse {
 }
 
 func toMyUserResponse(user *domain.User) *dto.MyUserResponse {
+	return toMyUserResponseWithAvatar(user, user.Avatar)
+}
+
+func toMyUserResponseWithAvatar(user *domain.User, avatarURL string) *dto.MyUserResponse {
 	return &dto.MyUserResponse{
 		Id:                 user.Id,
 		Email:              user.Email,
 		Username:           user.Username,
 		Tag:                user.Tag,
 		Bio:                user.Bio,
-		Avatar:             user.Avatar,
+		Avatar:             avatarURL,
 		ProfileKey:         user.ProfileKey,
 		CreatedAt:          user.CreatedAt,
 		ModifiedAt:         user.ModifiedAt,

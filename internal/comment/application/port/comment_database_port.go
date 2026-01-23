@@ -15,13 +15,15 @@ type CommentDatabasePort interface {
 }
 
 type CommentWithUser struct {
-	CommentID  int64
-	ContestID  int64
-	UserID     int64
-	Content    string
-	CreatedAt  time.Time
-	ModifiedAt time.Time
-	Username   string
-	Tag        string
-	Avatar     *string
+	CommentID     int64
+	ContestID     int64
+	UserID        int64
+	Content       string
+	CreatedAt     time.Time
+	ModifiedAt    time.Time
+	Username      string
+	Tag           string
+	Avatar        *string
+	DiscordId     *string
+	DiscordAvatar *string
 }

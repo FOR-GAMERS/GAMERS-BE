@@ -33,4 +33,5 @@ type ContestMemberDatabasePort interface {
 	SaveBatch(members []*domain.ContestMember) error
 	GetMembersWithUserByContest(contestId int64, pagination *commonDto.PaginationRequest, sort *commonDto.SortRequest) ([]*ContestMemberWithUser, int64, error)
 	GetContestsByUserId(userId int64, pagination *commonDto.PaginationRequest, sort *commonDto.SortRequest, status *domain.ContestStatus) ([]*ContestWithMembership, int64, error)
+	UpdateMemberType(contestId, userId int64, memberType domain.MemberType) error
 }

@@ -51,3 +51,12 @@ func ToApplicationResponses(apps []*port.ContestApplication) []*ApplicationRespo
 	}
 	return responses
 }
+
+// UserContestStatusResponse represents the user's status in relation to a contest
+type UserContestStatusResponse struct {
+	IsLeader          bool                      `json:"is_leader"`
+	IsMember          bool                      `json:"is_member"`
+	HasApplied        bool                      `json:"has_applied"`
+	ApplicationStatus *port.ApplicationStatus   `json:"application_status,omitempty"`
+	MemberType        *string                   `json:"member_type,omitempty"`
+}

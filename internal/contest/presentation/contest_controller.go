@@ -84,7 +84,7 @@ func (c *ContestController) SaveContest(ctx *gin.Context) {
 
 // GetAllContests godoc
 // @Summary Get all contests with pagination
-// @Description Get all contests with pagination and sorting support
+// @Description Get all contests with pagination, sorting, and title search support
 // @Tags contests
 // @Accept json
 // @Produce json
@@ -92,6 +92,7 @@ func (c *ContestController) SaveContest(ctx *gin.Context) {
 // @Param page_size query int false "Page size (default: 10, max: 100)"
 // @Param sort_by query string false "Sort field: created_at, started_at, ended_at (default: created_at)"
 // @Param order query string false "Sort order: asc, desc (default: desc)"
+// @Param title query string false "Search by contest title (partial match)"
 // @Success 200 {object} response.Response{data=commonDto.PaginationResponse}
 // @Failure 400 {object} response.Response
 // @Router /api/contests [get]
@@ -100,12 +101,18 @@ func (c *ContestController) GetAllContests(ctx *gin.Context) {
 	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "10"))
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	order := ctx.DefaultQuery("order", "desc")
+	titleParam := ctx.Query("title")
+
+	var title *string
+	if titleParam != "" {
+		title = &titleParam
+	}
 
 	paginationReq := commonDto.NewPaginationRequest(page, pageSize)
 	allowedSortFields := []string{"created_at", "started_at", "ended_at"}
 	sortReq := commonDto.NewSortRequest(sortBy, order, allowedSortFields)
 
-	contests, totalCount, err := c.service.GetAllContests(paginationReq.GetOffset(), paginationReq.GetLimit(), sortReq)
+	contests, totalCount, err := c.service.GetAllContests(paginationReq.GetOffset(), paginationReq.GetLimit(), sortReq, title)
 	if err != nil {
 		response.JSON(ctx, response.Error(400, err.Error()))
 		return

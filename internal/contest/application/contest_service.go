@@ -203,8 +203,8 @@ func (c *ContestService) GetContestById(id int64) (*domain.Contest, error) {
 	return contest, nil
 }
 
-func (c *ContestService) GetAllContests(offset, limit int, sortReq *commonDto.SortRequest) ([]domain.Contest, int64, error) {
-	contests, totalCount, err := c.repository.GetContests(offset, limit, sortReq)
+func (c *ContestService) GetAllContests(offset, limit int, sortReq *commonDto.SortRequest, title *string) ([]domain.Contest, int64, error) {
+	contests, totalCount, err := c.repository.GetContests(offset, limit, sortReq, title)
 
 	if err != nil {
 		return nil, 0, err

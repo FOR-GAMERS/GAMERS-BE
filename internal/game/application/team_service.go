@@ -18,13 +18,13 @@ const (
 )
 
 type TeamService struct {
-	gameRepository     port.GameDatabasePort
-	teamDBRepository   port.TeamDatabasePort
-	teamRedisRepo      port.TeamRedisPort
-	contestRepository  contestPort.ContestDatabasePort
-	oauth2Repository   oauth2Port.OAuth2DatabasePort
-	userQueryRepo      userQueryPort.UserQueryPort
-	eventPublisher     port.TeamEventPublisherPort
+	gameRepository    port.GameDatabasePort
+	teamDBRepository  port.TeamDatabasePort
+	teamRedisRepo     port.TeamRedisPort
+	contestRepository contestPort.ContestDatabasePort
+	oauth2Repository  oauth2Port.OAuth2DatabasePort
+	userQueryRepo     userQueryPort.UserQueryPort
+	eventPublisher    port.TeamEventPublisherPort
 }
 
 func NewTeamService(
@@ -37,13 +37,13 @@ func NewTeamService(
 	eventPublisher port.TeamEventPublisherPort,
 ) *TeamService {
 	return &TeamService{
-		gameRepository:     gameRepository,
-		teamDBRepository:   teamDBRepository,
-		teamRedisRepo:      teamRedisRepo,
-		contestRepository:  contestRepository,
-		oauth2Repository:   oauth2Repository,
-		userQueryRepo:      userQueryRepo,
-		eventPublisher:     eventPublisher,
+		gameRepository:    gameRepository,
+		teamDBRepository:  teamDBRepository,
+		teamRedisRepo:     teamRedisRepo,
+		contestRepository: contestRepository,
+		oauth2Repository:  oauth2Repository,
+		userQueryRepo:     userQueryRepo,
+		eventPublisher:    eventPublisher,
 	}
 }
 
@@ -384,7 +384,11 @@ func (s *TeamService) KickMember(ctx context.Context, gameID, kickerUserID, targ
 		return exception.ErrCannotKickLeader
 	}
 
-	return s.teamRedisRepo.RemoveMember(ctx, gameID, targetUserID)
+	if err := s.teamRedisRepo.RemoveMember(ctx, gameID, targetUserID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // LeaveTeam allows a member to leave the team voluntarily
@@ -453,7 +457,11 @@ func (s *TeamService) TransferLeadership(ctx context.Context, gameID, currentLea
 		return exception.ErrTeamMemberNotFound
 	}
 
-	return s.teamRedisRepo.TransferLeadership(ctx, gameID, currentLeaderUserID, newLeaderUserID)
+	if err := s.teamRedisRepo.TransferLeadership(ctx, gameID, currentLeaderUserID, newLeaderUserID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // FinalizeTeam moves team data from Redis to database when team is complete

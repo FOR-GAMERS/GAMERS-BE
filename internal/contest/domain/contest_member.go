@@ -11,6 +11,16 @@ const (
 	MemberTypeNormal MemberType = "NORMAL"
 )
 
+// IsValid checks if the MemberType is valid
+func (mt MemberType) IsValid() bool {
+	switch mt {
+	case MemberTypeStaff, MemberTypeNormal:
+		return true
+	default:
+		return false
+	}
+}
+
 type LeaderType string
 
 const (

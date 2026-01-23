@@ -9,6 +9,14 @@ import (
 	"unicode"
 )
 
+// UserRole represents the role of a user
+type UserRole string
+
+const (
+	UserRoleUser  UserRole = "USER"
+	UserRoleAdmin UserRole = "ADMIN"
+)
+
 type User struct {
 	Id         int64     `gorm:"primaryKey;column:id;autoIncrement" json:"user_id"`
 	Email      string    `gorm:"uniqueIndex;column:email;type:varchar(255);not null" json:"email"`
@@ -18,6 +26,7 @@ type User struct {
 	Bio        string    `gorm:"column:bio;type:varchar(256);" json:"bio"`
 	Avatar     string    `gorm:"column:avatar;type:text;" json:"avatar"`
 	ProfileKey *string   `gorm:"column:profile_key;type:varchar(512)" json:"profile_key,omitempty"`
+	Role       UserRole  `gorm:"column:role;type:varchar(16);not null;default:USER" json:"role"`
 	CreatedAt  time.Time `gorm:"column:created_at;type:datetime;not null;autoCreateTime" json:"created_at"`
 	ModifiedAt time.Time `gorm:"column:modified_at;type:datetime;not null;autoUpdateTime" json:"modified_at"`
 
@@ -62,6 +71,7 @@ func NewUser(email, password, username, tag, bio, avatar string) (*User, error) 
 		Tag:      tag,
 		Bio:      bio,
 		Avatar:   avatar,
+		Role:     UserRoleUser,
 	}, nil
 }
 
@@ -274,4 +284,9 @@ func extractBaseTierName(tierPatched string) string {
 		return parts[0]
 	}
 	return tierPatched
+}
+
+// IsAdmin checks if the user has admin role
+func (u *User) IsAdmin() bool {
+	return u.Role == UserRoleAdmin
 }

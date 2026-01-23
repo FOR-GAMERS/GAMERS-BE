@@ -24,6 +24,62 @@ definitions:
     required:
     - refresh_token
     type: object
+  GAMERS-BE_internal_banner_application_dto.BannerListResponse:
+    properties:
+      banners:
+        items:
+          $ref: '#/definitions/GAMERS-BE_internal_banner_application_dto.BannerResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  GAMERS-BE_internal_banner_application_dto.BannerResponse:
+    properties:
+      created_at:
+        type: string
+      display_order:
+        type: integer
+      id:
+        type: integer
+      image_key:
+        type: string
+      is_active:
+        type: boolean
+      link_url:
+        type: string
+      modified_at:
+        type: string
+      title:
+        type: string
+    type: object
+  GAMERS-BE_internal_banner_application_dto.CreateBannerRequest:
+    properties:
+      display_order:
+        type: integer
+      image_key:
+        type: string
+      is_active:
+        type: boolean
+      link_url:
+        type: string
+      title:
+        type: string
+    required:
+    - image_key
+    type: object
+  GAMERS-BE_internal_banner_application_dto.UpdateBannerRequest:
+    properties:
+      display_order:
+        type: integer
+      image_key:
+        type: string
+      is_active:
+        type: boolean
+      link_url:
+        type: string
+      title:
+        type: string
+    type: object
   GAMERS-BE_internal_comment_application_dto.AuthorResponse:
     properties:
       avatar:
@@ -65,6 +121,24 @@ definitions:
         type: string
     required:
     - content
+    type: object
+  GAMERS-BE_internal_contest_application_dto.ChangeMemberRoleRequest:
+    properties:
+      member_type:
+        $ref: '#/definitions/GAMERS-BE_internal_contest_domain.MemberType'
+    required:
+    - member_type
+    type: object
+  GAMERS-BE_internal_contest_application_dto.ChangeMemberRoleResponse:
+    properties:
+      contest_id:
+        type: integer
+      leader_type:
+        $ref: '#/definitions/GAMERS-BE_internal_contest_domain.LeaderType'
+      member_type:
+        $ref: '#/definitions/GAMERS-BE_internal_contest_domain.MemberType'
+      user_id:
+        type: integer
     type: object
   GAMERS-BE_internal_contest_application_dto.ContestResponse:
     properties:
@@ -179,6 +253,29 @@ definitions:
       total_team_member:
         type: integer
     type: object
+  GAMERS-BE_internal_contest_application_dto.UserContestStatusResponse:
+    properties:
+      application_status:
+        $ref: '#/definitions/GAMERS-BE_internal_contest_application_port.ApplicationStatus'
+      has_applied:
+        type: boolean
+      is_leader:
+        type: boolean
+      is_member:
+        type: boolean
+      member_type:
+        type: string
+    type: object
+  GAMERS-BE_internal_contest_application_port.ApplicationStatus:
+    enum:
+    - PENDING
+    - ACCEPTED
+    - REJECTED
+    type: string
+    x-enum-varnames:
+    - ApplicationStatusPending
+    - ApplicationStatusAccepted
+    - ApplicationStatusRejected
   GAMERS-BE_internal_contest_domain.ContestStatus:
     enum:
     - PENDING
@@ -201,6 +298,22 @@ definitions:
     - ContestTypeTournament
     - ContestTypeLeague
     - ContestTypeCasual
+  GAMERS-BE_internal_contest_domain.LeaderType:
+    enum:
+    - LEADER
+    - MEMBER
+    type: string
+    x-enum-varnames:
+    - LeaderTypeLeader
+    - LeaderTypeMember
+  GAMERS-BE_internal_contest_domain.MemberType:
+    enum:
+    - STAFF
+    - NORMAL
+    type: string
+    x-enum-varnames:
+    - MemberTypeStaff
+    - MemberTypeNormal
   GAMERS-BE_internal_discord_application_dto.DiscordChannel:
     properties:
       guild_id:
@@ -750,6 +863,158 @@ info:
   title: GAMERS API
   version: "1.0"
 paths:
+  /api/admin/banners:
+    get:
+      description: Retrieves all banners including inactive ones (Admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_banner_application_dto.BannerListResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get all banners (Admin)
+      tags:
+      - banners
+    post:
+      consumes:
+      - application/json
+      description: Creates a new banner (maximum 5 banners allowed, Admin only)
+      parameters:
+      - description: Banner creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_banner_application_dto.CreateBannerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_banner_application_dto.BannerResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "409":
+          description: Maximum banner limit exceeded
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new banner (Admin)
+      tags:
+      - banners
+  /api/admin/banners/{id}:
+    delete:
+      description: Deletes an existing banner (Admin only)
+      parameters:
+      - description: Banner ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete a banner (Admin)
+      tags:
+      - banners
+    patch:
+      consumes:
+      - application/json
+      description: Updates an existing banner (Admin only)
+      parameters:
+      - description: Banner ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Banner update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_banner_application_dto.UpdateBannerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_banner_application_dto.BannerResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a banner (Admin)
+      tags:
+      - banners
   /api/auth/login:
     post:
       consumes:
@@ -834,11 +1099,30 @@ paths:
       summary: Refresh access token
       tags:
       - auth
+  /api/banners:
+    get:
+      description: Retrieves all active banners ordered by display_order (for homepage
+        display)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_banner_application_dto.BannerListResponse'
+              type: object
+      summary: Get active banners
+      tags:
+      - banners
   /api/contests:
     get:
       consumes:
       - application/json
-      description: Get all contests with pagination and sorting support
+      description: Get all contests with pagination, sorting, and title search support
       parameters:
       - description: 'Page number (default: 1)'
         in: query
@@ -855,6 +1139,10 @@ paths:
       - description: 'Sort order: asc, desc (default: desc)'
         in: query
         name: order
+        type: string
+      - description: Search by contest title (partial match)
+        in: query
+        name: title
         type: string
       produces:
       - application/json
@@ -1237,6 +1525,103 @@ paths:
       summary: Get contest members with pagination
       tags:
       - contest-members
+  /api/contests/{contestId}/members/{userId}/role:
+    patch:
+      consumes:
+      - application/json
+      description: Promote a member to STAFF or demote STAFF to NORMAL (Leader only,
+        cannot change leader's role)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      - description: Target User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: New member role
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_contest_application_dto.ChangeMemberRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_contest_application_dto.ChangeMemberRoleResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Change a member's role (Leader only)
+      tags:
+      - contest-members
+  /api/contests/{contestId}/status/me:
+    get:
+      consumes:
+      - application/json
+      description: Get current user's status in a contest (is_leader, is_member, has_applied,
+        application_status)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_contest_application_dto.UserContestStatusResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get my status in a contest
+      tags:
+      - contest-applications
   /api/contests/{id}:
     delete:
       consumes:

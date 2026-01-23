@@ -251,3 +251,16 @@ func ToMyContestResponses(contests []*port.ContestWithMembership) []*MyContestRe
 	}
 	return responses
 }
+
+// ChangeMemberRoleRequest represents the request to change a member's role
+type ChangeMemberRoleRequest struct {
+	MemberType domain.MemberType `json:"member_type" binding:"required"`
+}
+
+// ChangeMemberRoleResponse represents the response after changing a member's role
+type ChangeMemberRoleResponse struct {
+	UserID     int64             `json:"user_id"`
+	ContestID  int64             `json:"contest_id"`
+	MemberType domain.MemberType `json:"member_type"`
+	LeaderType domain.LeaderType `json:"leader_type"`
+}

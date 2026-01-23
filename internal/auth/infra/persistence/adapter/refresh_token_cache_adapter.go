@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -32,16 +33,23 @@ func NewRefreshTokenCacheAdapter(ctx *context.Context, repository *redis.Client)
 func (r RefreshTokenCacheAdapter) Save(token *domain.RefreshToken, ttl *int64) error {
 	key := refreshTokenPrefix + token.Token
 
+	log.Printf("[DEBUG] Saving refresh token - Key: %s, UserID: %d", key, token.UserID)
+
 	data, err := json.Marshal(token)
 	if err != nil {
+		log.Printf("[DEBUG] Failed to marshal token: %v", err)
 		return exception.ErrRedisCannotSave
 	}
 
 	durationTTL := utils.ConvertIntToDuration(*ttl)
+	log.Printf("[DEBUG] TTL duration: %v", durationTTL)
 
 	if err := r.repository.Set(*r.ctx, key, data, durationTTL).Err(); err != nil {
+		log.Printf("[DEBUG] Failed to save to Redis: %v", err)
 		return exception.ErrRedisCannotSave
 	}
+
+	log.Printf("[DEBUG] Successfully saved refresh token to Redis")
 
 	userTokensKey := fmt.Sprintf("%s%d", userTokensPrefix, token.UserID)
 	if err := r.repository.SAdd(*r.ctx, userTokensKey, token.Token).Err(); err != nil {
@@ -58,13 +66,19 @@ func (r RefreshTokenCacheAdapter) Save(token *domain.RefreshToken, ttl *int64) e
 func (r RefreshTokenCacheAdapter) FindByToken(token *string) (*domain.RefreshToken, error) {
 	key := refreshTokenPrefix + *token
 
+	log.Printf("[DEBUG] Looking for refresh token - Key: %s", key)
+
 	data, err := r.repository.Get(*r.ctx, key).Result()
 	if errors.Is(err, redis.Nil) {
+		log.Printf("[DEBUG] Refresh token NOT FOUND in Redis - Key: %s", key)
 		return nil, fmt.Errorf("refresh token not found")
 	}
 	if err != nil {
+		log.Printf("[DEBUG] Redis error: %v", err)
 		return nil, fmt.Errorf("failed to get refresh token: %w", err)
 	}
+
+	log.Printf("[DEBUG] Found refresh token in Redis")
 
 	var refreshToken domain.RefreshToken
 	if err := json.Unmarshal([]byte(data), &refreshToken); err != nil {

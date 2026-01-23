@@ -13,11 +13,13 @@ type UploadType string
 const (
 	UploadTypeContestBanner UploadType = "contest-banners"
 	UploadTypeUserProfile   UploadType = "user-profiles"
+	UploadTypeMainBanner    UploadType = "main-banners"
 )
 
 const (
-	MaxContestBannerSize = 5 * 1024 * 1024  // 5MB
-	MaxUserProfileSize   = 2 * 1024 * 1024  // 2MB
+	MaxContestBannerSize = 5 * 1024 * 1024 // 5MB
+	MaxUserProfileSize   = 2 * 1024 * 1024 // 2MB
+	MaxMainBannerSize    = 5 * 1024 * 1024 // 5MB
 )
 
 var AllowedMimeTypes = map[string]bool{
@@ -74,6 +76,8 @@ func getMaxSize(uploadType UploadType) int64 {
 		return MaxContestBannerSize
 	case UploadTypeUserProfile:
 		return MaxUserProfileSize
+	case UploadTypeMainBanner:
+		return MaxMainBannerSize
 	default:
 		return MaxUserProfileSize
 	}

@@ -174,6 +174,22 @@ func (c ContestMemberDatabaseAdapter) GetMembersWithUserByContest(
 	return results, totalCount, nil
 }
 
+func (c ContestMemberDatabaseAdapter) UpdateMemberType(contestId, userId int64, memberType domain.MemberType) error {
+	result := c.db.Model(&domain.ContestMember{}).
+		Where("contest_id = ? AND user_id = ?", contestId, userId).
+		Update("member_type", memberType)
+
+	if result.Error != nil {
+		return c.translateError(result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return exception.ErrContestMemberNotFound
+	}
+
+	return nil
+}
+
 func (c ContestMemberDatabaseAdapter) GetContestsByUserId(
 	userId int64,
 	pagination *commonDto.PaginationRequest,

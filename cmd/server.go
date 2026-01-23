@@ -3,6 +3,7 @@ package main
 import (
 	"GAMERS-BE/internal/auth"
 	authMiddleware "GAMERS-BE/internal/auth/middleware"
+	"GAMERS-BE/internal/banner"
 	"GAMERS-BE/internal/comment"
 	"GAMERS-BE/internal/contest"
 	"GAMERS-BE/internal/discord"
@@ -90,11 +91,14 @@ func main() {
 	authDeps := auth.ProvideAuthDependencies(db, redisClient, &ctx, appRouter)
 	userDeps := user.ProvideUserDependencies(db, appRouter)
 
+	// Set user query port for admin middleware after user dependencies are initialized
+	authInterceptor.SetUserQueryPort(userDeps.UserQueryRepo)
+
 	// Discord module - provides Discord API integration (must be initialized before OAuth2)
 	discordDeps := discord.ProvideDiscordDependencies(appRouter, db, redisClient, &ctx)
 
 	// OAuth2 module - uses Discord token port for storing Discord tokens
-	oauth2Deps := oauth2.ProvideOAuth2Dependencies(db, appRouter, discordDeps.DiscordTokenPort)
+	oauth2Deps := oauth2.ProvideOAuth2Dependencies(db, redisClient, &ctx, appRouter, discordDeps.DiscordTokenPort)
 
 	// Game module - provides Game, Team, and GameTeam management
 	gameDeps := game.ProvideGameDependencies(
@@ -136,7 +140,10 @@ func main() {
 	// Storage module - provides R2 storage integration for images
 	storageDeps := storage.ProvideStorageDependencies(appRouter)
 
-	setupRouter(appRouter, authDeps, userDeps, oauth2Deps, contestDeps, commentDeps, discordDeps, gameDeps, pointDeps, valorantDeps, storageDeps)
+	// Banner module - provides main banner management for homepage
+	bannerDeps := banner.ProvideBannerDependencies(db, appRouter)
+
+	setupRouter(appRouter, authDeps, userDeps, oauth2Deps, contestDeps, commentDeps, discordDeps, gameDeps, pointDeps, valorantDeps, storageDeps, bannerDeps)
 
 	startServer(appRouter.Engine())
 }
@@ -174,6 +181,7 @@ func setupRouter(
 	pointDeps *point.Dependencies,
 	valorantDeps *valorant.Dependencies,
 	storageDeps *storage.Dependencies,
+	bannerDeps *banner.Dependencies,
 ) *router.Router {
 
 	appRouter.Engine().Use(middleware.GlobalErrorHandler())
@@ -195,6 +203,9 @@ func setupRouter(
 	valorantDeps.Controller.RegisterRoutes()
 	if storageDeps != nil {
 		storageDeps.Controller.RegisterRoutes()
+	}
+	if bannerDeps != nil {
+		bannerDeps.Controller.RegisterRoutes()
 	}
 
 	return appRouter

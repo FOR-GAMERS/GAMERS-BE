@@ -7,10 +7,10 @@ import (
 )
 
 type CreateGameRequest struct {
-	ContestID    int64               `json:"contest_id" binding:"required"`
+	ContestID    int64                   `json:"contest_id" binding:"required"`
 	GameTeamType gameDomain.GameTeamType `json:"game_team_type" binding:"required"`
-	StartedAt    time.Time           `json:"started_at" binding:"required"`
-	EndedAt      time.Time           `json:"ended_at" binding:"required"`
+	StartedAt    *time.Time              `json:"started_at,omitempty"`
+	EndedAt      *time.Time              `json:"ended_at,omitempty"`
 }
 
 type UpdateGameRequest struct {
@@ -21,14 +21,14 @@ type UpdateGameRequest struct {
 }
 
 type GameResponse struct {
-	GameID       int64               `json:"game_id"`
-	ContestID    int64               `json:"contest_id"`
+	GameID       int64                   `json:"game_id"`
+	ContestID    int64                   `json:"contest_id"`
 	GameStatus   gameDomain.GameStatus   `json:"game_status"`
 	GameTeamType gameDomain.GameTeamType `json:"game_team_type"`
-	StartedAt    time.Time           `json:"started_at"`
-	EndedAt      time.Time           `json:"ended_at"`
-	CreatedAt    time.Time           `json:"created_at"`
-	ModifiedAt   time.Time           `json:"modified_at"`
+	StartedAt    *time.Time              `json:"started_at,omitempty"`
+	EndedAt      *time.Time              `json:"ended_at,omitempty"`
+	CreatedAt    time.Time               `json:"created_at"`
+	ModifiedAt   time.Time               `json:"modified_at"`
 }
 
 func (req *UpdateGameRequest) ApplyTo(game *gameDomain.Game) {
@@ -39,10 +39,10 @@ func (req *UpdateGameRequest) ApplyTo(game *gameDomain.Game) {
 		game.GameTeamType = *req.GameTeamType
 	}
 	if req.StartedAt != nil {
-		game.StartedAt = *req.StartedAt
+		game.StartedAt = req.StartedAt
 	}
 	if req.EndedAt != nil {
-		game.EndedAt = *req.EndedAt
+		game.EndedAt = req.EndedAt
 	}
 }
 

@@ -6,9 +6,11 @@ import (
 	"GAMERS-BE/internal/game/application/port"
 	"GAMERS-BE/internal/game/domain"
 	"GAMERS-BE/internal/global/exception"
+	notificationPort "GAMERS-BE/internal/notification/application/port"
 	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
 	userQueryPort "GAMERS-BE/internal/user/application/port/port"
 	"context"
+	"log"
 	"time"
 )
 
@@ -18,13 +20,14 @@ const (
 )
 
 type TeamService struct {
-	gameRepository     port.GameDatabasePort
-	teamDBRepository   port.TeamDatabasePort
-	teamRedisRepo      port.TeamRedisPort
-	contestRepository  contestPort.ContestDatabasePort
-	oauth2Repository   oauth2Port.OAuth2DatabasePort
-	userQueryRepo      userQueryPort.UserQueryPort
-	eventPublisher     port.TeamEventPublisherPort
+	gameRepository      port.GameDatabasePort
+	teamDBRepository    port.TeamDatabasePort
+	teamRedisRepo       port.TeamRedisPort
+	contestRepository   contestPort.ContestDatabasePort
+	oauth2Repository    oauth2Port.OAuth2DatabasePort
+	userQueryRepo       userQueryPort.UserQueryPort
+	eventPublisher      port.TeamEventPublisherPort
+	notificationHandler notificationPort.NotificationHandlerPort
 }
 
 func NewTeamService(
@@ -37,14 +40,19 @@ func NewTeamService(
 	eventPublisher port.TeamEventPublisherPort,
 ) *TeamService {
 	return &TeamService{
-		gameRepository:     gameRepository,
-		teamDBRepository:   teamDBRepository,
-		teamRedisRepo:      teamRedisRepo,
-		contestRepository:  contestRepository,
-		oauth2Repository:   oauth2Repository,
-		userQueryRepo:      userQueryRepo,
-		eventPublisher:     eventPublisher,
+		gameRepository:    gameRepository,
+		teamDBRepository:  teamDBRepository,
+		teamRedisRepo:     teamRedisRepo,
+		contestRepository: contestRepository,
+		oauth2Repository:  oauth2Repository,
+		userQueryRepo:     userQueryRepo,
+		eventPublisher:    eventPublisher,
 	}
+}
+
+// SetNotificationHandler sets the notification handler (to avoid circular dependency)
+func (s *TeamService) SetNotificationHandler(handler notificationPort.NotificationHandlerPort) {
+	s.notificationHandler = handler
 }
 
 // CreateTeamInCache creates a new team in Redis cache with the creator as leader
@@ -259,6 +267,16 @@ func (s *TeamService) InviteMember(ctx context.Context, gameID, inviterUserID, i
 		go s.publishInviteEvent(ctx, game, contest, inviterUserID, inviterDiscordID, inviter.Username, inviteeUserID, inviteeDiscordID, invitee.Username)
 	}
 
+	// Get team name for notification
+	cachedTeam, _ := s.teamRedisRepo.GetTeam(ctx, gameID)
+	teamName := ""
+	if cachedTeam != nil && cachedTeam.TeamName != nil {
+		teamName = *cachedTeam.TeamName
+	}
+
+	// Send SSE notification to invitee
+	go s.sendTeamInviteReceivedNotification(inviteeUserID, inviter.Username, teamName, gameID, game.ContestID)
+
 	return invite, nil
 }
 
@@ -337,12 +355,42 @@ func (s *TeamService) AcceptInvite(ctx context.Context, gameID, inviteeUserID in
 		go s.publishMemberJoinedEvent(ctx, game, contest, member, newCount, maxMembers)
 	}
 
+	// Send SSE notification to inviter (the leader or whoever invited)
+	teamName := ""
+	if cachedTeam.TeamName != nil {
+		teamName = *cachedTeam.TeamName
+	}
+	go s.sendTeamInviteAcceptedNotification(cachedTeam.LeaderUserID, invitee.Username, teamName, gameID, game.ContestID)
+
 	return member, nil
 }
 
 // RejectInvite rejects a team invitation
 func (s *TeamService) RejectInvite(ctx context.Context, gameID, inviteeUserID int64) error {
-	return s.teamRedisRepo.RejectInvite(ctx, gameID, inviteeUserID)
+	// Get game and team info before rejecting
+	game, err := s.gameRepository.GetByID(gameID)
+	if err != nil {
+		return s.teamRedisRepo.RejectInvite(ctx, gameID, inviteeUserID)
+	}
+
+	cachedTeam, _ := s.teamRedisRepo.GetTeam(ctx, gameID)
+	invitee, _ := s.userQueryRepo.FindById(inviteeUserID)
+
+	// Reject the invite
+	if err := s.teamRedisRepo.RejectInvite(ctx, gameID, inviteeUserID); err != nil {
+		return err
+	}
+
+	// Send SSE notification to leader
+	if cachedTeam != nil && invitee != nil {
+		teamName := ""
+		if cachedTeam.TeamName != nil {
+			teamName = *cachedTeam.TeamName
+		}
+		go s.sendTeamInviteRejectedNotification(cachedTeam.LeaderUserID, invitee.Username, teamName, gameID, game.ContestID)
+	}
+
+	return nil
 }
 
 // KickMember removes a member from the team (Leader only)
@@ -384,7 +432,11 @@ func (s *TeamService) KickMember(ctx context.Context, gameID, kickerUserID, targ
 		return exception.ErrCannotKickLeader
 	}
 
-	return s.teamRedisRepo.RemoveMember(ctx, gameID, targetUserID)
+	if err := s.teamRedisRepo.RemoveMember(ctx, gameID, targetUserID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // LeaveTeam allows a member to leave the team voluntarily
@@ -453,7 +505,11 @@ func (s *TeamService) TransferLeadership(ctx context.Context, gameID, currentLea
 		return exception.ErrTeamMemberNotFound
 	}
 
-	return s.teamRedisRepo.TransferLeadership(ctx, gameID, currentLeaderUserID, newLeaderUserID)
+	if err := s.teamRedisRepo.TransferLeadership(ctx, gameID, currentLeaderUserID, newLeaderUserID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // FinalizeTeam moves team data from Redis to database when team is complete
@@ -735,4 +791,39 @@ func (s *TeamService) publishTeamFinalizedEvent(
 	}
 
 	_ = s.eventPublisher.PublishTeamFinalizedEvent(ctx, event)
+}
+
+// SSE notification helper methods
+
+// sendTeamInviteReceivedNotification sends SSE notification when user receives team invite
+func (s *TeamService) sendTeamInviteReceivedNotification(inviteeUserID int64, inviterUsername, teamName string, gameID, contestID int64) {
+	if s.notificationHandler == nil {
+		return
+	}
+
+	if err := s.notificationHandler.HandleTeamInviteReceived(inviteeUserID, inviterUsername, teamName, gameID, contestID); err != nil {
+		log.Printf("Failed to send team invite received notification: %v", err)
+	}
+}
+
+// sendTeamInviteAcceptedNotification sends SSE notification when invite is accepted
+func (s *TeamService) sendTeamInviteAcceptedNotification(inviterUserID int64, inviteeUsername, teamName string, gameID, contestID int64) {
+	if s.notificationHandler == nil {
+		return
+	}
+
+	if err := s.notificationHandler.HandleTeamInviteAccepted(inviterUserID, inviteeUsername, teamName, gameID, contestID); err != nil {
+		log.Printf("Failed to send team invite accepted notification: %v", err)
+	}
+}
+
+// sendTeamInviteRejectedNotification sends SSE notification when invite is rejected
+func (s *TeamService) sendTeamInviteRejectedNotification(inviterUserID int64, inviteeUsername, teamName string, gameID, contestID int64) {
+	if s.notificationHandler == nil {
+		return
+	}
+
+	if err := s.notificationHandler.HandleTeamInviteRejected(inviterUserID, inviteeUsername, teamName, gameID, contestID); err != nil {
+		log.Printf("Failed to send team invite rejected notification: %v", err)
+	}
 }

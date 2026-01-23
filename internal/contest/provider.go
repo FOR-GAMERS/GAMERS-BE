@@ -24,6 +24,7 @@ type Dependencies struct {
 	ApplicationController *presentation.ContestApplicationController
 	ContestRepository     port.ContestDatabasePort
 	ContestService        *application.ContestService
+	ApplicationService    *application.ContestApplicationService
 }
 
 func ProvideContestDependencies(
@@ -76,6 +77,7 @@ func ProvideContestDependencies(
 		ApplicationController: contestApplicationController,
 		ContestRepository:     contestDatabaseAdapter,
 		ContestService:        contestService,
+		ApplicationService:    contestApplicationService,
 	}
 }
 
@@ -135,6 +137,7 @@ func ProvideContestDependenciesWithDiscord(
 		ApplicationController: contestApplicationController,
 		ContestRepository:     contestDatabaseAdapter,
 		ContestService:        contestService,
+		ApplicationService:    contestApplicationService,
 	}
 }
 
@@ -200,5 +203,6 @@ func ProvideContestDependenciesFull(
 		ApplicationController: contestApplicationController,
 		ContestRepository:     contestDatabaseAdapter,
 		ContestService:        contestService,
+		ApplicationService:    contestApplicationService,
 	}
 }

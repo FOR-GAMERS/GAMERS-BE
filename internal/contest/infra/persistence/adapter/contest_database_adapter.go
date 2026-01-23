@@ -46,12 +46,19 @@ func (c ContestDatabaseAdapter) GetContestById(contestId int64) (*domain.Contest
 	return &contest, nil
 }
 
-func (c ContestDatabaseAdapter) GetContests(offset, limit int, sortReq *dto.SortRequest) ([]domain.Contest, int64, error) {
+func (c ContestDatabaseAdapter) GetContests(offset, limit int, sortReq *dto.SortRequest, title *string) ([]domain.Contest, int64, error) {
 	var contests []domain.Contest
 	var totalCount int64
 
+	query := c.db.Model(&domain.Contest{})
+
+	// Apply title search filter if provided
+	if title != nil && *title != "" {
+		query = query.Where("title LIKE ?", "%"+*title+"%")
+	}
+
 	// Get total count
-	if err := c.db.Model(&domain.Contest{}).Count(&totalCount).Error; err != nil {
+	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, 0, c.translateError(err)
 	}
 
@@ -61,7 +68,7 @@ func (c ContestDatabaseAdapter) GetContests(offset, limit int, sortReq *dto.Sort
 		orderClause = sortReq.GetOrderClause()
 	}
 
-	if err := c.db.Order(orderClause).
+	if err := query.Order(orderClause).
 		Offset(offset).
 		Limit(limit).
 		Find(&contests).Error; err != nil {

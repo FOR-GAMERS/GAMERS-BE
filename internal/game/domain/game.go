@@ -56,8 +56,8 @@ type Game struct {
 	ContestID       int64        `gorm:"column:contest_id;type:bigint;not null" json:"contest_id"`
 	GameStatus      GameStatus   `gorm:"column:game_status;type:varchar(16);not null" json:"game_status"`
 	GameTeamType    GameTeamType `gorm:"column:game_team_type;type:varchar(16);not null" json:"game_team_type"`
-	StartedAt       time.Time    `gorm:"column:started_at;type:datetime;not null" json:"started_at"`
-	EndedAt         time.Time    `gorm:"column:ended_at;type:datetime;not null" json:"ended_at"`
+	StartedAt       *time.Time   `gorm:"column:started_at;type:datetime" json:"started_at,omitempty"`
+	EndedAt         *time.Time   `gorm:"column:ended_at;type:datetime" json:"ended_at,omitempty"`
 	Round           *int         `gorm:"column:round;type:int" json:"round,omitempty"`
 	MatchNumber     *int         `gorm:"column:match_number;type:int" json:"match_number,omitempty"`
 	NextGameID      *int64       `gorm:"column:next_game_id;type:bigint" json:"next_game_id,omitempty"`
@@ -69,14 +69,17 @@ type Game struct {
 func NewGame(
 	contestID int64,
 	gameTeamType GameTeamType,
-	startedAt, endedAt time.Time,
+	startedAt, endedAt *time.Time,
 ) *Game {
+	now := time.Now()
 	return &Game{
 		ContestID:    contestID,
 		GameStatus:   GameStatusPending,
 		GameTeamType: gameTeamType,
 		StartedAt:    startedAt,
 		EndedAt:      endedAt,
+		CreatedAt:    now,
+		ModifiedAt:   now,
 	}
 }
 
@@ -86,6 +89,7 @@ func NewTournamentGame(
 	gameTeamType GameTeamType,
 	round, matchNumber, bracketPosition int,
 ) *Game {
+	now := time.Now()
 	return &Game{
 		ContestID:       contestID,
 		GameStatus:      GameStatusPending,
@@ -93,6 +97,8 @@ func NewTournamentGame(
 		Round:           &round,
 		MatchNumber:     &matchNumber,
 		BracketPosition: &bracketPosition,
+		CreatedAt:       now,
+		ModifiedAt:      now,
 	}
 }
 
@@ -193,19 +199,24 @@ func (g *Game) IsValidTeamType() bool {
 // For tournament games, dates may be set later
 func (g *Game) ValidateDates() error {
 	// Tournament games don't require dates initially
-	if g.IsTournamentGame() && g.StartedAt.IsZero() && g.EndedAt.IsZero() {
+	if g.IsTournamentGame() && g.StartedAt == nil && g.EndedAt == nil {
 		return nil
 	}
 
-	if g.StartedAt.IsZero() {
+	// If neither date is set, it's valid (dates can be set later)
+	if g.StartedAt == nil && g.EndedAt == nil {
+		return nil
+	}
+
+	if g.StartedAt == nil {
 		return exception.ErrGameStartTimeRequired
 	}
 
-	if g.EndedAt.IsZero() {
+	if g.EndedAt == nil {
 		return exception.ErrGameEndTimeRequired
 	}
 
-	if !g.StartedAt.Before(g.EndedAt) {
+	if !g.StartedAt.Before(*g.EndedAt) {
 		return exception.ErrInvalidGameDates
 	}
 

@@ -4,6 +4,7 @@ import (
 	"GAMERS-BE/internal/contest/application/port"
 	"GAMERS-BE/internal/contest/domain"
 	gameDomain "GAMERS-BE/internal/game/domain"
+	"GAMERS-BE/internal/global/utils"
 	"errors"
 	"time"
 )
@@ -158,27 +159,43 @@ func (req *UpdateContestRequest) Validate() error {
 
 // ContestMemberResponse represents a contest member with user information
 type ContestMemberResponse struct {
-	UserID     int64             `json:"user_id"`
-	ContestID  int64             `json:"contest_id"`
-	MemberType domain.MemberType `json:"member_type"`
-	LeaderType domain.LeaderType `json:"leader_type"`
-	Point      int               `json:"point"`
-	Username   string            `json:"username"`
-	Tag        string            `json:"tag"`
-	Avatar     string            `json:"avatar"`
+	UserID             int64             `json:"user_id"`
+	ContestID          int64             `json:"contest_id"`
+	MemberType         domain.MemberType `json:"member_type"`
+	LeaderType         domain.LeaderType `json:"leader_type"`
+	Point              int               `json:"point"`
+	Username           string            `json:"username"`
+	Tag                string            `json:"tag"`
+	Avatar             string            `json:"avatar"`
+	CurrentTier        *int              `json:"current_tier,omitempty"`
+	CurrentTierPatched *string           `json:"current_tier_patched,omitempty"`
+	PeakTier           *int              `json:"peak_tier,omitempty"`
+	PeakTierPatched    *string           `json:"peak_tier_patched,omitempty"`
 }
 
 // ToContestMemberResponse converts port.ContestMemberWithUser to ContestMemberResponse
 func ToContestMemberResponse(member *port.ContestMemberWithUser) *ContestMemberResponse {
+	// Build Discord avatar URL if Discord account exists
+	avatar := member.Avatar
+	if member.DiscordId != nil && member.DiscordAvatar != nil {
+		if url := utils.BuildDiscordAvatarURL(*member.DiscordId, *member.DiscordAvatar); url != "" {
+			avatar = url
+		}
+	}
+
 	return &ContestMemberResponse{
-		UserID:     member.UserID,
-		ContestID:  member.ContestID,
-		MemberType: member.MemberType,
-		LeaderType: member.LeaderType,
-		Point:      member.Point,
-		Username:   member.Username,
-		Tag:        member.Tag,
-		Avatar:     member.Avatar,
+		UserID:             member.UserID,
+		ContestID:          member.ContestID,
+		MemberType:         member.MemberType,
+		LeaderType:         member.LeaderType,
+		Point:              member.Point,
+		Username:           member.Username,
+		Tag:                member.Tag,
+		Avatar:             avatar,
+		CurrentTier:        member.CurrentTier,
+		CurrentTierPatched: member.CurrentTierPatched,
+		PeakTier:           member.PeakTier,
+		PeakTierPatched:    member.PeakTierPatched,
 	}
 }
 
@@ -250,4 +267,17 @@ func ToMyContestResponses(contests []*port.ContestWithMembership) []*MyContestRe
 		responses[i] = ToMyContestResponse(contest)
 	}
 	return responses
+}
+
+// ChangeMemberRoleRequest represents the request to change a member's role
+type ChangeMemberRoleRequest struct {
+	MemberType domain.MemberType `json:"member_type" binding:"required"`
+}
+
+// ChangeMemberRoleResponse represents the response after changing a member's role
+type ChangeMemberRoleResponse struct {
+	UserID     int64             `json:"user_id"`
+	ContestID  int64             `json:"contest_id"`
+	MemberType domain.MemberType `json:"member_type"`
+	LeaderType domain.LeaderType `json:"leader_type"`
 }

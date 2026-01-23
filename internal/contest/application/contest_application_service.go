@@ -6,20 +6,23 @@ import (
 	"GAMERS-BE/internal/contest/domain"
 	commonDto "GAMERS-BE/internal/global/common/dto"
 	"GAMERS-BE/internal/global/exception"
+	notificationPort "GAMERS-BE/internal/notification/application/port"
 	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
 	userQueryPort "GAMERS-BE/internal/user/application/port/port"
 	"context"
 	"errors"
+	"log"
 	"time"
 )
 
 type ContestApplicationService struct {
-	applicationRepo  port.ContestApplicationRedisPort
-	contestRepo      port.ContestDatabasePort
-	memberRepo       port.ContestMemberDatabasePort
-	eventPublisher   port.EventPublisherPort
-	oauth2Repository oauth2Port.OAuth2DatabasePort
-	userQueryRepo    userQueryPort.UserQueryPort
+	applicationRepo     port.ContestApplicationRedisPort
+	contestRepo         port.ContestDatabasePort
+	memberRepo          port.ContestMemberDatabasePort
+	eventPublisher      port.EventPublisherPort
+	oauth2Repository    oauth2Port.OAuth2DatabasePort
+	userQueryRepo       userQueryPort.UserQueryPort
+	notificationHandler notificationPort.NotificationHandlerPort
 }
 
 func NewContestApplicationService(
@@ -38,6 +41,11 @@ func NewContestApplicationService(
 		oauth2Repository: oauth2Repository,
 		userQueryRepo:    userQueryRepo,
 	}
+}
+
+// SetNotificationHandler sets the notification handler (to avoid circular dependency)
+func (s *ContestApplicationService) SetNotificationHandler(handler notificationPort.NotificationHandlerPort) {
+	s.notificationHandler = handler
 }
 
 // RequestParticipate - Contest 참가 신청
@@ -134,6 +142,9 @@ func (s *ContestApplicationService) AcceptApplication(ctx context.Context, conte
 
 	go s.publishApplicationAcceptedEvent(context.Background(), contest, userId, leaderUserId)
 
+	// Send SSE notification to the applicant
+	go s.sendApplicationAcceptedNotification(contest, userId)
+
 	return nil
 }
 
@@ -163,6 +174,9 @@ func (s *ContestApplicationService) RejectApplication(ctx context.Context, conte
 	// 이벤트 발행 (비동기)
 	go s.publishApplicationRejectedEvent(context.Background(), contest, userId, leaderUserId)
 
+	// Send SSE notification to the applicant
+	go s.sendApplicationRejectedNotification(contest, userId, "")
+
 	return nil
 }
 
@@ -180,6 +194,49 @@ func (s *ContestApplicationService) GetPendingApplications(ctx context.Context, 
 // GetMyApplication - 내 신청 정보 조회
 func (s *ContestApplicationService) GetMyApplication(ctx context.Context, contestId, userId int64) (*port.ContestApplication, error) {
 	return s.applicationRepo.GetApplication(ctx, contestId, userId)
+}
+
+// GetMyContestStatus - 내 대회 상태 조회 (리더인지, 멤버인지, 지원했는지 등)
+func (s *ContestApplicationService) GetMyContestStatus(ctx context.Context, contestId, userId int64) (*dto.UserContestStatusResponse, error) {
+	// Contest 존재 확인
+	_, err := s.contestRepo.GetContestById(contestId)
+	if err != nil {
+		return nil, err
+	}
+
+	response := &dto.UserContestStatusResponse{
+		IsLeader:   false,
+		IsMember:   false,
+		HasApplied: false,
+	}
+
+	// Check if user is a member of the contest
+	member, err := s.memberRepo.GetByContestAndUser(contestId, userId)
+	if err == nil && member != nil {
+		response.IsMember = true
+		response.IsLeader = member.IsLeader()
+		memberType := string(member.MemberType)
+		response.MemberType = &memberType
+		return response, nil
+	}
+
+	// If not a member, check if user has applied
+	hasApplied, err := s.applicationRepo.HasApplied(ctx, contestId, userId)
+	if err != nil {
+		// Ignore error and assume not applied
+		return response, nil
+	}
+
+	if hasApplied {
+		response.HasApplied = true
+		// Get application status
+		application, err := s.applicationRepo.GetApplication(ctx, contestId, userId)
+		if err == nil && application != nil {
+			response.ApplicationStatus = &application.Status
+		}
+	}
+
+	return response, nil
 }
 
 // GetContestMembers - Contest 참여 멤버 목록 조회 (Pagination)
@@ -235,6 +292,53 @@ func (s *ContestApplicationService) CancelApplication(ctx context.Context, conte
 	go s.publishApplicationCancelledEvent(context.Background(), contest, userId)
 
 	return nil
+}
+
+// ChangeMemberRole - 멤버 역할 변경 (Leader만 가능)
+func (s *ContestApplicationService) ChangeMemberRole(contestId, targetUserId, leaderUserId int64, newMemberType domain.MemberType) (*dto.ChangeMemberRoleResponse, error) {
+	// Contest 존재 확인
+	contest, err := s.contestRepo.GetContestById(contestId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Contest가 PENDING 상태인지 확인 (대회 시작 전에만 역할 변경 가능)
+	if contest.ContestStatus != "PENDING" {
+		return nil, exception.ErrContestNotPending
+	}
+
+	// Leader 권한 확인
+	if err := s.checkLeaderPermission(contestId, leaderUserId); err != nil {
+		return nil, err
+	}
+
+	// 대상 멤버 확인
+	targetMember, err := s.memberRepo.GetByContestAndUser(contestId, targetUserId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Leader의 역할은 변경 불가
+	if targetMember.IsLeader() {
+		return nil, exception.ErrCannotChangeLeaderRole
+	}
+
+	// 이미 같은 역할인 경우
+	if targetMember.MemberType == newMemberType {
+		return nil, exception.ErrAlreadySameMemberType
+	}
+
+	// 역할 변경
+	if err := s.memberRepo.UpdateMemberType(contestId, targetUserId, newMemberType); err != nil {
+		return nil, err
+	}
+
+	return &dto.ChangeMemberRoleResponse{
+		UserID:     targetUserId,
+		ContestID:  contestId,
+		MemberType: newMemberType,
+		LeaderType: targetMember.LeaderType,
+	}, nil
 }
 
 // WithdrawFromContest - 대회 탈퇴 (멤버 본인만 가능, 리더는 불가)
@@ -430,5 +534,27 @@ func (s *ContestApplicationService) publishApplicationCancelledEvent(
 
 	if err := s.eventPublisher.PublishContestApplicationEvent(ctx, event); err != nil {
 		_ = err
+	}
+}
+
+// sendApplicationAcceptedNotification sends SSE notification when application is accepted
+func (s *ContestApplicationService) sendApplicationAcceptedNotification(contest *domain.Contest, userId int64) {
+	if s.notificationHandler == nil {
+		return
+	}
+
+	if err := s.notificationHandler.HandleApplicationAccepted(userId, contest.ContestID, contest.Title); err != nil {
+		log.Printf("Failed to send application accepted notification: %v", err)
+	}
+}
+
+// sendApplicationRejectedNotification sends SSE notification when application is rejected
+func (s *ContestApplicationService) sendApplicationRejectedNotification(contest *domain.Contest, userId int64, reason string) {
+	if s.notificationHandler == nil {
+		return
+	}
+
+	if err := s.notificationHandler.HandleApplicationRejected(userId, contest.ContestID, contest.Title, reason); err != nil {
+		log.Printf("Failed to send application rejected notification: %v", err)
 	}
 }

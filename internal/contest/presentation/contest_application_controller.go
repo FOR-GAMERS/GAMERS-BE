@@ -3,7 +3,7 @@ package presentation
 import (
 	"GAMERS-BE/internal/auth/middleware"
 	"GAMERS-BE/internal/contest/application"
-	_ "GAMERS-BE/internal/contest/application/dto" // for swagger
+	"GAMERS-BE/internal/contest/application/dto"
 	commonDto "GAMERS-BE/internal/global/common/dto"
 	"GAMERS-BE/internal/global/common/handler"
 	"GAMERS-BE/internal/global/common/router"
@@ -46,6 +46,11 @@ func (c *ContestApplicationController) RegisterRoute() {
 	// Contest members endpoints
 	membersGroup := c.router.ProtectedGroup("/api/contests/:id/members")
 	membersGroup.GET("", c.GetContestMembers)
+	membersGroup.PATCH("/:userId/role", c.ChangeMemberRole)
+
+	// Contest status endpoint
+	statusGroup := c.router.ProtectedGroup("/api/contests/:id/status")
+	statusGroup.GET("/me", c.GetMyContestStatus)
 }
 
 // RequestParticipate godoc
@@ -270,6 +275,86 @@ func (c *ContestApplicationController) WithdrawFromContest(ctx *gin.Context) {
 
 	err = c.service.WithdrawFromContest(contestId, userId)
 	c.helper.RespondOK(ctx, nil, err, "successfully withdrawn from contest")
+}
+
+// ChangeMemberRole godoc
+// @Summary Change a member's role (Leader only)
+// @Description Promote a member to STAFF or demote STAFF to NORMAL (Leader only, cannot change leader's role)
+// @Tags contest-members
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param contestId path int true "Contest ID"
+// @Param userId path int true "Target User ID"
+// @Param request body dto.ChangeMemberRoleRequest true "New member role"
+// @Success 200 {object} response.Response{data=dto.ChangeMemberRoleResponse}
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Router /api/contests/{contestId}/members/{userId}/role [patch]
+func (c *ContestApplicationController) ChangeMemberRole(ctx *gin.Context) {
+	contestId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	targetUserId, err := strconv.ParseInt(ctx.Param("userId"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid user id"))
+		return
+	}
+
+	leaderUserId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	var req dto.ChangeMemberRoleRequest
+	if !c.helper.BindJSON(ctx, &req) {
+		return
+	}
+
+	// Validate member type
+	if !req.MemberType.IsValid() {
+		response.JSON(ctx, response.BadRequest("invalid member type, must be STAFF or NORMAL"))
+		return
+	}
+
+	result, err := c.service.ChangeMemberRole(contestId, targetUserId, leaderUserId, req.MemberType)
+	c.helper.RespondOK(ctx, result, err, "member role changed successfully")
+}
+
+// GetMyContestStatus godoc
+// @Summary Get my status in a contest
+// @Description Get current user's status in a contest (is_leader, is_member, has_applied, application_status)
+// @Tags contest-applications
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param contestId path int true "Contest ID"
+// @Success 200 {object} response.Response{data=dto.UserContestStatusResponse}
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Router /api/contests/{contestId}/status/me [get]
+func (c *ContestApplicationController) GetMyContestStatus(ctx *gin.Context) {
+	contestId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	userId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	status, err := c.service.GetMyContestStatus(ctx.Request.Context(), contestId, userId)
+	c.helper.RespondOK(ctx, status, err, "contest status retrieved successfully")
 }
 
 // GetContestMembers godoc

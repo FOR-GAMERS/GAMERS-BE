@@ -44,6 +44,13 @@ func (r *Router) ProtectedGroup(path string) *gin.RouterGroup {
 	return group
 }
 
+func (r *Router) AdminGroup(path string) *gin.RouterGroup {
+	group := r.engine.Group(path)
+	group.Use(r.authMiddleware.RequireAuth())
+	group.Use(r.authMiddleware.RequireAdmin())
+	return group
+}
+
 func (r *Router) Engine() *gin.Engine {
 	return r.engine
 }

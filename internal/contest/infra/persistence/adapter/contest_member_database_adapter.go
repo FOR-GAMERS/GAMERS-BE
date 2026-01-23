@@ -154,11 +154,12 @@ func (c ContestMemberDatabaseAdapter) GetMembersWithUserByContest(
 		}
 	}
 
-	// Query with JOIN
+	// Query with JOIN (including discord_accounts for avatar URL)
 	var results []*port.ContestMemberWithUser
 	query := c.db.Table("contests_members cm").
-		Select("cm.user_id, cm.contest_id, cm.member_type, cm.leader_type, cm.point, u.username, u.tag, u.avatar").
+		Select("cm.user_id, cm.contest_id, cm.member_type, cm.leader_type, cm.point, u.username, u.tag, u.avatar, da.discord_id, da.discord_avatar, u.current_tier, u.current_tier_patched, u.peak_tier, u.peak_tier_patched").
 		Joins("JOIN users u ON cm.user_id = u.id").
+		Joins("LEFT JOIN discord_accounts da ON u.id = da.user_id").
 		Where("cm.contest_id = ?", contestId).
 		Order(orderClause)
 
@@ -172,6 +173,22 @@ func (c ContestMemberDatabaseAdapter) GetMembersWithUserByContest(
 	}
 
 	return results, totalCount, nil
+}
+
+func (c ContestMemberDatabaseAdapter) UpdateMemberType(contestId, userId int64, memberType domain.MemberType) error {
+	result := c.db.Model(&domain.ContestMember{}).
+		Where("contest_id = ? AND user_id = ?", contestId, userId).
+		Update("member_type", memberType)
+
+	if result.Error != nil {
+		return c.translateError(result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return exception.ErrContestMemberNotFound
+	}
+
+	return nil
 }
 
 func (c ContestMemberDatabaseAdapter) GetContestsByUserId(

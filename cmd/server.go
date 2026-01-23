@@ -3,6 +3,7 @@ package main
 import (
 	"GAMERS-BE/internal/auth"
 	authMiddleware "GAMERS-BE/internal/auth/middleware"
+	"GAMERS-BE/internal/banner"
 	"GAMERS-BE/internal/comment"
 	"GAMERS-BE/internal/contest"
 	"GAMERS-BE/internal/discord"
@@ -11,6 +12,7 @@ import (
 	"GAMERS-BE/internal/global/database"
 	"GAMERS-BE/internal/global/middleware"
 	authProvider "GAMERS-BE/internal/global/security/jwt"
+	"GAMERS-BE/internal/notification"
 	"GAMERS-BE/internal/oauth2"
 	"GAMERS-BE/internal/point"
 	"GAMERS-BE/internal/storage"
@@ -88,13 +90,18 @@ func main() {
 	appRouter := router.NewRouter(authInterceptor)
 
 	authDeps := auth.ProvideAuthDependencies(db, redisClient, &ctx, appRouter)
-	userDeps := user.ProvideUserDependencies(db, appRouter)
 
 	// Discord module - provides Discord API integration (must be initialized before OAuth2)
 	discordDeps := discord.ProvideDiscordDependencies(appRouter, db, redisClient, &ctx)
 
 	// OAuth2 module - uses Discord token port for storing Discord tokens
-	oauth2Deps := oauth2.ProvideOAuth2Dependencies(db, appRouter, discordDeps.DiscordTokenPort)
+	oauth2Deps := oauth2.ProvideOAuth2Dependencies(db, redisClient, &ctx, appRouter, discordDeps.DiscordTokenPort)
+
+	// User module - uses OAuth2 repository for Discord avatar URL generation
+	userDeps := user.ProvideUserDependencies(db, appRouter, oauth2Deps.OAuth2Repository)
+
+	// Set user query port for admin middleware after user dependencies are initialized
+	authInterceptor.SetUserQueryPort(userDeps.UserQueryRepo)
 
 	// Game module - provides Game, Team, and GameTeam management
 	gameDeps := game.ProvideGameDependencies(
@@ -136,7 +143,17 @@ func main() {
 	// Storage module - provides R2 storage integration for images
 	storageDeps := storage.ProvideStorageDependencies(appRouter)
 
-	setupRouter(appRouter, authDeps, userDeps, oauth2Deps, contestDeps, commentDeps, discordDeps, gameDeps, pointDeps, valorantDeps, storageDeps)
+	// Banner module - provides main banner management for homepage
+	bannerDeps := banner.ProvideBannerDependencies(db, appRouter)
+
+	// Notification module - provides SSE real-time notifications
+	notificationDeps := notification.ProvideNotificationDependencies(db, appRouter)
+
+	// Wire notification handler to contest and game services
+	contestDeps.ApplicationService.SetNotificationHandler(notificationDeps.Service)
+	gameDeps.TeamService.SetNotificationHandler(notificationDeps.Service)
+
+	setupRouter(appRouter, authDeps, userDeps, oauth2Deps, contestDeps, commentDeps, discordDeps, gameDeps, pointDeps, valorantDeps, storageDeps, bannerDeps, notificationDeps)
 
 	startServer(appRouter.Engine())
 }
@@ -174,6 +191,8 @@ func setupRouter(
 	pointDeps *point.Dependencies,
 	valorantDeps *valorant.Dependencies,
 	storageDeps *storage.Dependencies,
+	bannerDeps *banner.Dependencies,
+	notificationDeps *notification.Dependencies,
 ) *router.Router {
 
 	appRouter.Engine().Use(middleware.GlobalErrorHandler())
@@ -196,6 +215,11 @@ func setupRouter(
 	if storageDeps != nil {
 		storageDeps.Controller.RegisterRoutes()
 	}
+	if bannerDeps != nil {
+		bannerDeps.Controller.RegisterRoutes()
+	}
+	// Notification routes are registered in provider
+	_ = notificationDeps
 
 	return appRouter
 }

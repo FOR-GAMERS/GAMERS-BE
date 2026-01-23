@@ -10,7 +10,7 @@ type ContestDatabasePort interface {
 
 	GetContestById(contestId int64) (*domain.Contest, error)
 
-	GetContests(offset, limit int, sortReq *dto.SortRequest) ([]domain.Contest, int64, error)
+	GetContests(offset, limit int, sortReq *dto.SortRequest, title *string) ([]domain.Contest, int64, error)
 
 	DeleteContestById(contestId int64) error
 

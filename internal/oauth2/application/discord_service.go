@@ -1,10 +1,13 @@
 package application
 
 import (
+	authDomain "GAMERS-BE/internal/auth/domain"
+	authPort "GAMERS-BE/internal/auth/application/port"
 	discordDto "GAMERS-BE/internal/discord/application/dto"
 	discordPort "GAMERS-BE/internal/discord/application/port"
 	"GAMERS-BE/internal/global/exception"
 	jwtApplication "GAMERS-BE/internal/global/security/jwt/application"
+	jwtDomain "GAMERS-BE/internal/global/security/jwt/domain"
 	"GAMERS-BE/internal/global/utils"
 	"GAMERS-BE/internal/oauth2/application/dto"
 	"GAMERS-BE/internal/oauth2/application/port"
@@ -20,14 +23,15 @@ import (
 )
 
 type DiscordService struct {
-	ctx                context.Context
-	config             *oauth2.Config
-	discordClient      *discord.Client
-	stateManager       *state.Manager
-	oauth2UserPort     port.OAuth2UserPort
-	oauth2DatabasePort port.OAuth2DatabasePort
-	discordTokenPort   discordPort.DiscordTokenPort
-	tokenService       jwtApplication.TokenService
+	ctx                   context.Context
+	config                *oauth2.Config
+	discordClient         *discord.Client
+	stateManager          *state.Manager
+	oauth2UserPort        port.OAuth2UserPort
+	oauth2DatabasePort    port.OAuth2DatabasePort
+	discordTokenPort      discordPort.DiscordTokenPort
+	refreshTokenCachePort authPort.RefreshTokenCachePort
+	tokenService          jwtApplication.TokenService
 }
 
 func NewOAuth2Service(
@@ -38,17 +42,19 @@ func NewOAuth2Service(
 	oauth2UserPort port.OAuth2UserPort,
 	oauth2DatabasePort port.OAuth2DatabasePort,
 	discordTokenPort discordPort.DiscordTokenPort,
+	refreshTokenCachePort authPort.RefreshTokenCachePort,
 	tokenService jwtApplication.TokenService,
 ) *DiscordService {
 	return &DiscordService{
-		ctx:                ctx,
-		config:             config,
-		discordClient:      discordClient,
-		stateManager:       stateManager,
-		oauth2UserPort:     oauth2UserPort,
-		oauth2DatabasePort: oauth2DatabasePort,
-		discordTokenPort:   discordTokenPort,
-		tokenService:       tokenService,
+		ctx:                   ctx,
+		config:                config,
+		discordClient:         discordClient,
+		stateManager:          stateManager,
+		oauth2UserPort:        oauth2UserPort,
+		oauth2DatabasePort:    oauth2DatabasePort,
+		discordTokenPort:      discordTokenPort,
+		refreshTokenCachePort: refreshTokenCachePort,
+		tokenService:          tokenService,
 	}
 }
 
@@ -128,6 +134,13 @@ func (s *DiscordService) HandleDiscordCallback(req *dto.DiscordCallbackRequest) 
 	jwtToken, err := s.tokenService.GenerateTokenPair(userId)
 	if err != nil {
 		return nil, errors.New("failed to generate JWT token: " + err.Error())
+	}
+
+	// Save refresh token to Redis
+	ttl := s.tokenService.GetTTL(jwtDomain.TokenTypeRefresh)
+	refreshToken := authDomain.NewRefreshToken(jwtToken.RefreshToken, userId, *ttl)
+	if err := s.refreshTokenCachePort.Save(refreshToken, ttl); err != nil {
+		return nil, errors.New("failed to save refresh token: " + err.Error())
 	}
 
 	return &dto.OAuth2LoginResponse{

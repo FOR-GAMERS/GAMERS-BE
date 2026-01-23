@@ -36,4 +36,6 @@ var (
 	ErrInvalidTotalTeamMember     = NewBadRequestError("total team member must be at least 1", "CT030")
 	ErrInvalidGameType            = NewBadRequestError("invalid game type", "CT031")
 	ErrContestNotActive           = NewBadRequestError("contest is not in active status", "CT032")
+	ErrCannotChangeLeaderRole     = NewBusinessError(http.StatusForbidden, "cannot change leader's role", "CT033")
+	ErrAlreadySameMemberType      = NewBadRequestError("member already has the same role", "CT034")
 )

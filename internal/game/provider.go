@@ -22,6 +22,7 @@ type Dependencies struct {
 	GameTeamController *presentation.GameTeamController
 	GameRepository     port.GameDatabasePort
 	TeamRepository     port.TeamDatabasePort
+	TeamService        *application.TeamService
 }
 
 func ProvideGameDependencies(
@@ -97,5 +98,6 @@ func ProvideGameDependencies(
 		GameTeamController: gameTeamController,
 		GameRepository:     gameDatabaseAdapter,
 		TeamRepository:     teamDatabaseAdapter,
+		TeamService:        teamService,
 	}
 }

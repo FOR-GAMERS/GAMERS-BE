@@ -3,6 +3,7 @@ package user
 import (
 	"GAMERS-BE/internal/global/common/router"
 	"GAMERS-BE/internal/global/security/password"
+	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
 	"GAMERS-BE/internal/user/application"
 	userCommandPort "GAMERS-BE/internal/user/application/port/command"
 	userQueryPort "GAMERS-BE/internal/user/application/port/port"
@@ -19,7 +20,7 @@ type Dependencies struct {
 	UserCommandRepo userCommandPort.UserCommandPort
 }
 
-func ProvideUserDependencies(db *gorm.DB, router *router.Router) *Dependencies {
+func ProvideUserDependencies(db *gorm.DB, router *router.Router, oauth2DbPort oauth2Port.OAuth2DatabasePort) *Dependencies {
 	passwordHasher := password.NewBcryptPasswordHasher()
 
 	userQueryAdapter := userQuery.NewMysqlUserRepository(db)
@@ -29,6 +30,7 @@ func ProvideUserDependencies(db *gorm.DB, router *router.Router) *Dependencies {
 		userQueryAdapter,
 		userCommandAdapter,
 		passwordHasher,
+		oauth2DbPort,
 	)
 
 	userController := presentation.NewUserController(router, userService)

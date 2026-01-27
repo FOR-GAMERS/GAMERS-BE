@@ -31,8 +31,10 @@ func NewTeamController(
 }
 
 func (c *TeamController) RegisterRoutes() {
-	privateGroup := c.router.ProtectedGroup("/api/games/:id/team")
+	// Contest-based team routes
+	privateGroup := c.router.ProtectedGroup("/api/contests/:id/team")
 	{
+		privateGroup.POST("", c.CreateTeam)
 		privateGroup.GET("", c.GetTeam)
 		privateGroup.POST("/invite", c.InviteMember)
 		privateGroup.POST("/invite/accept", c.AcceptInvite)
@@ -44,45 +46,81 @@ func (c *TeamController) RegisterRoutes() {
 		privateGroup.DELETE("", c.DeleteTeam)
 	}
 
-	membersGroup := c.router.ProtectedGroup("/api/games/:id/members")
+	membersGroup := c.router.ProtectedGroup("/api/contests/:id/team/members")
 	{
 		membersGroup.GET("", c.GetMembers)
 		membersGroup.GET("/:userId", c.GetMember)
 	}
 }
 
-// GetTeam godoc
-// @Summary Get team information
-// @Description Get all members and team details for a game (from Redis cache or DB)
+// CreateTeam godoc
+// @Summary Create a team for a contest
+// @Description Create a new team in the contest with the current user as leader
 // @Tags teams
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Game ID"
+// @Param id path int true "Contest ID"
+// @Param request body gameDto.CreateTeamRequest false "Create team request"
+// @Success 201 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Router /api/contests/{id}/team [post]
+func (c *TeamController) CreateTeam(ctx *gin.Context) {
+	contestID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	var req gameDto.CreateTeamRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		// Allow empty body
+	}
+
+	userID, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	team, err := c.service.CreateTeamInCache(ctx.Request.Context(), contestID, userID, req.TeamName)
+	c.helper.RespondCreated(ctx, team, err, "team created successfully")
+}
+
+// GetTeam godoc
+// @Summary Get team information
+// @Description Get all members and team details for a contest (from Redis cache or DB)
+// @Tags teams
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Contest ID"
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /api/games/{id}/team [get]
+// @Router /api/contests/{id}/team [get]
 func (c *TeamController) GetTeam(ctx *gin.Context) {
-	gameID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	contestID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		response.JSON(ctx, response.BadRequest("invalid game id"))
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
 		return
 	}
 
-	team, err := c.service.GetTeam(ctx.Request.Context(), gameID)
+	team, err := c.service.GetTeam(ctx.Request.Context(), contestID)
 	c.helper.RespondOK(ctx, team, err, "team retrieved successfully")
 }
 
 // InviteMember godoc
 // @Summary Invite a user to the team
-// @Description Invite a user to join the game team. Sends Discord notification if configured.
+// @Description Invite a user to join the contest team. Sends Discord notification if configured.
 // @Tags teams
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Game ID"
+// @Param id path int true "Contest ID"
 // @Param request body gameDto.InviteMemberRequest true "Invite member request"
 // @Success 201 {object} response.Response{data=gameDto.TeamInviteResponse}
 // @Failure 400 {object} response.Response
@@ -90,11 +128,11 @@ func (c *TeamController) GetTeam(ctx *gin.Context) {
 // @Failure 403 {object} response.Response
 // @Failure 404 {object} response.Response
 // @Failure 409 {object} response.Response
-// @Router /api/games/{id}/team/invite [post]
+// @Router /api/contests/{id}/team/invite [post]
 func (c *TeamController) InviteMember(ctx *gin.Context) {
-	gameID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	contestID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		response.JSON(ctx, response.BadRequest("invalid game id"))
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
 		return
 	}
 
@@ -109,7 +147,7 @@ func (c *TeamController) InviteMember(ctx *gin.Context) {
 		return
 	}
 
-	invite, err := c.service.InviteMember(ctx.Request.Context(), gameID, userID, req.UserID)
+	invite, err := c.service.InviteMember(ctx.Request.Context(), contestID, userID, req.UserID)
 	if err != nil {
 		c.helper.RespondCreated(ctx, nil, err, "")
 		return
@@ -125,17 +163,17 @@ func (c *TeamController) InviteMember(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Game ID"
+// @Param id path int true "Contest ID"
 // @Success 200 {object} response.Response{data=gameDto.CachedMemberResponse}
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 404 {object} response.Response
 // @Failure 409 {object} response.Response
-// @Router /api/games/{id}/team/invite/accept [post]
+// @Router /api/contests/{id}/team/invite/accept [post]
 func (c *TeamController) AcceptInvite(ctx *gin.Context) {
-	gameID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	contestID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		response.JSON(ctx, response.BadRequest("invalid game id"))
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
 		return
 	}
 
@@ -145,7 +183,7 @@ func (c *TeamController) AcceptInvite(ctx *gin.Context) {
 		return
 	}
 
-	member, err := c.service.AcceptInvite(ctx.Request.Context(), gameID, userID)
+	member, err := c.service.AcceptInvite(ctx.Request.Context(), contestID, userID)
 	if err != nil {
 		c.helper.RespondOK(ctx, nil, err, "")
 		return
@@ -161,16 +199,16 @@ func (c *TeamController) AcceptInvite(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Game ID"
+// @Param id path int true "Contest ID"
 // @Success 204 "No Content"
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /api/games/{id}/team/invite/reject [post]
+// @Router /api/contests/{id}/team/invite/reject [post]
 func (c *TeamController) RejectInvite(ctx *gin.Context) {
-	gameID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	contestID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		response.JSON(ctx, response.BadRequest("invalid game id"))
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
 		return
 	}
 
@@ -180,29 +218,29 @@ func (c *TeamController) RejectInvite(ctx *gin.Context) {
 		return
 	}
 
-	err = c.service.RejectInvite(ctx.Request.Context(), gameID, userID)
+	err = c.service.RejectInvite(ctx.Request.Context(), contestID, userID)
 	c.helper.RespondNoContent(ctx, err)
 }
 
 // KickMember godoc
 // @Summary Kick a member from the team
-// @Description Remove a member from the game team (Leader only)
+// @Description Remove a member from the contest team (Leader only)
 // @Tags teams
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Game ID"
+// @Param id path int true "Contest ID"
 // @Param request body gameDto.KickMemberRequest true "Kick member request"
 // @Success 204 "No Content"
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /api/games/{id}/team/kick [post]
+// @Router /api/contests/{id}/team/kick [post]
 func (c *TeamController) KickMember(ctx *gin.Context) {
-	gameID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	contestID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		response.JSON(ctx, response.BadRequest("invalid game id"))
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
 		return
 	}
 
@@ -217,28 +255,28 @@ func (c *TeamController) KickMember(ctx *gin.Context) {
 		return
 	}
 
-	err = c.service.KickMember(ctx.Request.Context(), gameID, userID, req.UserID)
+	err = c.service.KickMember(ctx.Request.Context(), contestID, userID, req.UserID)
 	c.helper.RespondNoContent(ctx, err)
 }
 
 // LeaveTeam godoc
 // @Summary Leave the team
-// @Description Leave the game team voluntarily (Members only, Leader cannot leave)
+// @Description Leave the contest team voluntarily (Members only, Leader cannot leave)
 // @Tags teams
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Game ID"
+// @Param id path int true "Contest ID"
 // @Success 204 "No Content"
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /api/games/{id}/team/leave [post]
+// @Router /api/contests/{id}/team/leave [post]
 func (c *TeamController) LeaveTeam(ctx *gin.Context) {
-	gameID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	contestID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		response.JSON(ctx, response.BadRequest("invalid game id"))
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
 		return
 	}
 
@@ -248,7 +286,7 @@ func (c *TeamController) LeaveTeam(ctx *gin.Context) {
 		return
 	}
 
-	err = c.service.LeaveTeam(ctx.Request.Context(), gameID, userID)
+	err = c.service.LeaveTeam(ctx.Request.Context(), contestID, userID)
 	c.helper.RespondNoContent(ctx, err)
 }
 
@@ -259,18 +297,18 @@ func (c *TeamController) LeaveTeam(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Game ID"
+// @Param id path int true "Contest ID"
 // @Param request body gameDto.TransferLeadershipRequest true "Transfer leadership request"
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /api/games/{id}/team/transfer [post]
+// @Router /api/contests/{id}/team/transfer [post]
 func (c *TeamController) TransferLeadership(ctx *gin.Context) {
-	gameID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	contestID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		response.JSON(ctx, response.BadRequest("invalid game id"))
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
 		return
 	}
 
@@ -285,28 +323,28 @@ func (c *TeamController) TransferLeadership(ctx *gin.Context) {
 		return
 	}
 
-	err = c.service.TransferLeadership(ctx.Request.Context(), gameID, userID, req.NewLeaderUserID)
+	err = c.service.TransferLeadership(ctx.Request.Context(), contestID, userID, req.NewLeaderUserID)
 	c.helper.RespondOK(ctx, nil, err, "leadership transferred successfully")
 }
 
 // FinalizeTeam godoc
 // @Summary Finalize the team
-// @Description Finalize the team and persist to database (Leader only, team must be full)
+// @Description Finalize the team and persist to config (Leader only, team must be full)
 // @Tags teams
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Game ID"
+// @Param id path int true "Contest ID"
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /api/games/{id}/team/finalize [post]
+// @Router /api/contests/{id}/team/finalize [post]
 func (c *TeamController) FinalizeTeam(ctx *gin.Context) {
-	gameID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	contestID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		response.JSON(ctx, response.BadRequest("invalid game id"))
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
 		return
 	}
 
@@ -316,7 +354,7 @@ func (c *TeamController) FinalizeTeam(ctx *gin.Context) {
 		return
 	}
 
-	err = c.service.FinalizeTeam(ctx.Request.Context(), gameID, userID)
+	err = c.service.FinalizeTeam(ctx.Request.Context(), contestID, userID)
 	c.helper.RespondOK(ctx, nil, err, "team finalized successfully")
 }
 
@@ -327,17 +365,17 @@ func (c *TeamController) FinalizeTeam(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Game ID"
+// @Param id path int true "Contest ID"
 // @Success 204 "No Content"
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /api/games/{id}/team [delete]
+// @Router /api/contests/{id}/team [delete]
 func (c *TeamController) DeleteTeam(ctx *gin.Context) {
-	gameID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	contestID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		response.JSON(ctx, response.BadRequest("invalid game id"))
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
 		return
 	}
 
@@ -347,31 +385,31 @@ func (c *TeamController) DeleteTeam(ctx *gin.Context) {
 		return
 	}
 
-	err = c.service.DeleteTeam(ctx.Request.Context(), gameID, userID)
+	err = c.service.DeleteTeam(ctx.Request.Context(), contestID, userID)
 	c.helper.RespondNoContent(ctx, err)
 }
 
 // GetMembers godoc
 // @Summary Get all team members
-// @Description Get all members of a game team
+// @Description Get all members of a contest team
 // @Tags teams
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Game ID"
+// @Param id path int true "Contest ID"
 // @Success 200 {object} response.Response{data=[]gameDto.CachedMemberResponse}
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /api/games/{id}/members [get]
+// @Router /api/contests/{id}/team/members [get]
 func (c *TeamController) GetMembers(ctx *gin.Context) {
-	gameID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	contestID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		response.JSON(ctx, response.BadRequest("invalid game id"))
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
 		return
 	}
 
-	members, err := c.service.GetMembers(ctx.Request.Context(), gameID)
+	members, err := c.service.GetMembers(ctx.Request.Context(), contestID)
 	if err != nil {
 		c.helper.RespondOK(ctx, nil, err, "")
 		return
@@ -382,22 +420,22 @@ func (c *TeamController) GetMembers(ctx *gin.Context) {
 
 // GetMember godoc
 // @Summary Get a specific team member
-// @Description Get a specific member of a game team by user ID
+// @Description Get a specific member of a contest team by user ID
 // @Tags teams
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Game ID"
+// @Param id path int true "Contest ID"
 // @Param userId path int true "User ID"
 // @Success 200 {object} response.Response{data=gameDto.CachedMemberResponse}
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /api/games/{id}/members/{userId} [get]
+// @Router /api/contests/{id}/team/members/{userId} [get]
 func (c *TeamController) GetMember(ctx *gin.Context) {
-	gameID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	contestID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		response.JSON(ctx, response.BadRequest("invalid game id"))
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
 		return
 	}
 
@@ -407,7 +445,7 @@ func (c *TeamController) GetMember(ctx *gin.Context) {
 		return
 	}
 
-	member, err := c.service.GetMember(ctx.Request.Context(), gameID, userID)
+	member, err := c.service.GetMember(ctx.Request.Context(), contestID, userID)
 	if err != nil {
 		c.helper.RespondOK(ctx, nil, err, "")
 		return

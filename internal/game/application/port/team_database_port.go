@@ -2,7 +2,7 @@ package port
 
 import "GAMERS-BE/internal/game/domain"
 
-// TeamDatabasePort defines the interface for team database operations
+// TeamDatabasePort defines the interface for team config operations
 type TeamDatabasePort interface {
 	// Team operations
 	Save(team *domain.Team) (*domain.Team, error)

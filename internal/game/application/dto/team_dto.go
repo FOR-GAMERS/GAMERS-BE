@@ -1,6 +1,7 @@
 package dto
 
 import (
+	contestDomain "GAMERS-BE/internal/contest/domain"
 	"GAMERS-BE/internal/game/application/port"
 	gameDomain "GAMERS-BE/internal/game/domain"
 )
@@ -21,10 +22,10 @@ type TransferLeadershipRequest struct {
 	NewLeaderUserID int64 `json:"new_leader_user_id" binding:"required"`
 }
 
-// TeamMemberResponse represents a team member in a game
+// TeamMemberResponse represents a team member in a game/contest
 type TeamMemberResponse struct {
 	TeamID     int64  `json:"team_id"`
-	GameID     int64  `json:"game_id"`
+	ContestID  int64  `json:"contest_id"`
 	UserID     int64  `json:"user_id"`
 	MemberType string `json:"member_type"`
 	Username   string `json:"username,omitempty"`
@@ -32,7 +33,7 @@ type TeamMemberResponse struct {
 }
 
 type TeamResponse struct {
-	GameID      int64                 `json:"game_id"`
+	ContestID   int64                 `json:"contest_id"`
 	TeamID      int64                 `json:"team_id"`
 	TeamName    *string               `json:"team_name,omitempty"`
 	MaxMembers  int                   `json:"max_members"`
@@ -41,24 +42,25 @@ type TeamResponse struct {
 	Members     []*TeamMemberResponse `json:"members"`
 }
 
-func ToTeamMemberResponse(member *gameDomain.TeamMember, gameID int64) *TeamMemberResponse {
+func ToTeamMemberResponse(member *gameDomain.TeamMember, contestID int64) *TeamMemberResponse {
 	return &TeamMemberResponse{
 		TeamID:     member.TeamID,
-		GameID:     gameID,
+		ContestID:  contestID,
 		UserID:     member.UserID,
 		MemberType: string(member.MemberType),
 	}
 }
 
-func ToTeamMemberResponses(members []*gameDomain.TeamMember, gameID int64) []*TeamMemberResponse {
+func ToTeamMemberResponses(members []*gameDomain.TeamMember, contestID int64) []*TeamMemberResponse {
 	responses := make([]*TeamMemberResponse, len(members))
 	for i, member := range members {
-		responses[i] = ToTeamMemberResponse(member, gameID)
+		responses[i] = ToTeamMemberResponse(member, contestID)
 	}
 	return responses
 }
 
-func ToTeamResponse(game *gameDomain.Game, team *gameDomain.Team, members []*gameDomain.TeamMember) *TeamResponse {
+// ToTeamResponseForContest converts contest and team data to TeamResponse
+func ToTeamResponseForContest(contest *contestDomain.Contest, team *gameDomain.Team, members []*gameDomain.TeamMember) *TeamResponse {
 	var teamID int64
 	var teamName *string
 	if team != nil {
@@ -66,18 +68,18 @@ func ToTeamResponse(game *gameDomain.Game, team *gameDomain.Team, members []*gam
 		teamName = &team.TeamName
 	}
 	return &TeamResponse{
-		GameID:      game.GameID,
+		ContestID:   contest.ContestID,
 		TeamID:      teamID,
 		TeamName:    teamName,
-		MaxMembers:  game.GameTeamType.GetMaxTeamMembers(),
+		MaxMembers:  contest.TotalTeamMember,
 		MemberCount: len(members),
 		IsFinalized: true,
-		Members:     ToTeamMemberResponses(members, game.GameID),
+		Members:     ToTeamMemberResponses(members, contest.ContestID),
 	}
 }
 
-// ToCachedTeamResponse converts cached team data to TeamResponse
-func ToCachedTeamResponse(team *port.CachedTeam, members []*port.CachedTeamMember) *TeamResponse {
+// ToCachedTeamResponseForContest converts cached team data to TeamResponse
+func ToCachedTeamResponseForContest(team *port.CachedTeam, members []*port.CachedTeamMember) *TeamResponse {
 	memberResponses := make([]*TeamMemberResponse, len(members))
 	for i, m := range members {
 		memberType := string(gameDomain.TeamMemberTypeMember)
@@ -86,7 +88,7 @@ func ToCachedTeamResponse(team *port.CachedTeam, members []*port.CachedTeamMembe
 		}
 		memberResponses[i] = &TeamMemberResponse{
 			TeamID:     m.TeamID,
-			GameID:     m.GameID,
+			ContestID:  m.ContestID,
 			UserID:     m.UserID,
 			MemberType: memberType,
 			Username:   m.Username,
@@ -95,7 +97,7 @@ func ToCachedTeamResponse(team *port.CachedTeam, members []*port.CachedTeamMembe
 	}
 
 	return &TeamResponse{
-		GameID:      team.GameID,
+		ContestID:   team.ContestID,
 		TeamID:      team.TeamID,
 		TeamName:    team.TeamName,
 		MaxMembers:  team.MaxMembers,
@@ -107,7 +109,7 @@ func ToCachedTeamResponse(team *port.CachedTeam, members []*port.CachedTeamMembe
 
 // TeamInviteResponse represents a team invite in response
 type TeamInviteResponse struct {
-	GameID      int64  `json:"game_id"`
+	ContestID   int64  `json:"contest_id"`
 	InviterID   int64  `json:"inviter_id"`
 	InviteeID   int64  `json:"invitee_id"`
 	Status      string `json:"status"`
@@ -117,7 +119,7 @@ type TeamInviteResponse struct {
 
 func ToTeamInviteResponse(invite *port.TeamInvite) *TeamInviteResponse {
 	return &TeamInviteResponse{
-		GameID:      invite.GameID,
+		ContestID:   invite.ContestID,
 		InviterID:   invite.InviterID,
 		InviteeID:   invite.InviteeID,
 		Status:      string(invite.Status),
@@ -129,7 +131,7 @@ func ToTeamInviteResponse(invite *port.TeamInvite) *TeamInviteResponse {
 // CachedMemberResponse converts cached member to response
 type CachedMemberResponse struct {
 	UserID     int64  `json:"user_id"`
-	GameID     int64  `json:"game_id"`
+	ContestID  int64  `json:"contest_id"`
 	TeamID     int64  `json:"team_id"`
 	MemberType string `json:"member_type"`
 	Username   string `json:"username,omitempty"`
@@ -140,7 +142,7 @@ type CachedMemberResponse struct {
 func ToCachedMemberResponse(member *port.CachedTeamMember) *CachedMemberResponse {
 	return &CachedMemberResponse{
 		UserID:     member.UserID,
-		GameID:     member.GameID,
+		ContestID:  member.ContestID,
 		TeamID:     member.TeamID,
 		MemberType: string(member.MemberType),
 		Username:   member.Username,

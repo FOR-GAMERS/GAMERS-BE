@@ -2,7 +2,7 @@ package adapter
 
 import (
 	"GAMERS-BE/internal/game/application/port"
-	"GAMERS-BE/internal/global/database"
+	"GAMERS-BE/internal/global/config"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,11 +13,11 @@ import (
 )
 
 type TeamEventPublisherRabbitMQAdapter struct {
-	connection *database.RabbitMQConnection
+	connection *config.RabbitMQConnection
 	exchange   string
 }
 
-func NewTeamEventPublisherRabbitMQAdapter(connection *database.RabbitMQConnection, exchange string) *TeamEventPublisherRabbitMQAdapter {
+func NewTeamEventPublisherRabbitMQAdapter(connection *config.RabbitMQConnection, exchange string) *TeamEventPublisherRabbitMQAdapter {
 	return &TeamEventPublisherRabbitMQAdapter{
 		connection: connection,
 		exchange:   exchange,
@@ -68,7 +68,6 @@ func (a *TeamEventPublisherRabbitMQAdapter) PublishTeamInviteEvent(
 			Body:         body,
 			Headers: amqp.Table{
 				"event_type":              string(event.EventType),
-				"game_id":                 event.GameID,
 				"contest_id":              event.ContestID,
 				"inviter_user_id":         event.InviterUserID,
 				"inviter_discord_id":      event.InviterDiscordID,
@@ -131,7 +130,6 @@ func (a *TeamEventPublisherRabbitMQAdapter) PublishTeamMemberEvent(
 			Body:         body,
 			Headers: amqp.Table{
 				"event_type":              string(event.EventType),
-				"game_id":                 event.GameID,
 				"contest_id":              event.ContestID,
 				"user_id":                 event.UserID,
 				"discord_user_id":         event.DiscordUserID,
@@ -194,7 +192,6 @@ func (a *TeamEventPublisherRabbitMQAdapter) PublishTeamFinalizedEvent(
 			Body:         body,
 			Headers: amqp.Table{
 				"event_type":              string(event.EventType),
-				"game_id":                 event.GameID,
 				"contest_id":              event.ContestID,
 				"leader_user_id":          event.LeaderUserID,
 				"leader_discord_id":       event.LeaderDiscordID,

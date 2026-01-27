@@ -214,6 +214,16 @@ func (c *Contest) HasDiscordIntegration() bool {
 	return c.DiscordGuildId != nil && *c.DiscordGuildId != ""
 }
 
+// IsActive checks if the contest is in active state
+func (c *Contest) IsActive() bool {
+	return c.ContestStatus == ContestStatusActive
+}
+
+// IsPending checks if the contest is in pending state
+func (c *Contest) IsPending() bool {
+	return c.ContestStatus == ContestStatusPending
+}
+
 func (c *Contest) Validate() error {
 	if c.Title == "" {
 		return exception.ErrInvalidContestTitle

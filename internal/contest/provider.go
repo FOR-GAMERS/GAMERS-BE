@@ -11,7 +11,7 @@ import (
 	gamePort "GAMERS-BE/internal/game/application/port"
 	"GAMERS-BE/internal/global/common/handler"
 	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/global/database"
+	"GAMERS-BE/internal/global/config"
 	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
 	userQueryPort "GAMERS-BE/internal/user/application/port/port"
 
@@ -30,7 +30,7 @@ type Dependencies struct {
 func ProvideContestDependencies(
 	db *gorm.DB,
 	redisClient *redis.Client,
-	rabbitmqConn *database.RabbitMQConnection,
+	rabbitmqConn *config.RabbitMQConnection,
 	router *router.Router,
 	oauth2Repository oauth2Port.OAuth2DatabasePort,
 	userQueryRepo userQueryPort.UserQueryPort,
@@ -85,7 +85,7 @@ func ProvideContestDependencies(
 func ProvideContestDependenciesWithDiscord(
 	db *gorm.DB,
 	redisClient *redis.Client,
-	rabbitmqConn *database.RabbitMQConnection,
+	rabbitmqConn *config.RabbitMQConnection,
 	router *router.Router,
 	oauth2Repository oauth2Port.OAuth2DatabasePort,
 	userQueryRepo userQueryPort.UserQueryPort,
@@ -145,7 +145,7 @@ func ProvideContestDependenciesWithDiscord(
 func ProvideContestDependenciesFull(
 	db *gorm.DB,
 	redisClient *redis.Client,
-	rabbitmqConn *database.RabbitMQConnection,
+	rabbitmqConn *config.RabbitMQConnection,
 	router *router.Router,
 	oauth2Repository oauth2Port.OAuth2DatabasePort,
 	userQueryRepo userQueryPort.UserQueryPort,

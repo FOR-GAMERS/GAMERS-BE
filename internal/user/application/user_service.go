@@ -77,6 +77,33 @@ func (s *UserService) UpdateUser(id int64, req dto.UpdateUserRequest) (*dto.User
 	return toUserResponse(updatedUser), nil
 }
 
+func (s *UserService) UpdateUserInfo(id int64, req dto.UpdateUserInfoRequest) (*dto.MyUserResponse, error) {
+	user, err := s.userQueryPort.FindById(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := user.UpdateUserInfo(req.Username, req.Tag, req.Bio, req.Avatar); err != nil {
+		return nil, err
+	}
+
+	if err := s.userCommandPort.UpdateUserInfo(user); err != nil {
+		return nil, err
+	}
+
+	avatarURL := user.Avatar
+	if s.oauth2DbPort != nil {
+		discordAccount, err := s.oauth2DbPort.FindDiscordAccountByUserId(id)
+		if err == nil && discordAccount != nil {
+			if url := utils.BuildDiscordAvatarURL(discordAccount.DiscordId, discordAccount.DiscordAvatar); url != "" {
+				avatarURL = url
+			}
+		}
+	}
+
+	return toMyUserResponseWithAvatar(user, avatarURL), nil
+}
+
 func (s *UserService) DeleteUser(id int64) error {
 	return s.userCommandPort.DeleteById(id)
 }

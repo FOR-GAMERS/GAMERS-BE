@@ -55,6 +55,31 @@ func (r *MySQLUserRepository) Update(user *domain.User) error {
 	return nil
 }
 
+func (r *MySQLUserRepository) UpdateUserInfo(user *domain.User) error {
+	result := r.db.Model(&domain.User{}).
+		Where("id = ?", user.Id).
+		Updates(map[string]interface{}{
+			"username": user.Username,
+			"tag":      user.Tag,
+			"bio":      user.Bio,
+			"avatar":   user.Avatar,
+		})
+
+	if result.Error != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062 {
+			return exception.ErrUserAlreadyExists
+		}
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return exception.ErrUserNotFound
+	}
+
+	return nil
+}
+
 func (r *MySQLUserRepository) DeleteById(id int64) error {
 	result := r.db.Delete(&domain.User{}, id)
 

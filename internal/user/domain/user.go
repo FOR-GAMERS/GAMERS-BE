@@ -99,6 +99,35 @@ func (u *User) UpdateUser(password string, hasher password.Hasher) (*User, error
 	return u, nil
 }
 
+func (u *User) UpdateUserInfo(username, tag *string, bio, avatar *string) error {
+	if username != nil {
+		if err := isValidateUsername(*username); err != nil {
+			return err
+		}
+		u.Username = *username
+	}
+
+	if tag != nil {
+		if err := isValidateTag(*tag); err != nil {
+			return err
+		}
+		u.Tag = *tag
+	}
+
+	if bio != nil {
+		if err := isValidateBio(*bio); err != nil {
+			return err
+		}
+		u.Bio = *bio
+	}
+
+	if avatar != nil {
+		u.Avatar = *avatar
+	}
+
+	return nil
+}
+
 func isValidateEmail(email string) error {
 	if email == "" {
 		return exception.ErrInvalidEmail

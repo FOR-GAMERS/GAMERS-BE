@@ -55,6 +55,7 @@ definitions:
   GAMERS-BE_internal_banner_application_dto.CreateBannerRequest:
     properties:
       display_order:
+        minimum: 0
         type: integer
       image_key:
         type: string
@@ -70,6 +71,7 @@ definitions:
   GAMERS-BE_internal_banner_application_dto.UpdateBannerRequest:
     properties:
       display_order:
+        minimum: 0
         type: integer
       image_key:
         type: string
@@ -344,10 +346,10 @@ definitions:
     type: object
   GAMERS-BE_internal_game_application_dto.CachedMemberResponse:
     properties:
+      contest_id:
+        type: integer
       discord_id:
         type: string
-      game_id:
-        type: integer
       member_type:
         type: string
       tag:
@@ -384,6 +386,11 @@ definitions:
     required:
     - game_id
     - team_id
+    type: object
+  GAMERS-BE_internal_game_application_dto.CreateTeamRequest:
+    properties:
+      team_name:
+        type: string
     type: object
   GAMERS-BE_internal_game_application_dto.GameResponse:
     properties:
@@ -431,7 +438,7 @@ definitions:
     type: object
   GAMERS-BE_internal_game_application_dto.TeamInviteResponse:
     properties:
-      game_id:
+      contest_id:
         type: integer
       invitee_id:
         type: integer
@@ -777,6 +784,17 @@ definitions:
       username:
         type: string
       valorant_updated_at:
+        type: string
+    type: object
+  GAMERS-BE_internal_user_application_dto.UpdateUserInfoRequest:
+    properties:
+      avatar:
+        type: string
+      bio:
+        type: string
+      tag:
+        type: string
+      username:
         type: string
     type: object
   GAMERS-BE_internal_user_application_dto.UpdateUserRequest:
@@ -2046,7 +2064,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Start a contest and migrate accepted applications to database (Leader
+      description: Start a contest and migrate accepted applications to config (Leader
         only)
       parameters:
       - description: Contest ID
@@ -2132,6 +2150,502 @@ paths:
       summary: Stop a contest
       tags:
       - contests
+  /api/contests/{id}/team:
+    delete:
+      consumes:
+      - application/json
+      description: Delete all team members (Leader only)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete the entire team
+      tags:
+      - teams
+    get:
+      consumes:
+      - application/json
+      description: Get all members and team details for a contest (from Redis cache
+        or DB)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get team information
+      tags:
+      - teams
+    post:
+      consumes:
+      - application/json
+      description: Create a new team in the contest with the current user as leader
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Create team request
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.CreateTeamRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a team for a contest
+      tags:
+      - teams
+  /api/contests/{id}/team/finalize:
+    post:
+      consumes:
+      - application/json
+      description: Finalize the team and persist to config (Leader only, team must
+        be full)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Finalize the team
+      tags:
+      - teams
+  /api/contests/{id}/team/invite:
+    post:
+      consumes:
+      - application/json
+      description: Invite a user to join the contest team. Sends Discord notification
+        if configured.
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Invite member request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.InviteMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.TeamInviteResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Invite a user to the team
+      tags:
+      - teams
+  /api/contests/{id}/team/invite/accept:
+    post:
+      consumes:
+      - application/json
+      description: Accept a pending team invitation and join the team
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.CachedMemberResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Accept a team invitation
+      tags:
+      - teams
+  /api/contests/{id}/team/invite/reject:
+    post:
+      consumes:
+      - application/json
+      description: Reject a pending team invitation
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Reject a team invitation
+      tags:
+      - teams
+  /api/contests/{id}/team/kick:
+    post:
+      consumes:
+      - application/json
+      description: Remove a member from the contest team (Leader only)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Kick member request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.KickMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Kick a member from the team
+      tags:
+      - teams
+  /api/contests/{id}/team/leave:
+    post:
+      consumes:
+      - application/json
+      description: Leave the contest team voluntarily (Members only, Leader cannot
+        leave)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Leave the team
+      tags:
+      - teams
+  /api/contests/{id}/team/members:
+    get:
+      consumes:
+      - application/json
+      description: Get all members of a contest team
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.CachedMemberResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get all team members
+      tags:
+      - teams
+  /api/contests/{id}/team/members/{userId}:
+    get:
+      consumes:
+      - application/json
+      description: Get a specific member of a contest team by user ID
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.CachedMemberResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get a specific team member
+      tags:
+      - teams
+  /api/contests/{id}/team/transfer:
+    post:
+      consumes:
+      - application/json
+      description: Transfer team leadership to another member (Leader only)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Transfer leadership request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.TransferLeadershipRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Transfer leadership to another member
+      tags:
+      - teams
   /api/contests/{id}/valorant-point:
     get:
       consumes:
@@ -2618,93 +3132,6 @@ paths:
       summary: Get all game-teams for a game
       tags:
       - game-teams
-  /api/games/{id}/members:
-    get:
-      consumes:
-      - application/json
-      description: Get all members of a game team
-      parameters:
-      - description: Game ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.CachedMemberResponse'
-                  type: array
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-      security:
-      - BearerAuth: []
-      summary: Get all team members
-      tags:
-      - teams
-  /api/games/{id}/members/{userId}:
-    get:
-      consumes:
-      - application/json
-      description: Get a specific member of a game team by user ID
-      parameters:
-      - description: Game ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.CachedMemberResponse'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-      security:
-      - BearerAuth: []
-      summary: Get a specific team member
-      tags:
-      - teams
   /api/games/{id}/start:
     post:
       consumes:
@@ -2749,375 +3176,6 @@ paths:
       summary: Start a game
       tags:
       - games
-  /api/games/{id}/team:
-    delete:
-      consumes:
-      - application/json
-      description: Delete all team members (Leader only)
-      parameters:
-      - description: Game ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-      security:
-      - BearerAuth: []
-      summary: Delete the entire team
-      tags:
-      - teams
-    get:
-      consumes:
-      - application/json
-      description: Get all members and team details for a game (from Redis cache or
-        DB)
-      parameters:
-      - description: Game ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-      security:
-      - BearerAuth: []
-      summary: Get team information
-      tags:
-      - teams
-  /api/games/{id}/team/finalize:
-    post:
-      consumes:
-      - application/json
-      description: Finalize the team and persist to database (Leader only, team must
-        be full)
-      parameters:
-      - description: Game ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-      security:
-      - BearerAuth: []
-      summary: Finalize the team
-      tags:
-      - teams
-  /api/games/{id}/team/invite:
-    post:
-      consumes:
-      - application/json
-      description: Invite a user to join the game team. Sends Discord notification
-        if configured.
-      parameters:
-      - description: Game ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Invite member request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.InviteMemberRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            allOf:
-            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.TeamInviteResponse'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-      security:
-      - BearerAuth: []
-      summary: Invite a user to the team
-      tags:
-      - teams
-  /api/games/{id}/team/invite/accept:
-    post:
-      consumes:
-      - application/json
-      description: Accept a pending team invitation and join the team
-      parameters:
-      - description: Game ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.CachedMemberResponse'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-      security:
-      - BearerAuth: []
-      summary: Accept a team invitation
-      tags:
-      - teams
-  /api/games/{id}/team/invite/reject:
-    post:
-      consumes:
-      - application/json
-      description: Reject a pending team invitation
-      parameters:
-      - description: Game ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-      security:
-      - BearerAuth: []
-      summary: Reject a team invitation
-      tags:
-      - teams
-  /api/games/{id}/team/kick:
-    post:
-      consumes:
-      - application/json
-      description: Remove a member from the game team (Leader only)
-      parameters:
-      - description: Game ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Kick member request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.KickMemberRequest'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-      security:
-      - BearerAuth: []
-      summary: Kick a member from the team
-      tags:
-      - teams
-  /api/games/{id}/team/leave:
-    post:
-      consumes:
-      - application/json
-      description: Leave the game team voluntarily (Members only, Leader cannot leave)
-      parameters:
-      - description: Game ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-      security:
-      - BearerAuth: []
-      summary: Leave the team
-      tags:
-      - teams
-  /api/games/{id}/team/transfer:
-    post:
-      consumes:
-      - application/json
-      description: Transfer team leadership to another member (Leader only)
-      parameters:
-      - description: Game ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Transfer leadership request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.TransferLeadershipRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
-      security:
-      - BearerAuth: []
-      summary: Transfer leadership to another member
-      tags:
-      - teams
   /api/notifications:
     get:
       description: Retrieves notifications for the authenticated user with pagination
@@ -3420,6 +3478,55 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a user
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update user profile information (username, tag, bio, avatar)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User info update request
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_user_application_dto.UpdateUserInfoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_user_application_dto.MyUserResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update user information
       tags:
       - users
   /api/users/my:

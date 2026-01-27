@@ -75,7 +75,7 @@ func NewPaginationRequest(page, pageSize int) *PaginationRequest {
 	}
 }
 
-// GetOffset calculates the offset for database queries
+// GetOffset calculates the offset for config queries
 func (p *PaginationRequest) GetOffset() int {
 	return (p.Page - 1) * p.PageSize
 }

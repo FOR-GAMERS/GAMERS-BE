@@ -1,4 +1,4 @@
-package database
+package config
 
 import (
 	"database/sql"
@@ -12,7 +12,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-// RunMigrations executes database migrations
+// RunMigrations executes config migrations
 func RunMigrations(db *sql.DB, migrationsPath string) error {
 	absPath, err := filepath.Abs(migrationsPath)
 	if err != nil {
@@ -105,7 +105,7 @@ func GetMigrationVersion(db *sql.DB, migrationsPath string) (uint, bool, error) 
 	return version, dirty, nil
 }
 
-// ForceMigrationVersion forces database to specific version (useful for dirty state)
+// ForceMigrationVersion forces config to specific version (useful for dirty state)
 func ForceMigrationVersion(db *sql.DB, migrationsPath string, version int) error {
 	absPath, err := filepath.Abs(migrationsPath)
 	if err != nil {

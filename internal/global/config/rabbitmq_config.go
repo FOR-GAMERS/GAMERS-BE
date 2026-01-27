@@ -1,4 +1,4 @@
-package database
+package config
 
 import (
 	"fmt"
@@ -45,10 +45,7 @@ func InitRabbitMQ(config *RabbitMQConfig) (*RabbitMQConnection, error) {
 	}
 
 	if err := conn.SetupTopology(); err != nil {
-		err := conn.Close()
-		if err != nil {
-			return nil, err
-		}
+		conn.Close()
 		return nil, fmt.Errorf("failed to setup RabbitMQ topology: %w", err)
 	}
 

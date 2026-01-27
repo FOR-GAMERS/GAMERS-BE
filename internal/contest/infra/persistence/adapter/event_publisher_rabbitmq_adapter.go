@@ -2,7 +2,7 @@ package adapter
 
 import (
 	"GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/global/database"
+	"GAMERS-BE/internal/global/config"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,11 +13,11 @@ import (
 )
 
 type EventPublisherRabbitMQAdapter struct {
-	connection *database.RabbitMQConnection
+	connection *config.RabbitMQConnection
 	exchange   string
 }
 
-func NewEventPublisherRabbitMQAdapter(connection *database.RabbitMQConnection, exchange string) *EventPublisherRabbitMQAdapter {
+func NewEventPublisherRabbitMQAdapter(connection *config.RabbitMQConnection, exchange string) *EventPublisherRabbitMQAdapter {
 	return &EventPublisherRabbitMQAdapter{
 		connection: connection,
 		exchange:   exchange,

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"GAMERS-BE/internal/global/database"
+	"GAMERS-BE/internal/global/config"
 	"fmt"
 	"log"
 	"os"
@@ -20,11 +20,11 @@ func main() {
 		log.Fatal("Invalid version number:", err)
 	}
 
-	// Initialize database
-	dbConfig := database.NewConfigFromEnv()
-	db, err := database.InitDB(dbConfig)
+	// Initialize config
+	dbConfig := config.NewConfigFromEnv()
+	db, err := config.InitDB(dbConfig)
 	if err != nil {
-		log.Fatal("Failed to initialize database:", err)
+		log.Fatal("Failed to initialize config:", err)
 	}
 
 	sqlDB, err := db.DB()
@@ -33,7 +33,7 @@ func main() {
 	}
 
 	// Get current migration status
-	currentVersion, dirty, err := database.GetMigrationVersion(sqlDB, "./db/migrations")
+	currentVersion, dirty, err := config.GetMigrationVersion(sqlDB, "./db/migrations")
 	if err != nil {
 		log.Printf("Warning: Could not get current version: %v", err)
 	} else {
@@ -42,12 +42,12 @@ func main() {
 
 	// Force migration to specified version
 	log.Printf("⚠️  Forcing migration to version %d...", version)
-	if err := database.ForceMigrationVersion(sqlDB, "./db/migrations", version); err != nil {
+	if err := config.ForceMigrationVersion(sqlDB, "./db/migrations", version); err != nil {
 		log.Fatal("Failed to force migration:", err)
 	}
 
 	// Verify new status
-	newVersion, newDirty, err := database.GetMigrationVersion(sqlDB, "./db/migrations")
+	newVersion, newDirty, err := config.GetMigrationVersion(sqlDB, "./db/migrations")
 	if err != nil {
 		log.Printf("Warning: Could not verify new version: %v", err)
 	} else {

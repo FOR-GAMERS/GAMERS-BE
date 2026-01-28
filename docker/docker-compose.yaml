@@ -1,0 +1,18 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: gamers-app
+    env_file:
+      - ../env/.env
+    environment:
+      TZ: "Asia/Tokyo"
+    ports:
+      - "8080:8080"
+    networks:
+      - gamers-network
+
+networks:
+  gamers-network:
+    external: true

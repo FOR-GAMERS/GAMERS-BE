@@ -254,20 +254,38 @@ func (a *TeamDatabaseAdapter) DeleteAllMembersByTeamID(teamID int64) error {
 // Contest-based queries
 
 func (a *TeamDatabaseAdapter) GetTeamsByContestWithMembers(contestID int64) ([]*port.TeamWithMembers, error) {
+	// Query 1: Get all teams for the contest
 	teams, err := a.GetByContestID(contestID)
 	if err != nil {
 		return nil, err
 	}
 
+	if len(teams) == 0 {
+		return []*port.TeamWithMembers{}, nil
+	}
+
+	// Query 2: Get all members for these teams in a single query (N+1 → 2)
+	teamIDs := make([]int64, len(teams))
+	for i, team := range teams {
+		teamIDs[i] = team.TeamID
+	}
+
+	var allMembers []*domain.TeamMember
+	if err := a.db.Where("team_id IN ?", teamIDs).Find(&allMembers).Error; err != nil {
+		return nil, a.translateMemberError(err)
+	}
+
+	// Group members by team ID in memory
+	memberMap := make(map[int64][]*domain.TeamMember)
+	for _, member := range allMembers {
+		memberMap[member.TeamID] = append(memberMap[member.TeamID], member)
+	}
+
 	result := make([]*port.TeamWithMembers, 0, len(teams))
 	for _, team := range teams {
-		members, err := a.GetMembersByTeamID(team.TeamID)
-		if err != nil {
-			return nil, err
-		}
 		result = append(result, &port.TeamWithMembers{
 			Team:    team,
-			Members: members,
+			Members: memberMap[team.TeamID],
 		})
 	}
 
@@ -294,9 +312,12 @@ func (a *TeamDatabaseAdapter) GetUserTeamInContest(contestID, userID int64) (*do
 // Game-based queries
 
 func (a *TeamDatabaseAdapter) GetTeamByGameID(gameID int64) (*port.TeamWithMembers, error) {
-	// Find team via game_teams table
-	var gameTeam domain.GameTeam
-	result := a.db.Where("game_id = ?", gameID).First(&gameTeam)
+	// Query 1: JOIN game_teams + teams to get team in a single query (3 → 2 queries)
+	var team domain.Team
+	result := a.db.
+		Joins("JOIN game_teams ON game_teams.team_id = teams.team_id").
+		Where("game_teams.game_id = ?", gameID).
+		First(&team)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, exception.ErrTeamNotFound
@@ -304,20 +325,14 @@ func (a *TeamDatabaseAdapter) GetTeamByGameID(gameID int64) (*port.TeamWithMembe
 		return nil, a.translateError(result.Error)
 	}
 
-	// Get team
-	team, err := a.GetByID(gameTeam.TeamID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get members
-	members, err := a.GetMembersByTeamID(gameTeam.TeamID)
+	// Query 2: Get members
+	members, err := a.GetMembersByTeamID(team.TeamID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &port.TeamWithMembers{
-		Team:    team,
+		Team:    &team,
 		Members: members,
 	}, nil
 }

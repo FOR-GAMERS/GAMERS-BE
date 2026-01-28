@@ -28,7 +28,7 @@ func (a *TeamRedisAdapter) CreateTeam(ctx context.Context, team *port.CachedTeam
 	pipe := a.client.Pipeline()
 
 	// Store team metadata
-	teamKey := utils.GetTeamKey(team.GameID)
+	teamKey := utils.GetTeamKey(team.ContestID)
 	teamData, err := json.Marshal(team)
 	if err != nil {
 		return err
@@ -36,7 +36,7 @@ func (a *TeamRedisAdapter) CreateTeam(ctx context.Context, team *port.CachedTeam
 	pipe.Set(ctx, teamKey, teamData, ttl)
 
 	// Store leader member
-	memberKey := utils.GetTeamMemberKey(team.GameID, leader.UserID)
+	memberKey := utils.GetTeamMemberKey(team.ContestID, leader.UserID)
 	memberData, err := json.Marshal(leader)
 	if err != nil {
 		return err
@@ -44,13 +44,13 @@ func (a *TeamRedisAdapter) CreateTeam(ctx context.Context, team *port.CachedTeam
 	pipe.Set(ctx, memberKey, memberData, ttl)
 
 	// Add leader to members set
-	membersKey := utils.GetTeamMembersKey(team.GameID)
+	membersKey := utils.GetTeamMembersKey(team.ContestID)
 	pipe.SAdd(ctx, membersKey, leader.UserID)
 	pipe.Expire(ctx, membersKey, ttl)
 
 	// Track user's team
 	userTeamsKey := utils.GetUserTeamsKey(leader.UserID)
-	pipe.SAdd(ctx, userTeamsKey, team.GameID)
+	pipe.SAdd(ctx, userTeamsKey, team.ContestID)
 	pipe.Expire(ctx, userTeamsKey, 30*24*time.Hour)
 
 	_, err = pipe.Exec(ctx)
@@ -58,8 +58,8 @@ func (a *TeamRedisAdapter) CreateTeam(ctx context.Context, team *port.CachedTeam
 }
 
 // GetTeam retrieves team metadata from Redis
-func (a *TeamRedisAdapter) GetTeam(ctx context.Context, gameID int64) (*port.CachedTeam, error) {
-	teamKey := utils.GetTeamKey(gameID)
+func (a *TeamRedisAdapter) GetTeam(ctx context.Context, contestID int64) (*port.CachedTeam, error) {
+	teamKey := utils.GetTeamKey(contestID)
 	data, err := a.client.Get(ctx, teamKey).Result()
 	if errors.Is(err, redis.Nil) {
 		return nil, exception.ErrTeamMemberNotFound
@@ -77,14 +77,14 @@ func (a *TeamRedisAdapter) GetTeam(ctx context.Context, gameID int64) (*port.Cac
 }
 
 // UpdateTeamCount updates the current member count
-func (a *TeamRedisAdapter) UpdateTeamCount(ctx context.Context, gameID int64, count int) error {
-	team, err := a.GetTeam(ctx, gameID)
+func (a *TeamRedisAdapter) UpdateTeamCount(ctx context.Context, contestID int64, count int) error {
+	team, err := a.GetTeam(ctx, contestID)
 	if err != nil {
 		return err
 	}
 
 	team.CurrentCount = count
-	teamKey := utils.GetTeamKey(gameID)
+	teamKey := utils.GetTeamKey(contestID)
 	teamData, err := json.Marshal(team)
 	if err != nil {
 		return err
@@ -95,8 +95,8 @@ func (a *TeamRedisAdapter) UpdateTeamCount(ctx context.Context, gameID int64, co
 }
 
 // DeleteTeam removes team from Redis
-func (a *TeamRedisAdapter) DeleteTeam(ctx context.Context, gameID int64) error {
-	return a.ClearTeam(ctx, gameID)
+func (a *TeamRedisAdapter) DeleteTeam(ctx context.Context, contestID int64) error {
+	return a.ClearTeam(ctx, contestID)
 }
 
 // AddMember adds a member to the team in Redis
@@ -104,7 +104,7 @@ func (a *TeamRedisAdapter) AddMember(ctx context.Context, member *port.CachedTea
 	pipe := a.client.Pipeline()
 
 	// Store member data
-	memberKey := utils.GetTeamMemberKey(member.GameID, member.UserID)
+	memberKey := utils.GetTeamMemberKey(member.ContestID, member.UserID)
 	memberData, err := json.Marshal(member)
 	if err != nil {
 		return err
@@ -112,12 +112,12 @@ func (a *TeamRedisAdapter) AddMember(ctx context.Context, member *port.CachedTea
 	pipe.Set(ctx, memberKey, memberData, ttl)
 
 	// Add to members set
-	membersKey := utils.GetTeamMembersKey(member.GameID)
+	membersKey := utils.GetTeamMembersKey(member.ContestID)
 	pipe.SAdd(ctx, membersKey, member.UserID)
 
 	// Track user's team
 	userTeamsKey := utils.GetUserTeamsKey(member.UserID)
-	pipe.SAdd(ctx, userTeamsKey, member.GameID)
+	pipe.SAdd(ctx, userTeamsKey, member.ContestID)
 	pipe.Expire(ctx, userTeamsKey, 30*24*time.Hour)
 
 	_, err = pipe.Exec(ctx)
@@ -126,16 +126,16 @@ func (a *TeamRedisAdapter) AddMember(ctx context.Context, member *port.CachedTea
 	}
 
 	// Update team count
-	count, err := a.GetMemberCount(ctx, member.GameID)
+	count, err := a.GetMemberCount(ctx, member.ContestID)
 	if err != nil {
 		return err
 	}
-	return a.UpdateTeamCount(ctx, member.GameID, count)
+	return a.UpdateTeamCount(ctx, member.ContestID, count)
 }
 
 // GetMember retrieves a member from Redis
-func (a *TeamRedisAdapter) GetMember(ctx context.Context, gameID, userID int64) (*port.CachedTeamMember, error) {
-	memberKey := utils.GetTeamMemberKey(gameID, userID)
+func (a *TeamRedisAdapter) GetMember(ctx context.Context, contestID, userID int64) (*port.CachedTeamMember, error) {
+	memberKey := utils.GetTeamMemberKey(contestID, userID)
 	data, err := a.client.Get(ctx, memberKey).Result()
 	if errors.Is(err, redis.Nil) {
 		return nil, exception.ErrTeamMemberNotFound
@@ -153,8 +153,8 @@ func (a *TeamRedisAdapter) GetMember(ctx context.Context, gameID, userID int64) 
 }
 
 // GetAllMembers retrieves all team members from Redis
-func (a *TeamRedisAdapter) GetAllMembers(ctx context.Context, gameID int64) ([]*port.CachedTeamMember, error) {
-	membersKey := utils.GetTeamMembersKey(gameID)
+func (a *TeamRedisAdapter) GetAllMembers(ctx context.Context, contestID int64) ([]*port.CachedTeamMember, error) {
+	membersKey := utils.GetTeamMembersKey(contestID)
 	userIDs, err := a.client.SMembers(ctx, membersKey).Result()
 	if err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ func (a *TeamRedisAdapter) GetAllMembers(ctx context.Context, gameID int64) ([]*
 			continue
 		}
 
-		member, err := a.GetMember(ctx, gameID, userID)
+		member, err := a.GetMember(ctx, contestID, userID)
 		if err != nil {
 			continue
 		}
@@ -178,20 +178,20 @@ func (a *TeamRedisAdapter) GetAllMembers(ctx context.Context, gameID int64) ([]*
 }
 
 // RemoveMember removes a member from the team
-func (a *TeamRedisAdapter) RemoveMember(ctx context.Context, gameID, userID int64) error {
+func (a *TeamRedisAdapter) RemoveMember(ctx context.Context, contestID, userID int64) error {
 	pipe := a.client.Pipeline()
 
 	// Remove member data
-	memberKey := utils.GetTeamMemberKey(gameID, userID)
+	memberKey := utils.GetTeamMemberKey(contestID, userID)
 	pipe.Del(ctx, memberKey)
 
 	// Remove from members set
-	membersKey := utils.GetTeamMembersKey(gameID)
+	membersKey := utils.GetTeamMembersKey(contestID)
 	pipe.SRem(ctx, membersKey, userID)
 
 	// Remove from user's teams
 	userTeamsKey := utils.GetUserTeamsKey(userID)
-	pipe.SRem(ctx, userTeamsKey, gameID)
+	pipe.SRem(ctx, userTeamsKey, contestID)
 
 	_, err := pipe.Exec(ctx)
 	if err != nil {
@@ -199,16 +199,16 @@ func (a *TeamRedisAdapter) RemoveMember(ctx context.Context, gameID, userID int6
 	}
 
 	// Update team count
-	count, err := a.GetMemberCount(ctx, gameID)
+	count, err := a.GetMemberCount(ctx, contestID)
 	if err != nil {
 		return err
 	}
-	return a.UpdateTeamCount(ctx, gameID, count)
+	return a.UpdateTeamCount(ctx, contestID, count)
 }
 
 // GetMemberCount returns the number of members in the team
-func (a *TeamRedisAdapter) GetMemberCount(ctx context.Context, gameID int64) (int, error) {
-	membersKey := utils.GetTeamMembersKey(gameID)
+func (a *TeamRedisAdapter) GetMemberCount(ctx context.Context, contestID int64) (int, error) {
+	membersKey := utils.GetTeamMembersKey(contestID)
 	count, err := a.client.SCard(ctx, membersKey).Result()
 	if err != nil {
 		return 0, err
@@ -217,8 +217,8 @@ func (a *TeamRedisAdapter) GetMemberCount(ctx context.Context, gameID int64) (in
 }
 
 // IsMember checks if a user is a member of the team
-func (a *TeamRedisAdapter) IsMember(ctx context.Context, gameID, userID int64) (bool, error) {
-	membersKey := utils.GetTeamMembersKey(gameID)
+func (a *TeamRedisAdapter) IsMember(ctx context.Context, contestID, userID int64) (bool, error) {
+	membersKey := utils.GetTeamMembersKey(contestID)
 	return a.client.SIsMember(ctx, membersKey, userID).Result()
 }
 
@@ -227,7 +227,7 @@ func (a *TeamRedisAdapter) CreateInvite(ctx context.Context, invite *port.TeamIn
 	pipe := a.client.Pipeline()
 
 	// Store invite data
-	inviteKey := utils.GetTeamInviteKey(invite.GameID, invite.InviteeID)
+	inviteKey := utils.GetTeamInviteKey(invite.ContestID, invite.InviteeID)
 	inviteData, err := json.Marshal(invite)
 	if err != nil {
 		return err
@@ -235,7 +235,7 @@ func (a *TeamRedisAdapter) CreateInvite(ctx context.Context, invite *port.TeamIn
 	pipe.Set(ctx, inviteKey, inviteData, ttl)
 
 	// Add to pending invites set
-	invitesKey := utils.GetTeamInvitesKey(invite.GameID)
+	invitesKey := utils.GetTeamInvitesKey(invite.ContestID)
 	pipe.SAdd(ctx, invitesKey, invite.InviteeID)
 	pipe.Expire(ctx, invitesKey, ttl)
 
@@ -244,8 +244,8 @@ func (a *TeamRedisAdapter) CreateInvite(ctx context.Context, invite *port.TeamIn
 }
 
 // GetInvite retrieves an invite from Redis
-func (a *TeamRedisAdapter) GetInvite(ctx context.Context, gameID, inviteeID int64) (*port.TeamInvite, error) {
-	inviteKey := utils.GetTeamInviteKey(gameID, inviteeID)
+func (a *TeamRedisAdapter) GetInvite(ctx context.Context, contestID, inviteeID int64) (*port.TeamInvite, error) {
+	inviteKey := utils.GetTeamInviteKey(contestID, inviteeID)
 	data, err := a.client.Get(ctx, inviteKey).Result()
 	if errors.Is(err, redis.Nil) {
 		return nil, exception.ErrTeamInviteNotFound
@@ -263,8 +263,8 @@ func (a *TeamRedisAdapter) GetInvite(ctx context.Context, gameID, inviteeID int6
 }
 
 // GetPendingInvites retrieves all pending invites for a team
-func (a *TeamRedisAdapter) GetPendingInvites(ctx context.Context, gameID int64) ([]*port.TeamInvite, error) {
-	invitesKey := utils.GetTeamInvitesKey(gameID)
+func (a *TeamRedisAdapter) GetPendingInvites(ctx context.Context, contestID int64) ([]*port.TeamInvite, error) {
+	invitesKey := utils.GetTeamInvitesKey(contestID)
 	inviteeIDs, err := a.client.SMembers(ctx, invitesKey).Result()
 	if err != nil {
 		return nil, err
@@ -277,7 +277,7 @@ func (a *TeamRedisAdapter) GetPendingInvites(ctx context.Context, gameID int64) 
 			continue
 		}
 
-		invite, err := a.GetInvite(ctx, gameID, inviteeID)
+		invite, err := a.GetInvite(ctx, contestID, inviteeID)
 		if err != nil {
 			continue
 		}
@@ -291,8 +291,8 @@ func (a *TeamRedisAdapter) GetPendingInvites(ctx context.Context, gameID int64) 
 }
 
 // AcceptInvite marks an invite as accepted
-func (a *TeamRedisAdapter) AcceptInvite(ctx context.Context, gameID, inviteeID int64) error {
-	invite, err := a.GetInvite(ctx, gameID, inviteeID)
+func (a *TeamRedisAdapter) AcceptInvite(ctx context.Context, contestID, inviteeID int64) error {
+	invite, err := a.GetInvite(ctx, contestID, inviteeID)
 	if err != nil {
 		return err
 	}
@@ -305,7 +305,7 @@ func (a *TeamRedisAdapter) AcceptInvite(ctx context.Context, gameID, inviteeID i
 	invite.Status = port.InviteStatusAccepted
 	invite.RespondedAt = &now
 
-	inviteKey := utils.GetTeamInviteKey(gameID, inviteeID)
+	inviteKey := utils.GetTeamInviteKey(contestID, inviteeID)
 	inviteData, err := json.Marshal(invite)
 	if err != nil {
 		return err
@@ -316,8 +316,8 @@ func (a *TeamRedisAdapter) AcceptInvite(ctx context.Context, gameID, inviteeID i
 }
 
 // RejectInvite marks an invite as rejected
-func (a *TeamRedisAdapter) RejectInvite(ctx context.Context, gameID, inviteeID int64) error {
-	invite, err := a.GetInvite(ctx, gameID, inviteeID)
+func (a *TeamRedisAdapter) RejectInvite(ctx context.Context, contestID, inviteeID int64) error {
+	invite, err := a.GetInvite(ctx, contestID, inviteeID)
 	if err != nil {
 		return err
 	}
@@ -332,7 +332,7 @@ func (a *TeamRedisAdapter) RejectInvite(ctx context.Context, gameID, inviteeID i
 	invite.Status = port.InviteStatusRejected
 	invite.RespondedAt = &now
 
-	inviteKey := utils.GetTeamInviteKey(gameID, inviteeID)
+	inviteKey := utils.GetTeamInviteKey(contestID, inviteeID)
 	inviteData, err := json.Marshal(invite)
 	if err != nil {
 		return err
@@ -342,7 +342,7 @@ func (a *TeamRedisAdapter) RejectInvite(ctx context.Context, gameID, inviteeID i
 	pipe.Set(ctx, inviteKey, inviteData, ttl)
 
 	// Remove from pending invites set
-	invitesKey := utils.GetTeamInvitesKey(gameID)
+	invitesKey := utils.GetTeamInvitesKey(contestID)
 	pipe.SRem(ctx, invitesKey, inviteeID)
 
 	_, err = pipe.Exec(ctx)
@@ -350,15 +350,15 @@ func (a *TeamRedisAdapter) RejectInvite(ctx context.Context, gameID, inviteeID i
 }
 
 // CancelInvite removes an invite
-func (a *TeamRedisAdapter) CancelInvite(ctx context.Context, gameID, inviteeID int64) error {
+func (a *TeamRedisAdapter) CancelInvite(ctx context.Context, contestID, inviteeID int64) error {
 	pipe := a.client.Pipeline()
 
 	// Remove invite data
-	inviteKey := utils.GetTeamInviteKey(gameID, inviteeID)
+	inviteKey := utils.GetTeamInviteKey(contestID, inviteeID)
 	pipe.Del(ctx, inviteKey)
 
 	// Remove from pending invites set
-	invitesKey := utils.GetTeamInvitesKey(gameID)
+	invitesKey := utils.GetTeamInvitesKey(contestID)
 	pipe.SRem(ctx, invitesKey, inviteeID)
 
 	_, err := pipe.Exec(ctx)
@@ -366,8 +366,8 @@ func (a *TeamRedisAdapter) CancelInvite(ctx context.Context, gameID, inviteeID i
 }
 
 // HasPendingInvite checks if a user has a pending invite
-func (a *TeamRedisAdapter) HasPendingInvite(ctx context.Context, gameID, inviteeID int64) (bool, error) {
-	invite, err := a.GetInvite(ctx, gameID, inviteeID)
+func (a *TeamRedisAdapter) HasPendingInvite(ctx context.Context, contestID, inviteeID int64) (bool, error) {
+	invite, err := a.GetInvite(ctx, contestID, inviteeID)
 	if err != nil {
 		if errors.Is(err, exception.ErrTeamInviteNotFound) {
 			return false, nil
@@ -379,15 +379,15 @@ func (a *TeamRedisAdapter) HasPendingInvite(ctx context.Context, gameID, invitee
 }
 
 // TransferLeadership transfers leadership to another member
-func (a *TeamRedisAdapter) TransferLeadership(ctx context.Context, gameID, currentLeaderID, newLeaderID int64) error {
+func (a *TeamRedisAdapter) TransferLeadership(ctx context.Context, contestID, currentLeaderID, newLeaderID int64) error {
 	// Get current leader
-	currentLeader, err := a.GetMember(ctx, gameID, currentLeaderID)
+	currentLeader, err := a.GetMember(ctx, contestID, currentLeaderID)
 	if err != nil {
 		return err
 	}
 
 	// Get new leader
-	newLeader, err := a.GetMember(ctx, gameID, newLeaderID)
+	newLeader, err := a.GetMember(ctx, contestID, newLeaderID)
 	if err != nil {
 		return err
 	}
@@ -397,24 +397,24 @@ func (a *TeamRedisAdapter) TransferLeadership(ctx context.Context, gameID, curre
 	// Update current leader to member
 	currentLeader.MemberType = port.TeamMemberTypeMember
 	currentLeaderData, _ := json.Marshal(currentLeader)
-	currentLeaderKey := utils.GetTeamMemberKey(gameID, currentLeaderID)
+	currentLeaderKey := utils.GetTeamMemberKey(contestID, currentLeaderID)
 	ttl := a.client.TTL(ctx, currentLeaderKey).Val()
 	pipe.Set(ctx, currentLeaderKey, currentLeaderData, ttl)
 
 	// Update new leader
 	newLeader.MemberType = port.TeamMemberTypeLeader
 	newLeaderData, _ := json.Marshal(newLeader)
-	newLeaderKey := utils.GetTeamMemberKey(gameID, newLeaderID)
+	newLeaderKey := utils.GetTeamMemberKey(contestID, newLeaderID)
 	pipe.Set(ctx, newLeaderKey, newLeaderData, ttl)
 
 	// Update team metadata
-	team, err := a.GetTeam(ctx, gameID)
+	team, err := a.GetTeam(ctx, contestID)
 	if err != nil {
 		return err
 	}
 	team.LeaderUserID = newLeaderID
 	teamData, _ := json.Marshal(team)
-	teamKey := utils.GetTeamKey(gameID)
+	teamKey := utils.GetTeamKey(contestID)
 	pipe.Set(ctx, teamKey, teamData, ttl)
 
 	_, err = pipe.Exec(ctx)
@@ -422,18 +422,18 @@ func (a *TeamRedisAdapter) TransferLeadership(ctx context.Context, gameID, curre
 }
 
 // GetLeader retrieves the team leader
-func (a *TeamRedisAdapter) GetLeader(ctx context.Context, gameID int64) (*port.CachedTeamMember, error) {
-	team, err := a.GetTeam(ctx, gameID)
+func (a *TeamRedisAdapter) GetLeader(ctx context.Context, contestID int64) (*port.CachedTeamMember, error) {
+	team, err := a.GetTeam(ctx, contestID)
 	if err != nil {
 		return nil, err
 	}
 
-	return a.GetMember(ctx, gameID, team.LeaderUserID)
+	return a.GetMember(ctx, contestID, team.LeaderUserID)
 }
 
 // MarkAsFinalized marks the team as finalized (ready for DB persistence)
-func (a *TeamRedisAdapter) MarkAsFinalized(ctx context.Context, gameID int64) error {
-	team, err := a.GetTeam(ctx, gameID)
+func (a *TeamRedisAdapter) MarkAsFinalized(ctx context.Context, contestID int64) error {
+	team, err := a.GetTeam(ctx, contestID)
 	if err != nil {
 		return err
 	}
@@ -442,7 +442,7 @@ func (a *TeamRedisAdapter) MarkAsFinalized(ctx context.Context, gameID int64) er
 	team.IsFinalized = true
 	team.FinalizedAt = &now
 
-	teamKey := utils.GetTeamKey(gameID)
+	teamKey := utils.GetTeamKey(contestID)
 	teamData, err := json.Marshal(team)
 	if err != nil {
 		return err
@@ -453,8 +453,8 @@ func (a *TeamRedisAdapter) MarkAsFinalized(ctx context.Context, gameID int64) er
 }
 
 // IsFinalized checks if the team is finalized
-func (a *TeamRedisAdapter) IsFinalized(ctx context.Context, gameID int64) (bool, error) {
-	team, err := a.GetTeam(ctx, gameID)
+func (a *TeamRedisAdapter) IsFinalized(ctx context.Context, contestID int64) (bool, error) {
+	team, err := a.GetTeam(ctx, contestID)
 	if err != nil {
 		return false, err
 	}
@@ -463,22 +463,22 @@ func (a *TeamRedisAdapter) IsFinalized(ctx context.Context, gameID int64) (bool,
 }
 
 // AddUserTeam tracks a user's team membership
-func (a *TeamRedisAdapter) AddUserTeam(ctx context.Context, userID, gameID int64, ttl time.Duration) error {
+func (a *TeamRedisAdapter) AddUserTeam(ctx context.Context, userID, contestID int64, ttl time.Duration) error {
 	userTeamsKey := utils.GetUserTeamsKey(userID)
 	pipe := a.client.Pipeline()
-	pipe.SAdd(ctx, userTeamsKey, gameID)
+	pipe.SAdd(ctx, userTeamsKey, contestID)
 	pipe.Expire(ctx, userTeamsKey, ttl)
 	_, err := pipe.Exec(ctx)
 	return err
 }
 
 // RemoveUserTeam removes a user's team membership tracking
-func (a *TeamRedisAdapter) RemoveUserTeam(ctx context.Context, userID, gameID int64) error {
+func (a *TeamRedisAdapter) RemoveUserTeam(ctx context.Context, userID, contestID int64) error {
 	userTeamsKey := utils.GetUserTeamsKey(userID)
-	return a.client.SRem(ctx, userTeamsKey, gameID).Err()
+	return a.client.SRem(ctx, userTeamsKey, contestID).Err()
 }
 
-// GetUserTeams retrieves all teams a user belongs to
+// GetUserTeams retrieves all contest IDs a user belongs to
 func (a *TeamRedisAdapter) GetUserTeams(ctx context.Context, userID int64) ([]int64, error) {
 	userTeamsKey := utils.GetUserTeamsKey(userID)
 	members, err := a.client.SMembers(ctx, userTeamsKey).Result()
@@ -486,33 +486,33 @@ func (a *TeamRedisAdapter) GetUserTeams(ctx context.Context, userID int64) ([]in
 		return nil, err
 	}
 
-	gameIDs := make([]int64, 0, len(members))
+	contestIDs := make([]int64, 0, len(members))
 	for _, member := range members {
-		gameID, err := strconv.ParseInt(member, 10, 64)
+		contestID, err := strconv.ParseInt(member, 10, 64)
 		if err != nil {
 			continue
 		}
-		gameIDs = append(gameIDs, gameID)
+		contestIDs = append(contestIDs, contestID)
 	}
 
-	return gameIDs, nil
+	return contestIDs, nil
 }
 
 // ClearTeam removes all team-related data from Redis
-func (a *TeamRedisAdapter) ClearTeam(ctx context.Context, gameID int64) error {
+func (a *TeamRedisAdapter) ClearTeam(ctx context.Context, contestID int64) error {
 	// Get all members to clean up user tracking
-	members, _ := a.GetAllMembers(ctx, gameID)
+	members, _ := a.GetAllMembers(ctx, contestID)
 
 	pipe := a.client.Pipeline()
 
 	// Remove user team tracking for each member
 	for _, member := range members {
 		userTeamsKey := utils.GetUserTeamsKey(member.UserID)
-		pipe.SRem(ctx, userTeamsKey, gameID)
+		pipe.SRem(ctx, userTeamsKey, contestID)
 	}
 
 	// Scan and delete all keys matching the pattern
-	pattern := utils.GetGameTeamPatternKey(gameID)
+	pattern := utils.GetContestTeamPatternKey(contestID)
 	var cursor uint64
 	for {
 		keys, nextCursor, err := a.client.Scan(ctx, cursor, pattern, 100).Result()
@@ -535,8 +535,8 @@ func (a *TeamRedisAdapter) ClearTeam(ctx context.Context, gameID int64) error {
 }
 
 // ExtendTTL extends the TTL for all team-related keys
-func (a *TeamRedisAdapter) ExtendTTL(ctx context.Context, gameID int64, newTTL time.Duration) error {
-	pattern := utils.GetGameTeamPatternKey(gameID)
+func (a *TeamRedisAdapter) ExtendTTL(ctx context.Context, contestID int64, newTTL time.Duration) error {
+	pattern := utils.GetContestTeamPatternKey(contestID)
 
 	var cursor uint64
 	for {

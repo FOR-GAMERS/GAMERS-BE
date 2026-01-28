@@ -1,4 +1,4 @@
-package database
+package config
 
 import (
 	"fmt"
@@ -51,12 +51,12 @@ func InitDB(config *Config) (*gorm.DB, error) {
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+		return nil, fmt.Errorf("failed to connect to config: %w", err)
 	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get database instance: %w", err)
+		return nil, fmt.Errorf("failed to get config instance: %w", err)
 	}
 
 	sqlDB.SetMaxIdleConns(10)

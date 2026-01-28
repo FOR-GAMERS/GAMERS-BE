@@ -12,12 +12,12 @@ type NotificationDatabaseAdapter struct {
 	db *gorm.DB
 }
 
-// NewNotificationDatabaseAdapter creates a new notification database adapter
+// NewNotificationDatabaseAdapter creates a new notification config adapter
 func NewNotificationDatabaseAdapter(db *gorm.DB) *NotificationDatabaseAdapter {
 	return &NotificationDatabaseAdapter{db: db}
 }
 
-// Save saves a new notification to the database
+// Save saves a new notification to the config
 func (a *NotificationDatabaseAdapter) Save(notification *domain.Notification) error {
 	return a.db.Create(notification).Error
 }

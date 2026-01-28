@@ -394,3 +394,133 @@ func (c *ContestApplicationController) GetContestMembers(ctx *gin.Context) {
 	result, err := c.service.GetContestMembers(ctx.Request.Context(), contestId, pagination, sort)
 	c.helper.RespondOK(ctx, result, err, "members retrieved successfully")
 }
+
+// ==================== Testable Handler Functions ====================
+// These functions are exposed for unit testing without router dependency
+
+func HandleGetPendingApplications(ctx *gin.Context, service *application.ContestApplicationService, helper *handler.ControllerHelper) {
+	contestId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	applications, err := service.GetPendingApplications(ctx.Request.Context(), contestId)
+	helper.RespondOK(ctx, applications, err, "applications retrieved successfully")
+}
+
+func HandleGetMyApplication(ctx *gin.Context, service *application.ContestApplicationService, helper *handler.ControllerHelper) {
+	contestId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	userId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	myApplication, err := service.GetMyApplication(ctx.Request.Context(), contestId, userId)
+	helper.RespondOK(ctx, myApplication, err, "application retrieved successfully")
+}
+
+func HandleAcceptApplication(ctx *gin.Context, service *application.ContestApplicationService, helper *handler.ControllerHelper) {
+	contestId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	userId, err := strconv.ParseInt(ctx.Param("userId"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid user id"))
+		return
+	}
+
+	leaderUserId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	err = service.AcceptApplication(ctx.Request.Context(), contestId, userId, leaderUserId)
+	helper.RespondOK(ctx, nil, err, "application accepted successfully")
+}
+
+func HandleRejectApplication(ctx *gin.Context, service *application.ContestApplicationService, helper *handler.ControllerHelper) {
+	contestId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	userId, err := strconv.ParseInt(ctx.Param("userId"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid user id"))
+		return
+	}
+
+	leaderUserId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	err = service.RejectApplication(ctx.Request.Context(), contestId, userId, leaderUserId)
+	helper.RespondOK(ctx, nil, err, "application rejected successfully")
+}
+
+func HandleCancelApplication(ctx *gin.Context, service *application.ContestApplicationService, helper *handler.ControllerHelper) {
+	contestId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	userId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	err = service.CancelApplication(ctx.Request.Context(), contestId, userId)
+	helper.RespondOK(ctx, nil, err, "application cancelled successfully")
+}
+
+func HandleGetMyContestStatus(ctx *gin.Context, service *application.ContestApplicationService, helper *handler.ControllerHelper) {
+	contestId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	userId, ok := middleware.GetUserIdFromContext(ctx)
+	if !ok {
+		response.JSON(ctx, response.Error(401, "user not authenticated"))
+		return
+	}
+
+	status, err := service.GetMyContestStatus(ctx.Request.Context(), contestId, userId)
+	helper.RespondOK(ctx, status, err, "contest status retrieved successfully")
+}
+
+func HandleGetContestMembers(ctx *gin.Context, service *application.ContestApplicationService, helper *handler.ControllerHelper) {
+	contestId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("invalid contest id"))
+		return
+	}
+
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "10"))
+	pagination := commonDto.NewPaginationRequest(page, pageSize)
+
+	sortBy := ctx.DefaultQuery("sort_by", "point")
+	order := ctx.DefaultQuery("order", "desc")
+	sort := commonDto.NewSortRequest(sortBy, order, []string{"point", "username"})
+
+	result, err := service.GetContestMembers(ctx.Request.Context(), contestId, pagination, sort)
+	helper.RespondOK(ctx, result, err, "members retrieved successfully")
+}

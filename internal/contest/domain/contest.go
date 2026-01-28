@@ -46,8 +46,8 @@ type Contest struct {
 	Thumbnail *string `gorm:"column:thumbnail;type:varchar(512)" json:"thumbnail,omitempty"`
 	BannerKey *string `gorm:"column:banner_key;type:varchar(512)" json:"banner_key,omitempty"`
 
-	CreatedAt  time.Time `gorm:"column:created_at;type:timestamp;default:CURRENT_TIMESTAMP" json:"created_at"`
-	ModifiedAt time.Time `gorm:"column:modified_at;type:timestamp;default:CURRENT_TIMESTAMP" json:"modified_at"`
+	CreatedAt  time.Time `gorm:"column:created_at;type:timestamp;autoCreateTime" json:"created_at"`
+	ModifiedAt time.Time `gorm:"column:modified_at;type:timestamp;autoUpdateTime" json:"modified_at"`
 }
 
 func NewContestInstance(
@@ -212,6 +212,16 @@ func (c *Contest) ValidateDiscordFields() error {
 // HasDiscordIntegration checks if the contest has Discord integration configured
 func (c *Contest) HasDiscordIntegration() bool {
 	return c.DiscordGuildId != nil && *c.DiscordGuildId != ""
+}
+
+// IsActive checks if the contest is in active state
+func (c *Contest) IsActive() bool {
+	return c.ContestStatus == ContestStatusActive
+}
+
+// IsPending checks if the contest is in pending state
+func (c *Contest) IsPending() bool {
+	return c.ContestStatus == ContestStatusPending
 }
 
 func (c *Contest) Validate() error {

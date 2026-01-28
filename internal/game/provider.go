@@ -8,7 +8,7 @@ import (
 	"GAMERS-BE/internal/game/presentation"
 	"GAMERS-BE/internal/global/common/handler"
 	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/global/database"
+	"GAMERS-BE/internal/global/config"
 	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
 	userQueryPort "GAMERS-BE/internal/user/application/port/port"
 
@@ -17,18 +17,20 @@ import (
 )
 
 type Dependencies struct {
-	GameController     *presentation.GameController
-	TeamController     *presentation.TeamController
-	GameTeamController *presentation.GameTeamController
-	GameRepository     port.GameDatabasePort
-	TeamRepository     port.TeamDatabasePort
-	TeamService        *application.TeamService
+	GameController          *presentation.GameController
+	TeamController          *presentation.TeamController
+	GameTeamController      *presentation.GameTeamController
+	GameRepository          port.GameDatabasePort
+	TeamRepository          port.TeamDatabasePort
+	TeamService             *application.TeamService
+	TeamPersistenceConsumer port.TeamPersistenceConsumerPort
+	TeamPersistenceHandler  *application.TeamPersistenceHandler
 }
 
 func ProvideGameDependencies(
 	db *gorm.DB,
 	redisClient *redis.Client,
-	rabbitmqConn *database.RabbitMQConnection,
+	rabbitmqConn *config.RabbitMQConnection,
 	router *router.Router,
 	contestRepository contestPort.ContestDatabasePort,
 	oauth2Repository oauth2Port.OAuth2DatabasePort,
@@ -50,6 +52,21 @@ func ProvideGameDependencies(
 		rabbitmqConn.Config().Exchange,
 	)
 
+	// RabbitMQ Persistence Publisher for Write-Behind pattern
+	teamPersistencePublisher := adapter.NewTeamPersistencePublisherRabbitMQAdapter(
+		rabbitmqConn,
+		rabbitmqConn.Config().Exchange,
+	)
+
+	// RabbitMQ Persistence Consumer for Write-Behind pattern
+	teamPersistenceConsumer := adapter.NewTeamPersistenceConsumerRabbitMQAdapter(
+		rabbitmqConn,
+		rabbitmqConn.Config().Exchange,
+	)
+
+	// Persistence Handler for DB operations
+	teamPersistenceHandler := application.NewTeamPersistenceHandler(teamDatabaseAdapter)
+
 	// Services
 	gameService := application.NewGameService(
 		gameDatabaseAdapter,
@@ -57,13 +74,13 @@ func ProvideGameDependencies(
 	)
 
 	teamService := application.NewTeamService(
-		gameDatabaseAdapter,
 		teamDatabaseAdapter,
 		teamRedisAdapter,
 		contestRepository,
 		oauth2Repository,
 		userQueryRepo,
 		teamEventPublisher,
+		teamPersistencePublisher,
 	)
 
 	gameTeamService := application.NewGameTeamService(
@@ -93,11 +110,13 @@ func ProvideGameDependencies(
 	)
 
 	return &Dependencies{
-		GameController:     gameController,
-		TeamController:     teamController,
-		GameTeamController: gameTeamController,
-		GameRepository:     gameDatabaseAdapter,
-		TeamRepository:     teamDatabaseAdapter,
-		TeamService:        teamService,
+		GameController:          gameController,
+		TeamController:          teamController,
+		GameTeamController:      gameTeamController,
+		GameRepository:          gameDatabaseAdapter,
+		TeamRepository:          teamDatabaseAdapter,
+		TeamService:             teamService,
+		TeamPersistenceConsumer: teamPersistenceConsumer,
+		TeamPersistenceHandler:  teamPersistenceHandler,
 	}
 }

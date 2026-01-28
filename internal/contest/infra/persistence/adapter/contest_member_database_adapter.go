@@ -68,21 +68,13 @@ func (c ContestMemberDatabaseAdapter) SaveBatch(members []*domain.ContestMember)
 		return nil
 	}
 
-	// Transaction으로 일괄 저장
-	err := c.db.Transaction(func(tx *gorm.DB) error {
-		for _, member := range members {
-			if err := member.Validate(); err != nil {
-				return err
-			}
-
-			if err := tx.Save(member).Error; err != nil {
-				return err
-			}
+	for _, member := range members {
+		if err := member.Validate(); err != nil {
+			return err
 		}
-		return nil
-	})
+	}
 
-	if err != nil {
+	if err := c.db.CreateInBatches(members, 100).Error; err != nil {
 		return c.translateError(err)
 	}
 

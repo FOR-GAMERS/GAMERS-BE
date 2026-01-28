@@ -271,62 +271,82 @@ func (c *ContestApplicationRedisAdapter) HasApplied(ctx context.Context, contest
 	return true, nil
 }
 
-// ExtendTTL - TTL 연장
-func (c *ContestApplicationRedisAdapter) ExtendTTL(ctx context.Context, contestId int64, newTTL time.Duration) error {
-	pattern := utils.GetContestPatternKey(contestId)
+// collectAllKeys - 기존 Set/SortedSet으로부터 contest 관련 모든 키를 조립
+// SCAN 패턴 매칭 대신 O(N) Set 조회로 키를 직접 구성
+func (c *ContestApplicationRedisAdapter) collectAllKeys(ctx context.Context, contestId int64) ([]string, error) {
+	pendingKey := utils.GetPendingKey(contestId)
+	acceptedKey := utils.GetAcceptedKey(contestId)
+	rejectedKey := utils.GetRejectedKey(contestId)
 
-	var cursor uint64
-	for {
-		keys, nextCursor, err := c.client.Scan(ctx, cursor, pattern, 100).Result()
-		if err != nil {
-			return err
-		}
-
-		pipe := c.client.Pipeline()
-		for _, key := range keys {
-			pipe.Expire(ctx, key, newTTL)
-		}
-		_, err = pipe.Exec(ctx)
-		if err != nil {
-			return err
-		}
-
-		cursor = nextCursor
-		if cursor == 0 {
-			break
-		}
+	pipe := c.client.Pipeline()
+	pendingCmd := pipe.ZRange(ctx, pendingKey, 0, -1)
+	acceptedCmd := pipe.SMembers(ctx, acceptedKey)
+	rejectedCmd := pipe.SMembers(ctx, rejectedKey)
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	// 중복 제거를 위해 map 사용
+	userIDSet := make(map[string]struct{})
+	for _, id := range pendingCmd.Val() {
+		userIDSet[id] = struct{}{}
+	}
+	for _, id := range acceptedCmd.Val() {
+		userIDSet[id] = struct{}{}
+	}
+	for _, id := range rejectedCmd.Val() {
+		userIDSet[id] = struct{}{}
+	}
+
+	// 관리용 키 + 개별 application 키 조립
+	keys := make([]string, 0, len(userIDSet)+3)
+	keys = append(keys, pendingKey, acceptedKey, rejectedKey)
+	for idStr := range userIDSet {
+		userID, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			continue
+		}
+		keys = append(keys, utils.GetApplicationKey(contestId, userID))
+	}
+
+	return keys, nil
+}
+
+// ExtendTTL - TTL 연장
+func (c *ContestApplicationRedisAdapter) ExtendTTL(ctx context.Context, contestId int64, newTTL time.Duration) error {
+	keys, err := c.collectAllKeys(ctx, contestId)
+	if err != nil {
+		return err
+	}
+
+	if len(keys) == 0 {
+		return nil
+	}
+
+	pipe := c.client.Pipeline()
+	for _, key := range keys {
+		pipe.Expire(ctx, key, newTTL)
+	}
+	_, err = pipe.Exec(ctx)
+	return err
 }
 
 // ClearApplications - Contest의 모든 신청 정보 삭제
 func (c *ContestApplicationRedisAdapter) ClearApplications(ctx context.Context, contestId int64) error {
-	pattern := utils.GetContestPatternKey(contestId)
-
-	var cursor uint64
-	for {
-		keys, nextCursor, err := c.client.Scan(ctx, cursor, pattern, 100).Result()
-		if err != nil {
-			return err
-		}
-
-		if len(keys) > 0 {
-			pipe := c.client.Pipeline()
-			for _, key := range keys {
-				pipe.Del(ctx, key)
-			}
-			_, err = pipe.Exec(ctx)
-			if err != nil {
-				return err
-			}
-		}
-
-		cursor = nextCursor
-		if cursor == 0 {
-			break
-		}
+	keys, err := c.collectAllKeys(ctx, contestId)
+	if err != nil {
+		return err
 	}
 
-	return nil
+	if len(keys) == 0 {
+		return nil
+	}
+
+	pipe := c.client.Pipeline()
+	for _, key := range keys {
+		pipe.Del(ctx, key)
+	}
+	_, err = pipe.Exec(ctx)
+	return err
 }

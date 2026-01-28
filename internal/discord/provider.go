@@ -33,7 +33,7 @@ func ProvideDiscordDependencies(r *router.Router, db *gorm.DB, redisClient *redi
 	// Create Discord token Redis adapter for storing Discord OAuth2 tokens
 	discordTokenAdapter := discordAdapter.NewDiscordTokenRedisAdapter(ctx, redisClient)
 
-	// Create OAuth2 database adapter to look up user's Discord account
+	// Create OAuth2 config adapter to look up user's Discord account
 	var oauth2DBPort oauth2Port.OAuth2DatabasePort = oauth2Adapter.NewOAuth2DatabaseAdapter(db)
 
 	validationService := application.NewDiscordValidationService(botClient, userClient, discordTokenAdapter, oauth2DBPort)

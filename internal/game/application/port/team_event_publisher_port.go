@@ -25,7 +25,6 @@ type TeamInviteEvent struct {
 	EventID              string                 `json:"event_id"`
 	EventType            TeamEventType          `json:"event_type"`
 	Timestamp            time.Time              `json:"timestamp"`
-	GameID               int64                  `json:"game_id"`
 	ContestID            int64                  `json:"contest_id"`
 	InviterUserID        int64                  `json:"inviter_user_id"`
 	InviterDiscordID     string                 `json:"inviter_discord_id"`
@@ -44,7 +43,6 @@ type TeamMemberEvent struct {
 	EventID              string                 `json:"event_id"`
 	EventType            TeamEventType          `json:"event_type"`
 	Timestamp            time.Time              `json:"timestamp"`
-	GameID               int64                  `json:"game_id"`
 	ContestID            int64                  `json:"contest_id"`
 	UserID               int64                  `json:"user_id"`
 	DiscordUserID        string                 `json:"discord_user_id"`
@@ -61,7 +59,6 @@ type TeamFinalizedEvent struct {
 	EventID              string                 `json:"event_id"`
 	EventType            TeamEventType          `json:"event_type"`
 	Timestamp            time.Time              `json:"timestamp"`
-	GameID               int64                  `json:"game_id"`
 	ContestID            int64                  `json:"contest_id"`
 	LeaderUserID         int64                  `json:"leader_user_id"`
 	LeaderDiscordID      string                 `json:"leader_discord_id"`

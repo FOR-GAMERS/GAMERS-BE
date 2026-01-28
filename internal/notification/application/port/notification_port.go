@@ -5,9 +5,9 @@ import (
 	"context"
 )
 
-// NotificationDatabasePort defines the interface for notification database operations
+// NotificationDatabasePort defines the interface for notification config operations
 type NotificationDatabasePort interface {
-	// Save saves a new notification to the database
+	// Save saves a new notification to the config
 	Save(notification *domain.Notification) error
 
 	// FindByID finds a notification by ID

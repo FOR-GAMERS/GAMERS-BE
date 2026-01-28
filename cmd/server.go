@@ -9,7 +9,7 @@ import (
 	"GAMERS-BE/internal/discord"
 	"GAMERS-BE/internal/game"
 	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/global/database"
+	"GAMERS-BE/internal/global/config"
 	"GAMERS-BE/internal/global/middleware"
 	authProvider "GAMERS-BE/internal/global/security/jwt"
 	"GAMERS-BE/internal/notification"
@@ -127,6 +127,9 @@ func main() {
 		gameDeps.TeamRepository,
 	)
 
+	// Set contest repository for team service (to resolve circular dependency)
+	gameDeps.TeamService.SetContestRepository(contestDeps.ContestRepository)
+
 	commentDeps := comment.ProvideCommentDependencies(db, appRouter, contestDeps.ContestRepository)
 
 	// Point module - provides Valorant score table management
@@ -152,6 +155,9 @@ func main() {
 	// Wire notification handler to contest and game services
 	contestDeps.ApplicationService.SetNotificationHandler(notificationDeps.Service)
 	gameDeps.TeamService.SetNotificationHandler(notificationDeps.Service)
+
+	// Start Team Persistence Consumer for Write-Behind pattern
+	startTeamPersistenceConsumer(ctx, gameDeps)
 
 	setupRouter(appRouter, authDeps, userDeps, oauth2Deps, contestDeps, commentDeps, discordDeps, gameDeps, pointDeps, valorantDeps, storageDeps, bannerDeps, notificationDeps)
 
@@ -225,14 +231,14 @@ func setupRouter(
 }
 
 func initDatabase() *gorm.DB {
-	dbConfig := database.NewConfigFromEnv()
-	db, err := database.InitDB(dbConfig)
+	dbConfig := config.NewConfigFromEnv()
+	db, err := config.InitDB(dbConfig)
 	if err != nil {
-		log.Fatal("Failed to initialize database:", err)
+		log.Fatal("Failed to initialize config:", err)
 	}
 
 	if os.Getenv("RUN_MIGRATIONS") == "true" {
-		log.Println("🔄 Running database migrations...")
+		log.Println("🔄 Running config migrations...")
 		sqlDB, err := db.DB()
 		if err != nil {
 			log.Fatal("Failed to get SQL DB:", err)
@@ -243,7 +249,7 @@ func initDatabase() *gorm.DB {
 			migrationsPath = "./db/migrations"
 		}
 
-		if err := database.RunMigrations(sqlDB, migrationsPath); err != nil {
+		if err := config.RunMigrations(sqlDB, migrationsPath); err != nil {
 			log.Fatal("Failed to run migrations:", err)
 		}
 	}
@@ -252,8 +258,8 @@ func initDatabase() *gorm.DB {
 }
 
 func initRedis() *redis.Client {
-	redisConfig := database.NewRedisConfigFromEnv()
-	redisClient, err := database.InitRedis(redisConfig)
+	redisConfig := config.NewRedisConfigFromEnv()
+	redisClient, err := config.InitRedis(redisConfig)
 
 	if err != nil {
 		log.Fatal("Failed to initialize Redis:", err)
@@ -261,12 +267,27 @@ func initRedis() *redis.Client {
 	return redisClient
 }
 
-func initRabbitMQ() *database.RabbitMQConnection {
-	rabbitmqConfig := database.NewRabbitMQConfigFromEnv()
-	rabbitmqConn, err := database.InitRabbitMQ(rabbitmqConfig)
+func initRabbitMQ() *config.RabbitMQConnection {
+	rabbitmqConfig := config.NewRabbitMQConfigFromEnv()
+	rabbitmqConn, err := config.InitRabbitMQ(rabbitmqConfig)
 
 	if err != nil {
 		log.Fatal("Failed to initialize RabbitMQ:", err)
 	}
 	return rabbitmqConn
+}
+
+// startTeamPersistenceConsumer starts the consumer for Write-Behind pattern
+func startTeamPersistenceConsumer(ctx context.Context, gameDeps *game.Dependencies) {
+	if gameDeps.TeamPersistenceConsumer == nil || gameDeps.TeamPersistenceHandler == nil {
+		log.Println("Team persistence consumer not initialized, skipping...")
+		return
+	}
+
+	go func() {
+		log.Println("🔄 Starting Team Persistence Consumer (Write-Behind pattern)...")
+		if err := gameDeps.TeamPersistenceConsumer.Start(ctx, gameDeps.TeamPersistenceHandler.HandleTeamPersistence); err != nil {
+			log.Printf("Failed to start team persistence consumer: %v", err)
+		}
+	}()
 }

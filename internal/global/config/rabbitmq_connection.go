@@ -1,4 +1,4 @@
-package database
+package config
 
 import (
 	"context"
@@ -137,6 +137,12 @@ func (r *RabbitMQConnection) closeConnections() {
 	}
 }
 
+// Queue names for team persistence
+const (
+	TeamPersistenceQueue = "team.persistence"
+	TeamPersistenceDLQ   = "team.persistence.dlq"
+)
+
 func (r *RabbitMQConnection) SetupTopology() error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -178,6 +184,71 @@ func (r *RabbitMQConnection) SetupTopology() error {
 	)
 	if err != nil {
 		return fmt.Errorf("failed to bind queue: %w", err)
+	}
+
+	// Setup team persistence queues (Write-Behind pattern)
+	if err := r.setupTeamPersistenceQueues(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// setupTeamPersistenceQueues creates the queues for team persistence Write-Behind pattern
+func (r *RabbitMQConnection) setupTeamPersistenceQueues() error {
+	// Declare Dead Letter Queue first
+	_, err := r.channel.QueueDeclare(
+		TeamPersistenceDLQ, // name
+		true,               // durable
+		false,              // delete when unused
+		false,              // exclusive
+		false,              // no-wait
+		nil,                // arguments
+	)
+	if err != nil {
+		return fmt.Errorf("failed to declare team persistence DLQ: %w", err)
+	}
+
+	// Bind DLQ to exchange
+	err = r.channel.QueueBind(
+		TeamPersistenceDLQ, // queue name
+		"team.dlq",         // routing key
+		r.config.Exchange,  // exchange
+		false,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to bind team persistence DLQ: %w", err)
+	}
+
+	// Declare main persistence queue with DLQ settings
+	queueArgs := amqp.Table{
+		"x-dead-letter-exchange":    r.config.Exchange,
+		"x-dead-letter-routing-key": "team.dlq",
+	}
+
+	_, err = r.channel.QueueDeclare(
+		TeamPersistenceQueue, // name
+		true,                 // durable
+		false,                // delete when unused
+		false,                // exclusive
+		false,                // no-wait
+		queueArgs,            // arguments with DLQ config
+	)
+	if err != nil {
+		return fmt.Errorf("failed to declare team persistence queue: %w", err)
+	}
+
+	// Bind main queue to exchange with routing key pattern
+	err = r.channel.QueueBind(
+		TeamPersistenceQueue, // queue name
+		"team.persistence.*", // routing key pattern
+		r.config.Exchange,    // exchange
+		false,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to bind team persistence queue: %w", err)
 	}
 
 	return nil

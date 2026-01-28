@@ -15,6 +15,13 @@ type UpdateUserRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type UpdateUserInfoRequest struct {
+	Username *string `json:"username"`
+	Tag      *string `json:"tag"`
+	Bio      *string `json:"bio"`
+	Avatar   *string `json:"avatar"`
+}
+
 type UserResponse struct {
 	Id         int64     `json:"user_id"`
 	Email      string    `json:"email"`

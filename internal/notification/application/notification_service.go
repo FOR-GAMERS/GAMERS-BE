@@ -41,7 +41,7 @@ func (s *NotificationService) CreateAndSendNotification(
 		return fmt.Errorf("failed to create notification: %w", err)
 	}
 
-	// Save to database
+	// Save to config
 	if err := s.databasePort.Save(notification); err != nil {
 		return fmt.Errorf("failed to save notification: %w", err)
 	}

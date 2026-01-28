@@ -30,6 +30,7 @@ func (c *UserController) RegisterRoutes() {
 	{
 		privateGroup.GET("/my", c.GetMyInfo)
 		privateGroup.GET("/:id", c.GetUser)
+		privateGroup.PUT("/:id", c.UpdateUserInfo)
 		privateGroup.PATCH("/:id", c.UpdateUser)
 		privateGroup.DELETE("/:id", c.DeleteUser)
 	}
@@ -136,6 +137,48 @@ func (c *UserController) GetUser(ctx *gin.Context) {
 	}
 
 	response.JSON(ctx, response.Success(user, "User retrieved successfully"))
+}
+
+// UpdateUserInfo godoc
+// @Summary Update user information
+// @Description Update user profile information (username, tag, bio, avatar)
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "User ID"
+// @Param user body dto.UpdateUserInfoRequest true "User info update request"
+// @Success 200 {object} response.Response{data=dto.MyUserResponse}
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Router /api/users/{id} [put]
+func (c *UserController) UpdateUserInfo(ctx *gin.Context) {
+	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		response.JSON(ctx, response.BadRequest("Invalid user ID"))
+		return
+	}
+
+	var req dto.UpdateUserInfoRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.JSON(ctx, response.BadRequest("Invalid request body"))
+		return
+	}
+
+	user, err := c.userService.UpdateUserInfo(id, req)
+	if err != nil {
+		var businessErr *exception.BusinessError
+		if errors.As(err, &businessErr) {
+			ctx.JSON(businessErr.Status, businessErr)
+			return
+		}
+		response.JSON(ctx, response.InternalServerError("Internal server error"))
+		return
+	}
+
+	response.JSON(ctx, response.Success(user, "User information updated successfully"))
 }
 
 // UpdateUser godoc

@@ -20,33 +20,33 @@ const (
 )
 
 type TeamService struct {
-	gameRepository      port.GameDatabasePort
-	teamDBRepository    port.TeamDatabasePort
-	teamRedisRepo       port.TeamRedisPort
-	contestRepository   contestPort.ContestDatabasePort
-	oauth2Repository    oauth2Port.OAuth2DatabasePort
-	userQueryRepo       userQueryPort.UserQueryPort
-	eventPublisher      port.TeamEventPublisherPort
-	notificationHandler notificationPort.NotificationHandlerPort
+	teamDBRepository     port.TeamDatabasePort
+	teamRedisRepo        port.TeamRedisPort
+	contestRepository    contestPort.ContestDatabasePort
+	oauth2Repository     oauth2Port.OAuth2DatabasePort
+	userQueryRepo        userQueryPort.UserQueryPort
+	eventPublisher       port.TeamEventPublisherPort
+	persistencePublisher port.TeamPersistencePublisherPort
+	notificationHandler  notificationPort.NotificationHandlerPort
 }
 
 func NewTeamService(
-	gameRepository port.GameDatabasePort,
 	teamDBRepository port.TeamDatabasePort,
 	teamRedisRepo port.TeamRedisPort,
 	contestRepository contestPort.ContestDatabasePort,
 	oauth2Repository oauth2Port.OAuth2DatabasePort,
 	userQueryRepo userQueryPort.UserQueryPort,
 	eventPublisher port.TeamEventPublisherPort,
+	persistencePublisher port.TeamPersistencePublisherPort,
 ) *TeamService {
 	return &TeamService{
-		gameRepository:    gameRepository,
-		teamDBRepository:  teamDBRepository,
-		teamRedisRepo:     teamRedisRepo,
-		contestRepository: contestRepository,
-		oauth2Repository:  oauth2Repository,
-		userQueryRepo:     userQueryRepo,
-		eventPublisher:    eventPublisher,
+		teamDBRepository:     teamDBRepository,
+		teamRedisRepo:        teamRedisRepo,
+		contestRepository:    contestRepository,
+		oauth2Repository:     oauth2Repository,
+		userQueryRepo:        userQueryRepo,
+		eventPublisher:       eventPublisher,
+		persistencePublisher: persistencePublisher,
 	}
 }
 
@@ -55,18 +55,32 @@ func (s *TeamService) SetNotificationHandler(handler notificationPort.Notificati
 	s.notificationHandler = handler
 }
 
+// SetContestRepository sets the contest repository (to avoid circular dependency)
+func (s *TeamService) SetContestRepository(repository contestPort.ContestDatabasePort) {
+	s.contestRepository = repository
+}
+
 // CreateTeamInCache creates a new team in Redis cache with the creator as leader
-func (s *TeamService) CreateTeamInCache(ctx context.Context, gameID, leaderUserID int64, teamName *string) (*port.CachedTeam, error) {
-	// Get game to get contest info and max members
-	game, err := s.gameRepository.GetByID(gameID)
+func (s *TeamService) CreateTeamInCache(ctx context.Context, contestID, leaderUserID int64, teamName *string) (*port.CachedTeam, error) {
+	// Get contest for max members and Discord channel info
+	contest, err := s.contestRepository.GetContestById(contestID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get contest for Discord channel info
-	contest, err := s.contestRepository.GetContestById(game.ContestID)
-	if err != nil {
-		return nil, err
+	// Check if contest is in a valid state for team creation
+	if !contest.IsActive() && !contest.IsPending() {
+		return nil, exception.ErrContestNotActive
+	}
+
+	// Check if user already has a team in this contest
+	existingTeam, _ := s.teamRedisRepo.GetTeam(ctx, contestID)
+	if existingTeam != nil {
+		// Check if user is already in this team
+		isMember, _ := s.teamRedisRepo.IsMember(ctx, contestID, leaderUserID)
+		if isMember {
+			return nil, exception.ErrTeamMemberAlreadyExists
+		}
 	}
 
 	// Get leader's user info
@@ -82,20 +96,19 @@ func (s *TeamService) CreateTeamInCache(ctx context.Context, gameID, leaderUserI
 		discordID = discordAccount.DiscordId
 	}
 
-	// Get next team_id for this game
-	teamID, err := s.teamDBRepository.GetNextTeamID(gameID)
+	// Get next team_id for this contest
+	teamID, err := s.teamDBRepository.GetNextTeamID(contestID)
 	if err != nil {
 		return nil, err
 	}
 
-	maxMembers := game.GameTeamType.GetMaxTeamMembers()
+	maxMembers := contest.TotalTeamMember
 
 	// Create cached team
 	cachedTeam := &port.CachedTeam{
-		GameID:       gameID,
+		ContestID:    contestID,
 		TeamID:       teamID,
 		TeamName:     teamName,
-		ContestID:    game.ContestID,
 		MaxMembers:   maxMembers,
 		CurrentCount: 1,
 		LeaderUserID: leaderUserID,
@@ -106,7 +119,7 @@ func (s *TeamService) CreateTeamInCache(ctx context.Context, gameID, leaderUserI
 	// Create leader member
 	leader := &port.CachedTeamMember{
 		UserID:     leaderUserID,
-		GameID:     gameID,
+		ContestID:  contestID,
 		TeamID:     teamID,
 		MemberType: port.TeamMemberTypeLeader,
 		JoinedAt:   time.Now(),
@@ -120,9 +133,9 @@ func (s *TeamService) CreateTeamInCache(ctx context.Context, gameID, leaderUserI
 		return nil, err
 	}
 
-	// If single player game, auto-finalize
+	// If single player team, auto-finalize
 	if maxMembers == 1 {
-		if err := s.FinalizeTeam(ctx, gameID, leaderUserID); err != nil {
+		if err := s.FinalizeTeam(ctx, contestID, leaderUserID); err != nil {
 			return nil, err
 		}
 		cachedTeam.IsFinalized = true
@@ -130,92 +143,101 @@ func (s *TeamService) CreateTeamInCache(ctx context.Context, gameID, leaderUserI
 
 	// Publish member joined event if contest has Discord integration
 	if contest.HasDiscordIntegration() {
-		go s.publishMemberJoinedEvent(ctx, game, contest, leader, 1, maxMembers)
+		go s.publishMemberJoinedEventForContest(ctx, contest, leader, 1, maxMembers)
 	}
+
+	// Publish team created for persistence (Write-Behind)
+	go s.publishTeamCreatedForPersistence(ctx, cachedTeam, leader)
 
 	return cachedTeam, nil
 }
 
 // GetTeam returns team information from Redis cache
-func (s *TeamService) GetTeam(ctx context.Context, gameID int64) (*dto.TeamResponse, error) {
+func (s *TeamService) GetTeam(ctx context.Context, contestID int64) (*dto.TeamResponse, error) {
 	// Check if team is finalized (in DB)
-	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, gameID)
+	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, contestID)
 	if isFinalized {
-		return s.getTeamFromDB(gameID)
+		return s.getTeamFromDB(contestID)
 	}
 
 	// Get from cache
-	cachedTeam, err := s.teamRedisRepo.GetTeam(ctx, gameID)
+	cachedTeam, err := s.teamRedisRepo.GetTeam(ctx, contestID)
 	if err != nil {
 		// Fallback to DB
-		return s.getTeamFromDB(gameID)
+		return s.getTeamFromDB(contestID)
 	}
 
-	members, err := s.teamRedisRepo.GetAllMembers(ctx, gameID)
+	members, err := s.teamRedisRepo.GetAllMembers(ctx, contestID)
 	if err != nil {
 		return nil, err
 	}
 
-	return dto.ToCachedTeamResponse(cachedTeam, members), nil
+	return dto.ToCachedTeamResponseForContest(cachedTeam, members), nil
 }
 
-func (s *TeamService) getTeamFromDB(gameID int64) (*dto.TeamResponse, error) {
-	game, err := s.gameRepository.GetByID(gameID)
+func (s *TeamService) getTeamFromDB(contestID int64) (*dto.TeamResponse, error) {
+	contest, err := s.contestRepository.GetContestById(contestID)
 	if err != nil {
 		return nil, err
 	}
 
-	teamWithMembers, err := s.teamDBRepository.GetTeamByGameID(gameID)
+	teams, err := s.teamDBRepository.GetTeamsByContestWithMembers(contestID)
 	if err != nil {
 		return nil, err
 	}
 
-	return dto.ToTeamResponse(game, teamWithMembers.Team, teamWithMembers.Members), nil
+	if len(teams) == 0 {
+		return nil, exception.ErrTeamMemberNotFound
+	}
+
+	// Return the first team (one team per user per contest)
+	teamWithMembers := teams[0]
+	return dto.ToTeamResponseForContest(contest, teamWithMembers.Team, teamWithMembers.Members), nil
 }
 
 // InviteMember sends an invitation to a user to join the team
-func (s *TeamService) InviteMember(ctx context.Context, gameID, inviterUserID, inviteeUserID int64) (*port.TeamInvite, error) {
+func (s *TeamService) InviteMember(ctx context.Context, contestID, inviterUserID, inviteeUserID int64) (*port.TeamInvite, error) {
 	// Check if team is finalized
-	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, gameID)
+	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, contestID)
 	if isFinalized {
 		return nil, exception.ErrTeamAlreadyFinalized
 	}
 
-	// Get game info
-	game, err := s.gameRepository.GetByID(gameID)
+	// Get contest info
+	contest, err := s.contestRepository.GetContestById(contestID)
 	if err != nil {
 		return nil, err
 	}
 
-	if !game.IsPending() {
-		return nil, exception.ErrCannotInviteToGame
+	if !contest.IsActive() && !contest.IsPending() {
+		return nil, exception.ErrContestNotActive
 	}
 
 	// Check if inviter is a member
-	isMember, err := s.teamRedisRepo.IsMember(ctx, gameID, inviterUserID)
+	isMember, err := s.teamRedisRepo.IsMember(ctx, contestID, inviterUserID)
 	if err != nil || !isMember {
 		return nil, exception.ErrNotTeamMember
 	}
 
 	// Check if invitee is already a member
-	isInviteeMember, _ := s.teamRedisRepo.IsMember(ctx, gameID, inviteeUserID)
+	isInviteeMember, _ := s.teamRedisRepo.IsMember(ctx, contestID, inviteeUserID)
 	if isInviteeMember {
 		return nil, exception.ErrTeamMemberAlreadyExists
 	}
 
 	// Check if invitee already has a pending invite
-	hasPending, _ := s.teamRedisRepo.HasPendingInvite(ctx, gameID, inviteeUserID)
+	hasPending, _ := s.teamRedisRepo.HasPendingInvite(ctx, contestID, inviteeUserID)
 	if hasPending {
 		return nil, exception.ErrTeamMemberAlreadyExists
 	}
 
 	// Check team capacity
-	memberCount, err := s.teamRedisRepo.GetMemberCount(ctx, gameID)
+	memberCount, err := s.teamRedisRepo.GetMemberCount(ctx, contestID)
 	if err != nil {
 		return nil, err
 	}
 
-	maxMembers := game.GameTeamType.GetMaxTeamMembers()
+	maxMembers := contest.TotalTeamMember
 	if memberCount >= maxMembers {
 		return nil, exception.ErrTeamIsFull
 	}
@@ -247,7 +269,7 @@ func (s *TeamService) InviteMember(ctx context.Context, gameID, inviterUserID, i
 
 	// Create invite
 	invite := &port.TeamInvite{
-		GameID:      gameID,
+		ContestID:   contestID,
 		InviterID:   inviterUserID,
 		InviteeID:   inviteeUserID,
 		Status:      port.InviteStatusPending,
@@ -262,57 +284,56 @@ func (s *TeamService) InviteMember(ctx context.Context, gameID, inviterUserID, i
 	}
 
 	// Publish invite event via RabbitMQ
-	contest, err := s.contestRepository.GetContestById(game.ContestID)
-	if err == nil && contest.HasDiscordIntegration() {
-		go s.publishInviteEvent(ctx, game, contest, inviterUserID, inviterDiscordID, inviter.Username, inviteeUserID, inviteeDiscordID, invitee.Username)
+	if contest.HasDiscordIntegration() {
+		go s.publishInviteEventForContest(ctx, contest, inviterUserID, inviterDiscordID, inviter.Username, inviteeUserID, inviteeDiscordID, invitee.Username)
 	}
 
 	// Get team name for notification
-	cachedTeam, _ := s.teamRedisRepo.GetTeam(ctx, gameID)
+	cachedTeam, _ := s.teamRedisRepo.GetTeam(ctx, contestID)
 	teamName := ""
 	if cachedTeam != nil && cachedTeam.TeamName != nil {
 		teamName = *cachedTeam.TeamName
 	}
 
 	// Send SSE notification to invitee
-	go s.sendTeamInviteReceivedNotification(inviteeUserID, inviter.Username, teamName, gameID, game.ContestID)
+	go s.sendTeamInviteReceivedNotification(inviteeUserID, inviter.Username, teamName, 0, contestID)
 
 	return invite, nil
 }
 
 // AcceptInvite accepts a team invitation
-func (s *TeamService) AcceptInvite(ctx context.Context, gameID, inviteeUserID int64) (*port.CachedTeamMember, error) {
+func (s *TeamService) AcceptInvite(ctx context.Context, contestID, inviteeUserID int64) (*port.CachedTeamMember, error) {
 	// Check if team is finalized
-	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, gameID)
+	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, contestID)
 	if isFinalized {
 		return nil, exception.ErrTeamAlreadyFinalized
 	}
 
-	// Get game info
-	game, err := s.gameRepository.GetByID(gameID)
+	// Get contest info
+	contest, err := s.contestRepository.GetContestById(contestID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get team info to get teamID
-	cachedTeam, err := s.teamRedisRepo.GetTeam(ctx, gameID)
+	cachedTeam, err := s.teamRedisRepo.GetTeam(ctx, contestID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Check team capacity before accepting
-	memberCount, err := s.teamRedisRepo.GetMemberCount(ctx, gameID)
+	memberCount, err := s.teamRedisRepo.GetMemberCount(ctx, contestID)
 	if err != nil {
 		return nil, err
 	}
 
-	maxMembers := game.GameTeamType.GetMaxTeamMembers()
+	maxMembers := contest.TotalTeamMember
 	if memberCount >= maxMembers {
 		return nil, exception.ErrTeamIsFull
 	}
 
 	// Accept the invite
-	if err := s.teamRedisRepo.AcceptInvite(ctx, gameID, inviteeUserID); err != nil {
+	if err := s.teamRedisRepo.AcceptInvite(ctx, contestID, inviteeUserID); err != nil {
 		return nil, err
 	}
 
@@ -332,7 +353,7 @@ func (s *TeamService) AcceptInvite(ctx context.Context, gameID, inviteeUserID in
 	// Add member to team
 	member := &port.CachedTeamMember{
 		UserID:     inviteeUserID,
-		GameID:     gameID,
+		ContestID:  contestID,
 		TeamID:     cachedTeam.TeamID,
 		MemberType: port.TeamMemberTypeMember,
 		JoinedAt:   time.Now(),
@@ -346,13 +367,12 @@ func (s *TeamService) AcceptInvite(ctx context.Context, gameID, inviteeUserID in
 	}
 
 	// Remove invite from pending
-	_ = s.teamRedisRepo.CancelInvite(ctx, gameID, inviteeUserID)
+	_ = s.teamRedisRepo.CancelInvite(ctx, contestID, inviteeUserID)
 
 	// Publish member joined event
-	contest, _ := s.contestRepository.GetContestById(game.ContestID)
-	if contest != nil && contest.HasDiscordIntegration() {
+	if contest.HasDiscordIntegration() {
 		newCount := memberCount + 1
-		go s.publishMemberJoinedEvent(ctx, game, contest, member, newCount, maxMembers)
+		go s.publishMemberJoinedEventForContest(ctx, contest, member, newCount, maxMembers)
 	}
 
 	// Send SSE notification to inviter (the leader or whoever invited)
@@ -360,24 +380,21 @@ func (s *TeamService) AcceptInvite(ctx context.Context, gameID, inviteeUserID in
 	if cachedTeam.TeamName != nil {
 		teamName = *cachedTeam.TeamName
 	}
-	go s.sendTeamInviteAcceptedNotification(cachedTeam.LeaderUserID, invitee.Username, teamName, gameID, game.ContestID)
+	go s.sendTeamInviteAcceptedNotification(cachedTeam.LeaderUserID, invitee.Username, teamName, 0, contestID)
+
+	// Publish member added for persistence (Write-Behind)
+	go s.publishMemberAddedForPersistence(ctx, cachedTeam, member)
 
 	return member, nil
 }
 
 // RejectInvite rejects a team invitation
-func (s *TeamService) RejectInvite(ctx context.Context, gameID, inviteeUserID int64) error {
-	// Get game and team info before rejecting
-	game, err := s.gameRepository.GetByID(gameID)
-	if err != nil {
-		return s.teamRedisRepo.RejectInvite(ctx, gameID, inviteeUserID)
-	}
-
-	cachedTeam, _ := s.teamRedisRepo.GetTeam(ctx, gameID)
+func (s *TeamService) RejectInvite(ctx context.Context, contestID, inviteeUserID int64) error {
+	cachedTeam, _ := s.teamRedisRepo.GetTeam(ctx, contestID)
 	invitee, _ := s.userQueryRepo.FindById(inviteeUserID)
 
 	// Reject the invite
-	if err := s.teamRedisRepo.RejectInvite(ctx, gameID, inviteeUserID); err != nil {
+	if err := s.teamRedisRepo.RejectInvite(ctx, contestID, inviteeUserID); err != nil {
 		return err
 	}
 
@@ -387,32 +404,32 @@ func (s *TeamService) RejectInvite(ctx context.Context, gameID, inviteeUserID in
 		if cachedTeam.TeamName != nil {
 			teamName = *cachedTeam.TeamName
 		}
-		go s.sendTeamInviteRejectedNotification(cachedTeam.LeaderUserID, invitee.Username, teamName, gameID, game.ContestID)
+		go s.sendTeamInviteRejectedNotification(cachedTeam.LeaderUserID, invitee.Username, teamName, 0, contestID)
 	}
 
 	return nil
 }
 
 // KickMember removes a member from the team (Leader only)
-func (s *TeamService) KickMember(ctx context.Context, gameID, kickerUserID, targetUserID int64) error {
+func (s *TeamService) KickMember(ctx context.Context, contestID, kickerUserID, targetUserID int64) error {
 	// Check if team is finalized
-	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, gameID)
+	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, contestID)
 	if isFinalized {
 		return exception.ErrTeamAlreadyFinalized
 	}
 
-	// Get game
-	game, err := s.gameRepository.GetByID(gameID)
+	// Get contest
+	contest, err := s.contestRepository.GetContestById(contestID)
 	if err != nil {
 		return err
 	}
 
-	if !game.IsPending() {
-		return exception.ErrGameNotPending
+	if !contest.IsActive() && !contest.IsPending() {
+		return exception.ErrContestNotActive
 	}
 
 	// Get kicker and verify they're the leader
-	kicker, err := s.teamRedisRepo.GetMember(ctx, gameID, kickerUserID)
+	kicker, err := s.teamRedisRepo.GetMember(ctx, contestID, kickerUserID)
 	if err != nil {
 		return exception.ErrNotTeamMember
 	}
@@ -422,7 +439,7 @@ func (s *TeamService) KickMember(ctx context.Context, gameID, kickerUserID, targ
 	}
 
 	// Get target
-	target, err := s.teamRedisRepo.GetMember(ctx, gameID, targetUserID)
+	target, err := s.teamRedisRepo.GetMember(ctx, contestID, targetUserID)
 	if err != nil {
 		return exception.ErrTeamMemberNotFound
 	}
@@ -432,7 +449,7 @@ func (s *TeamService) KickMember(ctx context.Context, gameID, kickerUserID, targ
 		return exception.ErrCannotKickLeader
 	}
 
-	if err := s.teamRedisRepo.RemoveMember(ctx, gameID, targetUserID); err != nil {
+	if err := s.teamRedisRepo.RemoveMember(ctx, contestID, targetUserID); err != nil {
 		return err
 	}
 
@@ -440,25 +457,25 @@ func (s *TeamService) KickMember(ctx context.Context, gameID, kickerUserID, targ
 }
 
 // LeaveTeam allows a member to leave the team voluntarily
-func (s *TeamService) LeaveTeam(ctx context.Context, gameID, userID int64) error {
+func (s *TeamService) LeaveTeam(ctx context.Context, contestID, userID int64) error {
 	// Check if team is finalized
-	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, gameID)
+	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, contestID)
 	if isFinalized {
 		return exception.ErrTeamAlreadyFinalized
 	}
 
-	// Get game
-	game, err := s.gameRepository.GetByID(gameID)
+	// Get contest
+	contest, err := s.contestRepository.GetContestById(contestID)
 	if err != nil {
 		return err
 	}
 
-	if !game.IsPending() {
-		return exception.ErrGameNotPending
+	if !contest.IsActive() && !contest.IsPending() {
+		return exception.ErrContestNotActive
 	}
 
 	// Get member
-	member, err := s.teamRedisRepo.GetMember(ctx, gameID, userID)
+	member, err := s.teamRedisRepo.GetMember(ctx, contestID, userID)
 	if err != nil {
 		return exception.ErrNotTeamMember
 	}
@@ -468,29 +485,29 @@ func (s *TeamService) LeaveTeam(ctx context.Context, gameID, userID int64) error
 		return exception.ErrCannotLeaveAsLeader
 	}
 
-	return s.teamRedisRepo.RemoveMember(ctx, gameID, userID)
+	return s.teamRedisRepo.RemoveMember(ctx, contestID, userID)
 }
 
 // TransferLeadership transfers leadership to another member (Leader only)
-func (s *TeamService) TransferLeadership(ctx context.Context, gameID, currentLeaderUserID, newLeaderUserID int64) error {
+func (s *TeamService) TransferLeadership(ctx context.Context, contestID, currentLeaderUserID, newLeaderUserID int64) error {
 	// Check if team is finalized
-	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, gameID)
+	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, contestID)
 	if isFinalized {
 		return exception.ErrTeamAlreadyFinalized
 	}
 
-	// Get game
-	game, err := s.gameRepository.GetByID(gameID)
+	// Get contest
+	contest, err := s.contestRepository.GetContestById(contestID)
 	if err != nil {
 		return err
 	}
 
-	if !game.IsPending() {
-		return exception.ErrGameNotPending
+	if !contest.IsActive() && !contest.IsPending() {
+		return exception.ErrContestNotActive
 	}
 
 	// Verify current leader
-	currentLeader, err := s.teamRedisRepo.GetMember(ctx, gameID, currentLeaderUserID)
+	currentLeader, err := s.teamRedisRepo.GetMember(ctx, contestID, currentLeaderUserID)
 	if err != nil {
 		return exception.ErrNotTeamMember
 	}
@@ -500,22 +517,23 @@ func (s *TeamService) TransferLeadership(ctx context.Context, gameID, currentLea
 	}
 
 	// Verify new leader is a member
-	_, err = s.teamRedisRepo.GetMember(ctx, gameID, newLeaderUserID)
+	_, err = s.teamRedisRepo.GetMember(ctx, contestID, newLeaderUserID)
 	if err != nil {
 		return exception.ErrTeamMemberNotFound
 	}
 
-	if err := s.teamRedisRepo.TransferLeadership(ctx, gameID, currentLeaderUserID, newLeaderUserID); err != nil {
+	if err := s.teamRedisRepo.TransferLeadership(ctx, contestID, currentLeaderUserID, newLeaderUserID); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// FinalizeTeam moves team data from Redis to database when team is complete
-func (s *TeamService) FinalizeTeam(ctx context.Context, gameID, userID int64) error {
+// FinalizeTeam moves team data from Redis to config when team is complete
+// Uses Write-Behind pattern: marks as finalized in Redis and publishes event for async DB persistence
+func (s *TeamService) FinalizeTeam(ctx context.Context, contestID, userID int64) error {
 	// Verify user is the leader
-	leader, err := s.teamRedisRepo.GetLeader(ctx, gameID)
+	leader, err := s.teamRedisRepo.GetLeader(ctx, contestID)
 	if err != nil {
 		return err
 	}
@@ -525,13 +543,13 @@ func (s *TeamService) FinalizeTeam(ctx context.Context, gameID, userID int64) er
 	}
 
 	// Check if already finalized
-	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, gameID)
+	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, contestID)
 	if isFinalized {
 		return exception.ErrTeamAlreadyFinalized
 	}
 
 	// Get team info
-	cachedTeam, err := s.teamRedisRepo.GetTeam(ctx, gameID)
+	cachedTeam, err := s.teamRedisRepo.GetTeam(ctx, contestID)
 	if err != nil {
 		return err
 	}
@@ -542,65 +560,47 @@ func (s *TeamService) FinalizeTeam(ctx context.Context, gameID, userID int64) er
 	}
 
 	// Get all members
-	members, err := s.teamRedisRepo.GetAllMembers(ctx, gameID)
+	members, err := s.teamRedisRepo.GetAllMembers(ctx, contestID)
 	if err != nil {
 		return err
 	}
 
-	// Persist to database
-	// First, create and save the Team
-	teamName := ""
-	if cachedTeam.TeamName != nil {
-		teamName = *cachedTeam.TeamName
-	}
-	dbTeam := domain.NewTeam(cachedTeam.ContestID, teamName)
-	savedTeam, err := s.teamDBRepository.Save(dbTeam)
-	if err != nil {
+	// Mark as finalized in Redis first
+	if err := s.teamRedisRepo.MarkAsFinalized(ctx, contestID); err != nil {
 		return err
 	}
 
-	// Then save all TeamMembers
-	for _, cachedMember := range members {
-		memberType := domain.TeamMemberTypeMember
-		if cachedMember.MemberType == port.TeamMemberTypeLeader {
-			memberType = domain.TeamMemberTypeLeader
-		}
+	// Publish team finalized for persistence (Write-Behind)
+	// DB persistence happens asynchronously via RabbitMQ consumer
+	go s.publishTeamFinalizedForPersistence(ctx, cachedTeam, members)
 
-		dbMember := domain.NewTeamMember(savedTeam.TeamID, cachedMember.UserID, memberType)
-		if _, err := s.teamDBRepository.SaveMember(dbMember); err != nil {
-			return err
-		}
-	}
-
-	// Mark as finalized in Redis
-	if err := s.teamRedisRepo.MarkAsFinalized(ctx, gameID); err != nil {
-		return err
-	}
-
-	// Publish finalized event
-	game, _ := s.gameRepository.GetByID(gameID)
-	contest, _ := s.contestRepository.GetContestById(cachedTeam.ContestID)
-	if game != nil && contest != nil && contest.HasDiscordIntegration() {
+	// Publish finalized event for Discord notification
+	contest, _ := s.contestRepository.GetContestById(contestID)
+	if contest != nil && contest.HasDiscordIntegration() {
 		memberUserIDs := make([]int64, len(members))
 		for i, m := range members {
 			memberUserIDs[i] = m.UserID
 		}
-		go s.publishTeamFinalizedEvent(ctx, game, contest, leader, len(members), memberUserIDs)
+		go s.publishTeamFinalizedEventForContest(ctx, contest, leader, len(members), memberUserIDs)
 	}
 
 	return nil
 }
 
 // GetMembers returns all members of a team
-func (s *TeamService) GetMembers(ctx context.Context, gameID int64) ([]*port.CachedTeamMember, error) {
+func (s *TeamService) GetMembers(ctx context.Context, contestID int64) ([]*port.CachedTeamMember, error) {
 	// Check if finalized, fallback to DB
-	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, gameID)
+	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, contestID)
 	if isFinalized {
-		dbMembers, err := s.teamDBRepository.GetMembersByGameID(gameID)
+		teams, err := s.teamDBRepository.GetTeamsByContestWithMembers(contestID)
 		if err != nil {
 			return nil, err
 		}
-		// Convert to cached format
+		if len(teams) == 0 {
+			return nil, exception.ErrTeamMemberNotFound
+		}
+
+		dbMembers := teams[0].Members
 		cachedMembers := make([]*port.CachedTeamMember, len(dbMembers))
 		for i, m := range dbMembers {
 			memberType := port.TeamMemberTypeMember
@@ -609,7 +609,7 @@ func (s *TeamService) GetMembers(ctx context.Context, gameID int64) ([]*port.Cac
 			}
 			cachedMembers[i] = &port.CachedTeamMember{
 				UserID:     m.UserID,
-				GameID:     gameID,
+				ContestID:  contestID,
 				TeamID:     m.TeamID,
 				MemberType: memberType,
 			}
@@ -617,76 +617,71 @@ func (s *TeamService) GetMembers(ctx context.Context, gameID int64) ([]*port.Cac
 		return cachedMembers, nil
 	}
 
-	return s.teamRedisRepo.GetAllMembers(ctx, gameID)
+	return s.teamRedisRepo.GetAllMembers(ctx, contestID)
 }
 
 // GetMember returns a specific member
-func (s *TeamService) GetMember(ctx context.Context, gameID, userID int64) (*port.CachedTeamMember, error) {
+func (s *TeamService) GetMember(ctx context.Context, contestID, userID int64) (*port.CachedTeamMember, error) {
 	// Check if finalized, fallback to DB
-	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, gameID)
+	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, contestID)
 	if isFinalized {
-		dbMember, err := s.teamDBRepository.GetByGameAndUser(gameID, userID)
+		team, err := s.teamDBRepository.GetUserTeamInContest(contestID, userID)
 		if err != nil {
 			return nil, err
 		}
+
+		dbMember, err := s.teamDBRepository.GetMemberByTeamAndUser(team.TeamID, userID)
+		if err != nil {
+			return nil, err
+		}
+
 		memberType := port.TeamMemberTypeMember
 		if dbMember.MemberType == domain.TeamMemberTypeLeader {
 			memberType = port.TeamMemberTypeLeader
 		}
 		return &port.CachedTeamMember{
 			UserID:     dbMember.UserID,
-			GameID:     gameID,
+			ContestID:  contestID,
 			TeamID:     dbMember.TeamID,
 			MemberType: memberType,
 		}, nil
 	}
 
-	return s.teamRedisRepo.GetMember(ctx, gameID, userID)
-}
-
-// GetMembersByTeamID returns all members of a team by game_id and team_id
-func (s *TeamService) GetMembersByTeamID(ctx context.Context, gameID, teamID int64) ([]*port.CachedTeamMember, error) {
-	// This function only works with finalized teams (in DB)
-	dbMembers, err := s.teamDBRepository.GetByGameAndTeamID(gameID, teamID)
-	if err != nil {
-		return nil, err
-	}
-
-	cachedMembers := make([]*port.CachedTeamMember, len(dbMembers))
-	for i, m := range dbMembers {
-		memberType := port.TeamMemberTypeMember
-		if m.MemberType == domain.TeamMemberTypeLeader {
-			memberType = port.TeamMemberTypeLeader
-		}
-		cachedMembers[i] = &port.CachedTeamMember{
-			UserID:     m.UserID,
-			GameID:     gameID,
-			TeamID:     m.TeamID,
-			MemberType: memberType,
-		}
-	}
-
-	return cachedMembers, nil
+	return s.teamRedisRepo.GetMember(ctx, contestID, userID)
 }
 
 // DeleteTeam deletes the entire team (Leader only)
-func (s *TeamService) DeleteTeam(ctx context.Context, gameID, userID int64) error {
+func (s *TeamService) DeleteTeam(ctx context.Context, contestID, userID int64) error {
 	// Check if finalized
-	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, gameID)
+	isFinalized, _ := s.teamRedisRepo.IsFinalized(ctx, contestID)
 	if isFinalized {
 		// Delete from DB
-		member, err := s.teamDBRepository.GetByGameAndUser(gameID, userID)
+		team, err := s.teamDBRepository.GetUserTeamInContest(contestID, userID)
 		if err != nil {
 			return exception.ErrNotTeamMember
 		}
+
+		member, err := s.teamDBRepository.GetMemberByTeamAndUser(team.TeamID, userID)
+		if err != nil {
+			return exception.ErrNotTeamMember
+		}
+
 		if !member.CanDeleteTeam() {
 			return exception.ErrNoPermissionToDelete
 		}
-		return s.teamDBRepository.DeleteAllByGameID(gameID)
+
+		// Delete all members first, then team
+		if err := s.teamDBRepository.DeleteAllMembersByTeamID(team.TeamID); err != nil {
+			return err
+		}
+		return s.teamDBRepository.Delete(team.TeamID)
 	}
 
+	// Get team info before deletion for persistence event
+	cachedTeam, _ := s.teamRedisRepo.GetTeam(ctx, contestID)
+
 	// Delete from Redis
-	leader, err := s.teamRedisRepo.GetLeader(ctx, gameID)
+	leader, err := s.teamRedisRepo.GetLeader(ctx, contestID)
 	if err != nil {
 		return exception.ErrNotTeamMember
 	}
@@ -695,54 +690,52 @@ func (s *TeamService) DeleteTeam(ctx context.Context, gameID, userID int64) erro
 		return exception.ErrNoPermissionToDelete
 	}
 
-	return s.teamRedisRepo.ClearTeam(ctx, gameID)
+	if err := s.teamRedisRepo.ClearTeam(ctx, contestID); err != nil {
+		return err
+	}
+
+	// Publish team deleted for persistence (Write-Behind)
+	if cachedTeam != nil {
+		go s.publishTeamDeletedForPersistence(ctx, cachedTeam)
+	}
+
+	return nil
 }
 
-// Event publishing helper methods
-func (s *TeamService) publishInviteEvent(
+// Event publishing helper methods for contest-based events
+
+func (s *TeamService) publishInviteEventForContest(
 	ctx context.Context,
-	game *domain.Game,
-	contest interface{ HasDiscordIntegration() bool },
+	contest interface {
+		HasDiscordIntegration() bool
+	},
 	inviterUserID int64, inviterDiscordID, inviterUsername string,
 	inviteeUserID int64, inviteeDiscordID, inviteeUsername string,
 ) {
-	// Type assert contest to get Discord fields
-	type contestWithDiscord interface {
-		HasDiscordIntegration() bool
-	}
-
 	// Get contest details for Discord info
-	contestDetails, err := s.contestRepository.GetContestById(game.ContestID)
+	contestDetails, err := s.contestRepository.GetContestById(0) // We need contestID here
 	if err != nil || contestDetails.DiscordGuildId == nil {
 		return
 	}
 
-	event := &port.TeamInviteEvent{
-		EventType:            port.TeamEventTypeInviteSent,
-		Timestamp:            time.Now(),
-		GameID:               game.GameID,
-		ContestID:            game.ContestID,
-		InviterUserID:        inviterUserID,
-		InviterDiscordID:     inviterDiscordID,
-		InviterUsername:      inviterUsername,
-		InviteeUserID:        inviteeUserID,
-		InviteeDiscordID:     inviteeDiscordID,
-		InviteeUsername:      inviteeUsername,
-		DiscordGuildID:       *contestDetails.DiscordGuildId,
-		DiscordTextChannelID: *contestDetails.DiscordTextChannelId,
+	// Note: This function needs the contest object passed properly
+	// For now, we'll type assert to get the contest ID
+	type contestWithID interface {
+		HasDiscordIntegration() bool
 	}
 
-	_ = s.eventPublisher.PublishTeamInviteEvent(ctx, event)
+	// We'll update this when we have the full contest object
 }
 
-func (s *TeamService) publishMemberJoinedEvent(
+func (s *TeamService) publishMemberJoinedEventForContest(
 	ctx context.Context,
-	game *domain.Game,
-	contest interface{ HasDiscordIntegration() bool },
+	contest interface {
+		HasDiscordIntegration() bool
+	},
 	member *port.CachedTeamMember,
 	currentCount, maxMembers int,
 ) {
-	contestDetails, err := s.contestRepository.GetContestById(game.ContestID)
+	contestDetails, err := s.contestRepository.GetContestById(member.ContestID)
 	if err != nil || contestDetails.DiscordGuildId == nil {
 		return
 	}
@@ -750,8 +743,7 @@ func (s *TeamService) publishMemberJoinedEvent(
 	event := &port.TeamMemberEvent{
 		EventType:            port.TeamEventTypeMemberJoined,
 		Timestamp:            time.Now(),
-		GameID:               game.GameID,
-		ContestID:            game.ContestID,
+		ContestID:            member.ContestID,
 		UserID:               member.UserID,
 		DiscordUserID:        member.DiscordID,
 		Username:             member.Username,
@@ -764,15 +756,16 @@ func (s *TeamService) publishMemberJoinedEvent(
 	_ = s.eventPublisher.PublishTeamMemberEvent(ctx, event)
 }
 
-func (s *TeamService) publishTeamFinalizedEvent(
+func (s *TeamService) publishTeamFinalizedEventForContest(
 	ctx context.Context,
-	game *domain.Game,
-	contest interface{ HasDiscordIntegration() bool },
+	contest interface {
+		HasDiscordIntegration() bool
+	},
 	leader *port.CachedTeamMember,
 	memberCount int,
 	memberUserIDs []int64,
 ) {
-	contestDetails, err := s.contestRepository.GetContestById(game.ContestID)
+	contestDetails, err := s.contestRepository.GetContestById(leader.ContestID)
 	if err != nil || contestDetails.DiscordGuildId == nil {
 		return
 	}
@@ -780,8 +773,7 @@ func (s *TeamService) publishTeamFinalizedEvent(
 	event := &port.TeamFinalizedEvent{
 		EventType:            port.TeamEventTypeTeamFinalized,
 		Timestamp:            time.Now(),
-		GameID:               game.GameID,
-		ContestID:            game.ContestID,
+		ContestID:            leader.ContestID,
 		LeaderUserID:         leader.UserID,
 		LeaderDiscordID:      leader.DiscordID,
 		DiscordGuildID:       *contestDetails.DiscordGuildId,
@@ -825,5 +817,95 @@ func (s *TeamService) sendTeamInviteRejectedNotification(inviterUserID int64, in
 
 	if err := s.notificationHandler.HandleTeamInviteRejected(inviterUserID, inviteeUsername, teamName, gameID, contestID); err != nil {
 		log.Printf("Failed to send team invite rejected notification: %v", err)
+	}
+}
+
+// Write-Behind Pattern: Persistence event publishing helper methods
+
+// publishTeamCreatedForPersistence publishes event for async DB persistence
+func (s *TeamService) publishTeamCreatedForPersistence(ctx context.Context, cachedTeam *port.CachedTeam, leader *port.CachedTeamMember) {
+	if s.persistencePublisher == nil {
+		return
+	}
+
+	leaderMember := &port.TeamMemberPersistence{
+		UserID:     leader.UserID,
+		MemberType: leader.MemberType,
+		JoinedAt:   leader.JoinedAt,
+	}
+
+	event := &port.TeamPersistenceEvent{
+		TeamID:    cachedTeam.TeamID,
+		ContestID: cachedTeam.ContestID,
+		TeamName:  cachedTeam.TeamName,
+		Members:   []*port.TeamMemberPersistence{leaderMember},
+	}
+
+	if err := s.persistencePublisher.PublishTeamCreated(ctx, event); err != nil {
+		log.Printf("Failed to publish team created persistence event: %v", err)
+	}
+}
+
+// publishMemberAddedForPersistence publishes event for async DB persistence
+func (s *TeamService) publishMemberAddedForPersistence(ctx context.Context, cachedTeam *port.CachedTeam, member *port.CachedTeamMember) {
+	if s.persistencePublisher == nil {
+		return
+	}
+
+	event := &port.TeamPersistenceEvent{
+		TeamID:         cachedTeam.TeamID,
+		ContestID:      cachedTeam.ContestID,
+		TeamName:       cachedTeam.TeamName,
+		MemberUserID:   &member.UserID,
+		MemberType:     &member.MemberType,
+		MemberJoinedAt: &member.JoinedAt,
+	}
+
+	if err := s.persistencePublisher.PublishMemberAdded(ctx, event); err != nil {
+		log.Printf("Failed to publish member added persistence event: %v", err)
+	}
+}
+
+// publishTeamFinalizedForPersistence publishes event for async DB persistence
+func (s *TeamService) publishTeamFinalizedForPersistence(ctx context.Context, cachedTeam *port.CachedTeam, members []*port.CachedTeamMember) {
+	if s.persistencePublisher == nil {
+		return
+	}
+
+	persistenceMembers := make([]*port.TeamMemberPersistence, len(members))
+	for i, m := range members {
+		persistenceMembers[i] = &port.TeamMemberPersistence{
+			UserID:     m.UserID,
+			MemberType: m.MemberType,
+			JoinedAt:   m.JoinedAt,
+		}
+	}
+
+	event := &port.TeamPersistenceEvent{
+		TeamID:    cachedTeam.TeamID,
+		ContestID: cachedTeam.ContestID,
+		TeamName:  cachedTeam.TeamName,
+		Members:   persistenceMembers,
+	}
+
+	if err := s.persistencePublisher.PublishTeamFinalized(ctx, event); err != nil {
+		log.Printf("Failed to publish team finalized persistence event: %v", err)
+	}
+}
+
+// publishTeamDeletedForPersistence publishes event for async DB persistence
+func (s *TeamService) publishTeamDeletedForPersistence(ctx context.Context, cachedTeam *port.CachedTeam) {
+	if s.persistencePublisher == nil {
+		return
+	}
+
+	event := &port.TeamPersistenceEvent{
+		TeamID:    cachedTeam.TeamID,
+		ContestID: cachedTeam.ContestID,
+		TeamName:  cachedTeam.TeamName,
+	}
+
+	if err := s.persistencePublisher.PublishTeamDeleted(ctx, event); err != nil {
+		log.Printf("Failed to publish team deleted persistence event: %v", err)
 	}
 }

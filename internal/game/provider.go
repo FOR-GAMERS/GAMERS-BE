@@ -1,18 +1,18 @@
 package game
 
 import (
-	contestPort "GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/game/application"
-	"GAMERS-BE/internal/game/application/port"
-	"GAMERS-BE/internal/game/infra/persistence/adapter"
-	"GAMERS-BE/internal/game/presentation"
-	"GAMERS-BE/internal/global/common/handler"
-	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/global/config"
+	contestPort "github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/infra/persistence/adapter"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/presentation"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/handler"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/config"
 	"os"
 
-	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
-	userQueryPort "GAMERS-BE/internal/user/application/port/port"
+	oauth2Port "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/application/port"
+	userQueryPort "github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/port/port"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"

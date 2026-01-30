@@ -1,13 +1,13 @@
 package application
 
 import (
-	"GAMERS-BE/internal/global/exception"
-	pointDomain "GAMERS-BE/internal/point/domain"
-	pointPort "GAMERS-BE/internal/point/application/port"
-	userCommandPort "GAMERS-BE/internal/user/application/port/command"
-	userQueryPort "GAMERS-BE/internal/user/application/port/port"
-	"GAMERS-BE/internal/valorant/application/dto"
-	"GAMERS-BE/internal/valorant/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	pointDomain "github.com/FOR-GAMERS/GAMERS-BE/internal/point/domain"
+	pointPort "github.com/FOR-GAMERS/GAMERS-BE/internal/point/application/port"
+	userCommandPort "github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/port/command"
+	userQueryPort "github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/port/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/valorant/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/valorant/application/port"
 	"math"
 	"strings"
 )

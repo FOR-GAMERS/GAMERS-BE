@@ -1,8 +1,8 @@
 package port
 
 import (
-	"GAMERS-BE/internal/contest/domain"
-	commonDto "GAMERS-BE/internal/global/common/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	commonDto "github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/dto"
 )
 
 // ContestMemberWithUser represents a contest member with user information

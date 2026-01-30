@@ -1,8 +1,8 @@
 package application
 
 import (
-	"GAMERS-BE/internal/notification/application/port"
-	"GAMERS-BE/internal/notification/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/domain"
 	"log"
 	"sync"
 )

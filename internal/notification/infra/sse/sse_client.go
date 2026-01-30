@@ -1,7 +1,7 @@
 package sse
 
 import (
-	"GAMERS-BE/internal/notification/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/domain"
 	"encoding/json"
 	"fmt"
 	"io"

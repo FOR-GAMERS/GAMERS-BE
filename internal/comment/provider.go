@@ -1,12 +1,12 @@
 package comment
 
 import (
-	"GAMERS-BE/internal/comment/application"
-	"GAMERS-BE/internal/comment/infra/persistence/adapter"
-	"GAMERS-BE/internal/comment/presentation"
-	contestPort "GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/global/common/handler"
-	"GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/comment/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/comment/infra/persistence/adapter"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/comment/presentation"
+	contestPort "github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/handler"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
 
 	"gorm.io/gorm"
 )

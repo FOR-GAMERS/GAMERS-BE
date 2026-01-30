@@ -1,10 +1,10 @@
 package presentation
 
 import (
-	"GAMERS-BE/internal/global/common/router"
-	_ "GAMERS-BE/internal/global/response" // for swagger
-	"GAMERS-BE/internal/oauth2/application"
-	"GAMERS-BE/internal/oauth2/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	_ "github.com/FOR-GAMERS/GAMERS-BE/internal/global/response" // for swagger
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/application/dto"
 	"net/http"
 	"os"
 	"strings"

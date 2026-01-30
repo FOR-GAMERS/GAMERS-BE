@@ -1,8 +1,8 @@
 package adapter
 
 import (
-	"GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/global/config"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/config"
 	"context"
 	"encoding/json"
 	"fmt"

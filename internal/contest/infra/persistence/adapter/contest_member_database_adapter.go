@@ -1,10 +1,10 @@
 package adapter
 
 import (
-	"GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/contest/domain"
-	commonDto "GAMERS-BE/internal/global/common/dto"
-	"GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	commonDto "github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 	"errors"
 	"strings"
 

@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"GAMERS-BE/internal/global/utils"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/utils"
 	"time"
 )
 

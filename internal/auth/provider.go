@@ -1,13 +1,13 @@
 package auth
 
 import (
-	"GAMERS-BE/internal/auth/application"
-	"GAMERS-BE/internal/auth/infra/persistence/adapter"
-	"GAMERS-BE/internal/auth/presentation"
-	"GAMERS-BE/internal/global/common/router"
-	jwtProvider "GAMERS-BE/internal/global/security/jwt"
-	"GAMERS-BE/internal/global/security/password"
-	authUserQuery "GAMERS-BE/internal/user/infra/persistence/query"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/infra/persistence/adapter"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/presentation"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	jwtProvider "github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/password"
+	authUserQuery "github.com/FOR-GAMERS/GAMERS-BE/internal/user/infra/persistence/query"
 	"context"
 
 	"github.com/redis/go-redis/v9"

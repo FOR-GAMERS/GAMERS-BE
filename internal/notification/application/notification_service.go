@@ -1,10 +1,10 @@
 package application
 
 import (
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/notification/application/dto"
-	"GAMERS-BE/internal/notification/application/port"
-	"GAMERS-BE/internal/notification/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/domain"
 	"fmt"
 	"log"
 	"strconv"

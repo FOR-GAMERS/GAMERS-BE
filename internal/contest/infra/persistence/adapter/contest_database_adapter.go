@@ -1,9 +1,9 @@
 package adapter
 
 import (
-	"GAMERS-BE/internal/contest/domain"
-	"GAMERS-BE/internal/global/common/dto"
-	"GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 	"errors"
 	"strings"
 

@@ -1,8 +1,8 @@
 package application
 
 import (
-	"GAMERS-BE/internal/global/security/jwt/application/dto"
-	"GAMERS-BE/internal/global/security/jwt/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt/domain"
 	"errors"
 )
 

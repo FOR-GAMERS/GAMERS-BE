@@ -1,9 +1,9 @@
 package adapter
 
 import (
-	"GAMERS-BE/internal/discord/application/dto"
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/global/utils"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/utils"
 	"context"
 	"encoding/json"
 	"errors"

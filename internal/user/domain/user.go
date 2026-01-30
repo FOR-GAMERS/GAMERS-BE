@@ -1,9 +1,9 @@
 package domain
 
 import (
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/global/security/password"
-	"GAMERS-BE/internal/global/utils"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/password"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/utils"
 	"strings"
 	"time"
 	"unicode"

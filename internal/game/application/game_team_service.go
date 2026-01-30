@@ -1,11 +1,11 @@
 package application
 
 import (
-	contestPort "GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/game/application/dto"
-	"GAMERS-BE/internal/game/application/port"
-	"GAMERS-BE/internal/game/domain"
-	"GAMERS-BE/internal/global/exception"
+	contestPort "github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 )
 
 type GameTeamService struct {

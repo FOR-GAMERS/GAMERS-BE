@@ -1,6 +1,6 @@
 package port
 
-import "GAMERS-BE/internal/banner/domain"
+import "github.com/FOR-GAMERS/GAMERS-BE/internal/banner/domain"
 
 type BannerPort interface {
 	// FindById retrieves a banner by its ID

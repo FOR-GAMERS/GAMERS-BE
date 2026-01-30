@@ -1,14 +1,14 @@
 package presentation_test
 
 import (
-	"GAMERS-BE/internal/contest/application"
-	"GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/contest/domain"
-	"GAMERS-BE/internal/contest/presentation"
-	commonDto "GAMERS-BE/internal/global/common/dto"
-	"GAMERS-BE/internal/global/common/handler"
-	"GAMERS-BE/internal/global/exception"
-	oauth2Domain "GAMERS-BE/internal/oauth2/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/presentation"
+	commonDto "github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/handler"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	oauth2Domain "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/domain"
 	"bytes"
 	"context"
 	"encoding/json"

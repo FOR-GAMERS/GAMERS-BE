@@ -1,6 +1,6 @@
 package port
 
-import "GAMERS-BE/internal/game/domain"
+import "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
 
 // TeamDatabasePort defines the interface for team config operations
 type TeamDatabasePort interface {

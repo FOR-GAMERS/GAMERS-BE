@@ -1,9 +1,9 @@
 package adapter
 
 import (
-	"GAMERS-BE/internal/contest/application/port"
-	discordApplication "GAMERS-BE/internal/discord/application"
-	discordDto "GAMERS-BE/internal/discord/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	discordApplication "github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application"
+	discordDto "github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application/dto"
 )
 
 // DiscordValidationAdapter adapts the Discord validation service to the contest port

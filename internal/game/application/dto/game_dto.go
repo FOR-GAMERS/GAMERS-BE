@@ -1,7 +1,7 @@
 package dto
 
 import (
-	gameDomain "GAMERS-BE/internal/game/domain"
+	gameDomain "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
 	"errors"
 	"time"
 )

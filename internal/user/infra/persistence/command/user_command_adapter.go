@@ -1,8 +1,8 @@
 package command
 
 import (
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/user/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/user/domain"
 	"errors"
 
 	"github.com/go-sql-driver/mysql"

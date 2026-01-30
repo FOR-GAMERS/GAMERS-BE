@@ -1,12 +1,12 @@
 package presentation
 
 import (
-	"GAMERS-BE/internal/auth/middleware"
-	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/global/response"
-	"GAMERS-BE/internal/user/application"
-	"GAMERS-BE/internal/user/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/middleware"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/response"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/user/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/dto"
 	"errors"
 	"strconv"
 

@@ -1,11 +1,11 @@
 package banner
 
 import (
-	"GAMERS-BE/internal/banner/application"
-	"GAMERS-BE/internal/banner/infra/persistence/adapter"
-	"GAMERS-BE/internal/banner/presentation"
-	"GAMERS-BE/internal/global/common/handler"
-	"GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/banner/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/banner/infra/persistence/adapter"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/banner/presentation"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/handler"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
 
 	"gorm.io/gorm"
 )

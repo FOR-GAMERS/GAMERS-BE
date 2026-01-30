@@ -1,13 +1,13 @@
 package presentation
 
 import (
-	"GAMERS-BE/internal/auth/middleware"
-	"GAMERS-BE/internal/game/application"
-	gameDto "GAMERS-BE/internal/game/application/dto"
-	gameDomain "GAMERS-BE/internal/game/domain"
-	"GAMERS-BE/internal/global/common/handler"
-	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/global/response"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/middleware"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application"
+	gameDto "github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/dto"
+	gameDomain "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/handler"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"

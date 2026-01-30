@@ -1,6 +1,6 @@
 package port
 
-import "GAMERS-BE/internal/game/domain"
+import "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
 
 // MatchResultDatabasePort defines the interface for match result persistence
 type MatchResultDatabasePort interface {

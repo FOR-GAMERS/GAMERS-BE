@@ -1,7 +1,7 @@
 package port
 
 import (
-	"GAMERS-BE/internal/discord/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application/dto"
 )
 
 // DiscordBotPort defines the interface for Discord Bot API operations

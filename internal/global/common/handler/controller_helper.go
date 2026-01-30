@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/global/response"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/response"
 	"errors"
 	"net/http"
 

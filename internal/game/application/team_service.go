@@ -1,14 +1,14 @@
 package application
 
 import (
-	contestPort "GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/game/application/dto"
-	"GAMERS-BE/internal/game/application/port"
-	"GAMERS-BE/internal/game/domain"
-	"GAMERS-BE/internal/global/exception"
-	notificationPort "GAMERS-BE/internal/notification/application/port"
-	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
-	userQueryPort "GAMERS-BE/internal/user/application/port/port"
+	contestPort "github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	notificationPort "github.com/FOR-GAMERS/GAMERS-BE/internal/notification/application/port"
+	oauth2Port "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/application/port"
+	userQueryPort "github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/port/port"
 	"context"
 	"log"
 	"time"

@@ -1,7 +1,7 @@
 package port
 
 import (
-	"GAMERS-BE/internal/auth/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/domain"
 )
 
 type RefreshTokenCachePort interface {

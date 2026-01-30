@@ -1,6 +1,6 @@
 package port
 
-import "GAMERS-BE/internal/user/domain"
+import "github.com/FOR-GAMERS/GAMERS-BE/internal/user/domain"
 
 type UserDatabasePort interface {
 	Save(user *domain.User) error

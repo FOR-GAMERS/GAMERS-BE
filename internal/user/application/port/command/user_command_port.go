@@ -1,6 +1,6 @@
 package command
 
-import "GAMERS-BE/internal/user/domain"
+import "github.com/FOR-GAMERS/GAMERS-BE/internal/user/domain"
 
 type UserCommandPort interface {
 	Save(user *domain.User) error

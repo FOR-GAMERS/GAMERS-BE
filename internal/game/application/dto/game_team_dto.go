@@ -1,6 +1,6 @@
 package dto
 
-import gameDomain "GAMERS-BE/internal/game/domain"
+import gameDomain "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
 
 type CreateGameTeamRequest struct {
 	GameID int64 `json:"game_id" binding:"required"`

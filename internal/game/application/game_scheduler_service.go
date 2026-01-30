@@ -1,7 +1,7 @@
 package application
 
 import (
-	"GAMERS-BE/internal/game/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
 	"context"
 	"fmt"
 	"log"

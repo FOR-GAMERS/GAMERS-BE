@@ -1,7 +1,7 @@
 package router
 
 import (
-	"GAMERS-BE/internal/auth/middleware"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/middleware"
 	"time"
 
 	"github.com/gin-contrib/cors"

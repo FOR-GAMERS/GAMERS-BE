@@ -1,7 +1,7 @@
 package port
 
 import (
-	"GAMERS-BE/internal/point/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/point/domain"
 )
 
 type ValorantScoreTableDatabasePort interface {

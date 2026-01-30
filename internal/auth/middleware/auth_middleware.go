@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/global/response"
-	"GAMERS-BE/internal/global/security/jwt/application"
-	jwtdomain "GAMERS-BE/internal/global/security/jwt/domain"
-	userdomain "GAMERS-BE/internal/user/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/response"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt/application"
+	jwtdomain "github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt/domain"
+	userdomain "github.com/FOR-GAMERS/GAMERS-BE/internal/user/domain"
 	"strings"
 
 	"github.com/gin-gonic/gin"

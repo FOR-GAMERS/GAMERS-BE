@@ -1,14 +1,14 @@
 package integration_test
 
 import (
-	"GAMERS-BE/internal/contest/application"
-	"GAMERS-BE/internal/contest/application/dto"
-	"GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/contest/domain"
-	contestAdapter "GAMERS-BE/internal/contest/infra/persistence/adapter"
-	"GAMERS-BE/internal/global/exception"
-	oauth2Domain "GAMERS-BE/internal/oauth2/domain"
-	"GAMERS-BE/test/global/support"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	contestAdapter "github.com/FOR-GAMERS/GAMERS-BE/internal/contest/infra/persistence/adapter"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	oauth2Domain "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/test/global/support"
 	"context"
 	"testing"
 	"time"

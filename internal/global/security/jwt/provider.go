@@ -1,9 +1,9 @@
 package jwt
 
 import (
-	"GAMERS-BE/internal/global/security/jwt/application"
-	"GAMERS-BE/internal/global/security/jwt/domain"
-	"GAMERS-BE/internal/global/security/jwt/infra"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt/infra"
 )
 
 func ProvideJwtService() *application.TokenService {

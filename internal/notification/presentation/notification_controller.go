@@ -1,12 +1,12 @@
 package presentation
 
 import (
-	"GAMERS-BE/internal/auth/middleware"
-	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/global/response"
-	"GAMERS-BE/internal/notification/application"
-	"GAMERS-BE/internal/notification/application/dto"
-	"GAMERS-BE/internal/notification/infra/sse"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/middleware"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/response"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/infra/sse"
 	"log"
 	"strconv"
 	"time"

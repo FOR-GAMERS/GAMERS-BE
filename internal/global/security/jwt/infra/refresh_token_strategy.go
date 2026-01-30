@@ -1,7 +1,7 @@
 package infra
 
 import (
-	"GAMERS-BE/internal/global/security/jwt/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt/domain"
 	"errors"
 	"time"
 

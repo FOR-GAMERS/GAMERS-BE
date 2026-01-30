@@ -1,7 +1,7 @@
 package adapter
 
 import (
-	"GAMERS-BE/internal/game/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
 	"fmt"
 	"log"
 	"time"

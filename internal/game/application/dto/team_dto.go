@@ -1,9 +1,9 @@
 package dto
 
 import (
-	contestDomain "GAMERS-BE/internal/contest/domain"
-	"GAMERS-BE/internal/game/application/port"
-	gameDomain "GAMERS-BE/internal/game/domain"
+	contestDomain "github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	gameDomain "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
 )
 
 type CreateTeamRequest struct {

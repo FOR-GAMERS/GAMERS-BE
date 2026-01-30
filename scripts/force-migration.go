@@ -1,7 +1,7 @@
 package main
 
 import (
-	"GAMERS-BE/internal/global/config"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/config"
 	"fmt"
 	"log"
 	"os"

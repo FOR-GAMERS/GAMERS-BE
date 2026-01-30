@@ -1,7 +1,7 @@
 package infra
 
 import (
-	"GAMERS-BE/internal/storage/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/storage/application/port"
 	"context"
 	"fmt"
 	"io"

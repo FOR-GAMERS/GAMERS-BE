@@ -1,8 +1,8 @@
 package port
 
 import (
-	"GAMERS-BE/internal/contest/domain"
-	"GAMERS-BE/internal/global/common/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/dto"
 )
 
 type ContestDatabasePort interface {

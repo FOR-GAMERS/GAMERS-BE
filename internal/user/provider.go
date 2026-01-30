@@ -1,15 +1,15 @@
 package user
 
 import (
-	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/global/security/password"
-	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
-	"GAMERS-BE/internal/user/application"
-	userCommandPort "GAMERS-BE/internal/user/application/port/command"
-	userQueryPort "GAMERS-BE/internal/user/application/port/port"
-	userCommand "GAMERS-BE/internal/user/infra/persistence/command"
-	userQuery "GAMERS-BE/internal/user/infra/persistence/query"
-	"GAMERS-BE/internal/user/presentation"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/password"
+	oauth2Port "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/user/application"
+	userCommandPort "github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/port/command"
+	userQueryPort "github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/port/port"
+	userCommand "github.com/FOR-GAMERS/GAMERS-BE/internal/user/infra/persistence/command"
+	userQuery "github.com/FOR-GAMERS/GAMERS-BE/internal/user/infra/persistence/query"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/user/presentation"
 
 	"gorm.io/gorm"
 )

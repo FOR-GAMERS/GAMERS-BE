@@ -1,7 +1,7 @@
 package discord
 
 import (
-	"GAMERS-BE/internal/oauth2/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/application/dto"
 	"encoding/json"
 	"errors"
 	"io"

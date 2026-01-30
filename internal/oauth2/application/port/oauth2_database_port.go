@@ -1,6 +1,6 @@
 package port
 
-import "GAMERS-BE/internal/oauth2/domain"
+import "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/domain"
 
 type OAuth2DatabasePort interface {
 	FindDiscordAccountByDiscordId(discordId string) (*domain.DiscordAccount, error)

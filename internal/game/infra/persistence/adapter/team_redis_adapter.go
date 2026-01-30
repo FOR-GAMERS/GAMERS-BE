@@ -1,9 +1,9 @@
 package adapter
 
 import (
-	"GAMERS-BE/internal/game/application/port"
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/global/utils"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/utils"
 	"context"
 	"encoding/json"
 	"errors"

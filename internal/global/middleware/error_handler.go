@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 	"errors"
 
 	"github.com/gin-gonic/gin"

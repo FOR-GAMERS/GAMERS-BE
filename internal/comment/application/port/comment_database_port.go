@@ -1,8 +1,8 @@
 package port
 
 import (
-	"GAMERS-BE/internal/comment/domain"
-	commonDto "GAMERS-BE/internal/global/common/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/comment/domain"
+	commonDto "github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/dto"
 	"time"
 )
 

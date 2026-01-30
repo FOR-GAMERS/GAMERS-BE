@@ -1,13 +1,13 @@
 package application
 
 import (
-	"GAMERS-BE/internal/global/security/password"
-	"GAMERS-BE/internal/global/utils"
-	"GAMERS-BE/internal/oauth2/application/port"
-	"GAMERS-BE/internal/user/application/dto"
-	"GAMERS-BE/internal/user/application/port/command"
-	userPort "GAMERS-BE/internal/user/application/port/port"
-	"GAMERS-BE/internal/user/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/password"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/utils"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/port/command"
+	userPort "github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/port/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/user/domain"
 )
 
 type UserService struct {

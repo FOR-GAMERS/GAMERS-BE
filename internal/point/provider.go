@@ -1,12 +1,12 @@
 package point
 
 import (
-	"GAMERS-BE/internal/global/common/handler"
-	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/point/application"
-	"GAMERS-BE/internal/point/application/port"
-	"GAMERS-BE/internal/point/infra/persistence/adapter"
-	"GAMERS-BE/internal/point/presentation"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/handler"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/point/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/point/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/point/infra/persistence/adapter"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/point/presentation"
 
 	"gorm.io/gorm"
 )

@@ -1,4 +1,4 @@
-module GAMERS-BE
+module github.com/FOR-GAMERS/GAMERS-BE
 
 go 1.25.5
 

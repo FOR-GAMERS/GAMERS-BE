@@ -1,9 +1,9 @@
 package domain_test
 
 import (
-	"GAMERS-BE/internal/contest/domain"
-	gameDomain "GAMERS-BE/internal/game/domain"
-	"GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	gameDomain "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 	"testing"
 	"time"
 

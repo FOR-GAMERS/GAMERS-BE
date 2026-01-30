@@ -1,11 +1,11 @@
 package storage
 
 import (
-	"GAMERS-BE/internal/global/common/handler"
-	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/storage/application"
-	"GAMERS-BE/internal/storage/infra"
-	"GAMERS-BE/internal/storage/presentation"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/handler"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/storage/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/storage/infra"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/storage/presentation"
 	"log"
 )
 

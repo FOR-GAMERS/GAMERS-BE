@@ -1,8 +1,8 @@
 package domain
 
 import (
-	"GAMERS-BE/internal/global/exception"
-	gameDomain "GAMERS-BE/internal/game/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	gameDomain "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
 	"time"
 )
 

@@ -1,10 +1,10 @@
 package application
 
 import (
-	"GAMERS-BE/internal/banner/application/dto"
-	"GAMERS-BE/internal/banner/application/port"
-	"GAMERS-BE/internal/banner/domain"
-	"GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/banner/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/banner/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/banner/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 )
 
 type BannerService struct {

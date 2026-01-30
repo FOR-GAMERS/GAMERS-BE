@@ -1,7 +1,7 @@
 package port
 
 import (
-	"GAMERS-BE/internal/notification/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/domain"
 	"context"
 )
 

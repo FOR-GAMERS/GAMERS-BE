@@ -1,6 +1,6 @@
 package port
 
-import "GAMERS-BE/internal/game/domain"
+import "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
 
 type GameDatabasePort interface {
 	Save(game *domain.Game) (*domain.Game, error)
@@ -11,4 +11,8 @@ type GameDatabasePort interface {
 	Update(game *domain.Game) error
 	Delete(gameID int64) error
 	DeleteByContestID(contestID int64) error
+
+	// Scheduler queries for match detection
+	GetGamesReadyToStart() ([]*domain.Game, error)
+	GetGamesInDetection() ([]*domain.Game, error)
 }

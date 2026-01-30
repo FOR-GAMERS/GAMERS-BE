@@ -1,14 +1,16 @@
 package application_test
 
 import (
-	"GAMERS-BE/internal/contest/application"
-	"GAMERS-BE/internal/contest/application/dto"
-	"GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/contest/domain"
-	gameDomain "GAMERS-BE/internal/game/domain"
-	commonDto "GAMERS-BE/internal/global/common/dto"
-	"GAMERS-BE/internal/global/exception"
-	oauth2Domain "GAMERS-BE/internal/oauth2/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	gameApplication "github.com/FOR-GAMERS/GAMERS-BE/internal/game/application"
+	gamePort "github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	gameDomain "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
+	commonDto "github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	oauth2Domain "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/domain"
 	"context"
 	"testing"
 	"time"
@@ -253,6 +255,14 @@ func (m *MockTournamentGeneratorPort) GenerateTournamentBracket(contestID int64,
 	return args.Get(0).([]*gameDomain.Game), args.Error(1)
 }
 
+func (m *MockTournamentGeneratorPort) ShuffleAndAllocateTeamsWithResult(contestID int64, gameTeamRepo gamePort.GameTeamDatabasePort) (*gameApplication.TeamAllocationResult, error) {
+	args := m.Called(contestID, gameTeamRepo)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*gameApplication.TeamAllocationResult), args.Error(1)
+}
+
 // ==================== Test Fixtures ====================
 
 func createValidContestRequest() *dto.CreateContestRequest {
@@ -358,6 +368,8 @@ func TestContestService_SaveContest_WithTournamentBracketGeneration(t *testing.T
 		mockEventPub,
 		nil, // discord validator
 		mockTournamentGen,
+		nil, // teamDBPort
+		nil, // gameTeamDBPort
 	)
 
 	userID := int64(1)

@@ -1,14 +1,14 @@
 package valorant
 
 import (
-	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/global/utils"
-	pointPort "GAMERS-BE/internal/point/application/port"
-	userCommandPort "GAMERS-BE/internal/user/application/port/command"
-	userQueryPort "GAMERS-BE/internal/user/application/port/port"
-	"GAMERS-BE/internal/valorant/application"
-	"GAMERS-BE/internal/valorant/infra"
-	"GAMERS-BE/internal/valorant/presentation"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/utils"
+	pointPort "github.com/FOR-GAMERS/GAMERS-BE/internal/point/application/port"
+	userCommandPort "github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/port/command"
+	userQueryPort "github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/port/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/valorant/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/valorant/infra"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/valorant/presentation"
 )
 
 type Dependencies struct {

@@ -1,8 +1,8 @@
 package infra
 
 import (
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/valorant/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/valorant/application/port"
 
 	govapi "github.com/yldshv/go-valorant-api"
 )

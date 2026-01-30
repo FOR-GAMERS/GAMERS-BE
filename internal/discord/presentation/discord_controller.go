@@ -1,12 +1,12 @@
 package presentation
 
 import (
-	"GAMERS-BE/internal/auth/middleware"
-	"GAMERS-BE/internal/discord/application"
-	"GAMERS-BE/internal/discord/application/dto"
-	"GAMERS-BE/internal/global/common/handler"
-	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/global/response"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/middleware"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/handler"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/response"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

@@ -1,16 +1,16 @@
 package integration_test
 
 import (
-	"GAMERS-BE/internal/contest/application"
-	"GAMERS-BE/internal/contest/application/dto"
-	"GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/contest/domain"
-	contestAdapter "GAMERS-BE/internal/contest/infra/persistence/adapter"
-	gameApplication "GAMERS-BE/internal/game/application"
-	gameDomain "GAMERS-BE/internal/game/domain"
-	gamePort "GAMERS-BE/internal/game/application/port"
-	oauth2Domain "GAMERS-BE/internal/oauth2/domain"
-	"GAMERS-BE/test/global/support"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	contestAdapter "github.com/FOR-GAMERS/GAMERS-BE/internal/contest/infra/persistence/adapter"
+	gameApplication "github.com/FOR-GAMERS/GAMERS-BE/internal/game/application"
+	gameDomain "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
+	gamePort "github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	oauth2Domain "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/test/global/support"
 	"context"
 	"testing"
 	"time"
@@ -263,6 +263,26 @@ func (a *InMemoryGameAdapter) DeleteByContestID(contestID int64) error {
 		}
 	}
 	return nil
+}
+
+func (a *InMemoryGameAdapter) GetGamesReadyToStart() ([]*gameDomain.Game, error) {
+	var result []*gameDomain.Game
+	for _, game := range a.games {
+		if game.IsReadyToActivate() {
+			result = append(result, game)
+		}
+	}
+	return result, nil
+}
+
+func (a *InMemoryGameAdapter) GetGamesInDetection() ([]*gameDomain.Game, error) {
+	var result []*gameDomain.Game
+	for _, game := range a.games {
+		if game.IsDetecting() {
+			result = append(result, game)
+		}
+	}
+	return result, nil
 }
 
 // InMemoryTeamAdapter implements TeamDatabasePort for testing
@@ -605,6 +625,8 @@ func (s *TournamentFlowTestSuite) SetupTest() {
 		s.mockEventPub,
 		nil, // discord validator
 		s.tournamentService,
+		s.teamAdapter,
+		s.gameTeamAdapter,
 	)
 }
 

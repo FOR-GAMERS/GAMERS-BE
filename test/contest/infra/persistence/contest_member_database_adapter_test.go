@@ -1,10 +1,10 @@
 package persistence_test
 
 import (
-	"GAMERS-BE/internal/contest/domain"
-	"GAMERS-BE/internal/contest/infra/persistence/adapter"
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/test/global/support"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/infra/persistence/adapter"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/test/global/support"
 	"context"
 	"testing"
 	"time"

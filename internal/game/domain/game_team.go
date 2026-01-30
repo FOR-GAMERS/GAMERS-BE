@@ -1,6 +1,6 @@
 package domain
 
-import "GAMERS-BE/internal/global/exception"
+import "github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 
 // GameTeam represents a many-to-many relationship between Game and Team
 type GameTeam struct {

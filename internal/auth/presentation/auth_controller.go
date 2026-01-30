@@ -1,10 +1,10 @@
 package presentation
 
 import (
-	"GAMERS-BE/internal/auth/application"
-	"GAMERS-BE/internal/auth/application/dto"
-	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/global/response"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/response"
 
 	"github.com/gin-gonic/gin"
 )

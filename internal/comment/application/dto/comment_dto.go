@@ -1,9 +1,9 @@
 package dto
 
 import (
-	"GAMERS-BE/internal/comment/application/port"
-	"GAMERS-BE/internal/comment/domain"
-	"GAMERS-BE/internal/global/utils"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/comment/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/comment/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/utils"
 	"time"
 )
 

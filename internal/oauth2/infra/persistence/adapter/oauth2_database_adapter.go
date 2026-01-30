@@ -1,8 +1,8 @@
 package adapter
 
 import (
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/oauth2/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/domain"
 	"errors"
 
 	"gorm.io/gorm"

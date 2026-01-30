@@ -1,8 +1,8 @@
 package domain_test
 
 import (
-	"GAMERS-BE/internal/contest/domain"
-	"GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

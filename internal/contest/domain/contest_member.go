@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 )
 
 type MemberType string

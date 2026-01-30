@@ -1,9 +1,9 @@
 package application
 
 import (
-	"GAMERS-BE/internal/point/application/dto"
-	"GAMERS-BE/internal/point/application/port"
-	"GAMERS-BE/internal/point/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/point/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/point/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/point/domain"
 )
 
 type ValorantService struct {

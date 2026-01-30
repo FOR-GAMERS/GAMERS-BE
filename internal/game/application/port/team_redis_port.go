@@ -97,6 +97,10 @@ type TeamRedisPort interface {
 	RemoveUserTeam(ctx context.Context, userID, contestID int64) error
 	GetUserTeams(ctx context.Context, userID int64) ([]int64, error)
 
+	// Finalized team counting (for contest-wide team readiness)
+	IncrementFinalizedTeamCount(ctx context.Context, contestID int64) (int64, error)
+	GetFinalizedTeamCount(ctx context.Context, contestID int64) (int64, error)
+
 	// Cleanup
 	ClearTeam(ctx context.Context, contestID int64) error
 	ExtendTTL(ctx context.Context, contestID int64, newTTL time.Duration) error

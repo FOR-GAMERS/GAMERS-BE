@@ -1,13 +1,13 @@
 package application
 
 import (
-	"GAMERS-BE/internal/auth/application/dto"
-	"GAMERS-BE/internal/auth/application/port"
-	"GAMERS-BE/internal/auth/application/port/query"
-	"GAMERS-BE/internal/auth/domain"
-	"GAMERS-BE/internal/global/security/jwt/application"
-	jwtToken "GAMERS-BE/internal/global/security/jwt/domain"
-	"GAMERS-BE/internal/global/security/password"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/application/port/query"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt/application"
+	jwtToken "github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/password"
 )
 
 type AuthService struct {

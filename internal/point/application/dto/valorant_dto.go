@@ -1,6 +1,6 @@
 package dto
 
-import "GAMERS-BE/internal/point/domain"
+import "github.com/FOR-GAMERS/GAMERS-BE/internal/point/domain"
 
 type CreateValorantScoreTableDto struct {
 	Radiant    int `json:"radiant" binding:"required"`

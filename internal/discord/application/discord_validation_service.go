@@ -1,10 +1,10 @@
 package application
 
 import (
-	"GAMERS-BE/internal/discord/application/dto"
-	"GAMERS-BE/internal/discord/application/port"
-	"GAMERS-BE/internal/global/exception"
-	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	oauth2Port "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/application/port"
 	"time"
 )
 

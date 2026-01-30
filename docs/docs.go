@@ -1074,6 +1074,397 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/contests/{contestId}/games/{gameId}/detect": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Staff manually triggers match detection for a specific game",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games",
+                    "match-detection"
+                ],
+                "summary": "Manually trigger match detection",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "contestId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "gameId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contests/{contestId}/games/{gameId}/detection-status": {
+            "get": {
+                "description": "Returns the current detection status for a game",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games",
+                    "match-detection"
+                ],
+                "summary": "Get match detection status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "contestId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "gameId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.ScheduleGameResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contests/{contestId}/games/{gameId}/result": {
+            "get": {
+                "description": "Returns the match result for a finished game",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games",
+                    "match-detection"
+                ],
+                "summary": "Get match result",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "contestId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "gameId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.MatchResultResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Staff manually inputs the game result (fallback when auto-detection fails)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games",
+                    "match-detection"
+                ],
+                "summary": "Submit manual game result",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "contestId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "gameId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Manual result request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.ManualResultRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.MatchResultResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contests/{contestId}/games/{gameId}/result/stats": {
+            "get": {
+                "description": "Returns the match result and individual player stats",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games",
+                    "match-detection"
+                ],
+                "summary": "Get match result with player stats",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "contestId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "gameId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.MatchResultResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contests/{contestId}/games/{gameId}/schedule": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Staff sets the scheduled start time and detection window for a tournament game",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games",
+                    "match-detection"
+                ],
+                "summary": "Set game scheduled start time",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "contestId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "gameId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Schedule request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.ScheduleGameRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.ScheduleGameResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/contests/{contestId}/members": {
             "get": {
                 "security": [
@@ -1927,6 +2318,60 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/contests/{id}/result": {
+            "get": {
+                "description": "Returns the full tournament bracket with game results and champion",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games",
+                    "tournaments"
+                ],
+                "summary": "Get tournament contest result",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Contest ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.ContestResultResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/GAMERS-BE_internal_global_response.Response"
                         }
@@ -5497,6 +5942,32 @@ const docTemplate = `{
                 }
             }
         },
+        "GAMERS-BE_internal_game_application_dto.ContestResultResponse": {
+            "type": "object",
+            "properties": {
+                "champion": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.TeamSummary"
+                },
+                "contest_id": {
+                    "type": "integer"
+                },
+                "contest_status": {
+                    "type": "string"
+                },
+                "rounds": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.RoundResult"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "total_rounds": {
+                    "type": "integer"
+                }
+            }
+        },
         "GAMERS-BE_internal_game_application_dto.CreateGameRequest": {
             "type": "object",
             "required": [
@@ -5573,6 +6044,32 @@ const docTemplate = `{
                 }
             }
         },
+        "GAMERS-BE_internal_game_application_dto.GameResult": {
+            "type": "object",
+            "properties": {
+                "detection_status": {
+                    "type": "string"
+                },
+                "game_id": {
+                    "type": "integer"
+                },
+                "game_status": {
+                    "type": "string"
+                },
+                "match_number": {
+                    "type": "integer"
+                },
+                "match_result": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.MatchResultSummary"
+                },
+                "teams": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.GameTeamResult"
+                    }
+                }
+            }
+        },
         "GAMERS-BE_internal_game_application_dto.GameTeamResponse": {
             "type": "object",
             "properties": {
@@ -5587,6 +6084,20 @@ const docTemplate = `{
                 },
                 "team_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.GameTeamResult": {
+            "type": "object",
+            "properties": {
+                "grade": {
+                    "type": "integer"
+                },
+                "team_id": {
+                    "type": "integer"
+                },
+                "team_name": {
+                    "type": "string"
                 }
             }
         },
@@ -5612,6 +6123,190 @@ const docTemplate = `{
                 }
             }
         },
+        "GAMERS-BE_internal_game_application_dto.ManualResultRequest": {
+            "type": "object",
+            "required": [
+                "loserScore",
+                "winnerScore",
+                "winnerTeamId"
+            ],
+            "properties": {
+                "loserScore": {
+                    "type": "integer"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "winnerScore": {
+                    "type": "integer"
+                },
+                "winnerTeamId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.MatchResultResponse": {
+            "type": "object",
+            "properties": {
+                "detectionStatus": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_domain.DetectionStatus"
+                },
+                "gameDuration": {
+                    "type": "integer"
+                },
+                "gameId": {
+                    "type": "integer"
+                },
+                "gameStartedAt": {
+                    "type": "string"
+                },
+                "loserScore": {
+                    "type": "integer"
+                },
+                "loserTeamId": {
+                    "type": "integer"
+                },
+                "mapName": {
+                    "type": "string"
+                },
+                "matchResultId": {
+                    "type": "integer"
+                },
+                "playerStats": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.PlayerStatResponse"
+                    }
+                },
+                "roundsPlayed": {
+                    "type": "integer"
+                },
+                "valorantMatchId": {
+                    "type": "string"
+                },
+                "winnerScore": {
+                    "type": "integer"
+                },
+                "winnerTeamId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.MatchResultSummary": {
+            "type": "object",
+            "properties": {
+                "loser_score": {
+                    "type": "integer"
+                },
+                "loser_team_id": {
+                    "type": "integer"
+                },
+                "map_name": {
+                    "type": "string"
+                },
+                "winner_score": {
+                    "type": "integer"
+                },
+                "winner_team_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.PlayerStatResponse": {
+            "type": "object",
+            "properties": {
+                "agentName": {
+                    "type": "string"
+                },
+                "assists": {
+                    "type": "integer"
+                },
+                "bodyshots": {
+                    "type": "integer"
+                },
+                "deaths": {
+                    "type": "integer"
+                },
+                "headshots": {
+                    "type": "integer"
+                },
+                "kills": {
+                    "type": "integer"
+                },
+                "legshots": {
+                    "type": "integer"
+                },
+                "score": {
+                    "type": "integer"
+                },
+                "teamId": {
+                    "type": "integer"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.RoundResult": {
+            "type": "object",
+            "properties": {
+                "games": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/GAMERS-BE_internal_game_application_dto.GameResult"
+                    }
+                },
+                "round": {
+                    "type": "integer"
+                },
+                "round_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.ScheduleGameRequest": {
+            "type": "object",
+            "required": [
+                "scheduledStartTime"
+            ],
+            "properties": {
+                "detectionWindowMinutes": {
+                    "type": "integer"
+                },
+                "scheduledStartTime": {
+                    "type": "string"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.ScheduleGameResponse": {
+            "type": "object",
+            "properties": {
+                "contestId": {
+                    "type": "integer"
+                },
+                "detectionStatus": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_domain.DetectionStatus"
+                },
+                "detectionWindowMinutes": {
+                    "type": "integer"
+                },
+                "gameId": {
+                    "type": "integer"
+                },
+                "gameStatus": {
+                    "$ref": "#/definitions/GAMERS-BE_internal_game_domain.GameStatus"
+                },
+                "matchNumber": {
+                    "type": "integer"
+                },
+                "round": {
+                    "type": "integer"
+                },
+                "scheduledStartTime": {
+                    "type": "string"
+                }
+            }
+        },
         "GAMERS-BE_internal_game_application_dto.TeamInviteResponse": {
             "type": "object",
             "properties": {
@@ -5631,6 +6326,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "GAMERS-BE_internal_game_application_dto.TeamSummary": {
+            "type": "object",
+            "properties": {
+                "team_id": {
+                    "type": "integer"
+                },
+                "team_name": {
                     "type": "string"
                 }
             }
@@ -5662,6 +6368,23 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "GAMERS-BE_internal_game_domain.DetectionStatus": {
+            "type": "string",
+            "enum": [
+                "NONE",
+                "DETECTING",
+                "DETECTED",
+                "FAILED",
+                "MANUAL"
+            ],
+            "x-enum-varnames": [
+                "DetectionStatusNone",
+                "DetectionStatusDetecting",
+                "DetectionStatusDetected",
+                "DetectionStatusFailed",
+                "DetectionStatusManual"
+            ]
         },
         "GAMERS-BE_internal_game_domain.GameStatus": {
             "type": "string",

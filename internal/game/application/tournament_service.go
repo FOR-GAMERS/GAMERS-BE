@@ -1,9 +1,9 @@
 package application
 
 import (
-	"GAMERS-BE/internal/game/application/port"
-	"GAMERS-BE/internal/game/domain"
-	"GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 	"math"
 	"math/rand"
 	"time"

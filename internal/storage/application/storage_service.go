@@ -1,10 +1,10 @@
 package application
 
 import (
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/storage/application/dto"
-	"GAMERS-BE/internal/storage/application/port"
-	"GAMERS-BE/internal/storage/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/storage/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/storage/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/storage/domain"
 	"context"
 	"fmt"
 	"mime/multipart"

@@ -1,8 +1,8 @@
 package adapter
 
 import (
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/point/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/point/domain"
 	"errors"
 	"strings"
 

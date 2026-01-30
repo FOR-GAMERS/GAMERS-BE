@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 	"time"
 )
 
@@ -51,19 +51,53 @@ func (t GameTeamType) IsValid() bool {
 	}
 }
 
+// DetectionStatus represents the match detection state for a tournament game
+type DetectionStatus string
+
+const (
+	DetectionStatusNone      DetectionStatus = "NONE"
+	DetectionStatusDetecting DetectionStatus = "DETECTING"
+	DetectionStatusDetected  DetectionStatus = "DETECTED"
+	DetectionStatusFailed    DetectionStatus = "FAILED"
+	DetectionStatusManual    DetectionStatus = "MANUAL"
+)
+
+func (d DetectionStatus) IsValid() bool {
+	switch d {
+	case DetectionStatusNone, DetectionStatusDetecting, DetectionStatusDetected,
+		DetectionStatusFailed, DetectionStatusManual:
+		return true
+	default:
+		return false
+	}
+}
+
+// detectionAllowedTransitions defines valid DetectionStatus state transitions
+var detectionAllowedTransitions = map[DetectionStatus][]DetectionStatus{
+	DetectionStatusNone:      {DetectionStatusDetecting},
+	DetectionStatusDetecting: {DetectionStatusDetected, DetectionStatusFailed, DetectionStatusManual},
+	DetectionStatusFailed:    {DetectionStatusManual, DetectionStatusDetecting},
+	DetectionStatusDetected:  {},
+	DetectionStatusManual:    {},
+}
+
 type Game struct {
-	GameID          int64        `gorm:"column:game_id;primaryKey;autoIncrement" json:"game_id"`
-	ContestID       int64        `gorm:"column:contest_id;type:bigint;not null" json:"contest_id"`
-	GameStatus      GameStatus   `gorm:"column:game_status;type:varchar(16);not null" json:"game_status"`
-	GameTeamType    GameTeamType `gorm:"column:game_team_type;type:varchar(16);not null" json:"game_team_type"`
-	StartedAt       *time.Time   `gorm:"column:started_at;type:datetime" json:"started_at,omitempty"`
-	EndedAt         *time.Time   `gorm:"column:ended_at;type:datetime" json:"ended_at,omitempty"`
-	Round           *int         `gorm:"column:round;type:int" json:"round,omitempty"`
-	MatchNumber     *int         `gorm:"column:match_number;type:int" json:"match_number,omitempty"`
-	NextGameID      *int64       `gorm:"column:next_game_id;type:bigint" json:"next_game_id,omitempty"`
-	BracketPosition *int         `gorm:"column:bracket_position;type:int" json:"bracket_position,omitempty"`
-	CreatedAt       time.Time    `gorm:"column:created_at;type:timestamp;default:CURRENT_TIMESTAMP" json:"created_at"`
-	ModifiedAt      time.Time    `gorm:"column:modified_at;type:timestamp;default:CURRENT_TIMESTAMP" json:"modified_at"`
+	GameID                 int64           `gorm:"column:game_id;primaryKey;autoIncrement" json:"game_id"`
+	ContestID              int64           `gorm:"column:contest_id;type:bigint;not null" json:"contest_id"`
+	GameStatus             GameStatus      `gorm:"column:game_status;type:varchar(16);not null" json:"game_status"`
+	GameTeamType           GameTeamType    `gorm:"column:game_team_type;type:varchar(16);not null" json:"game_team_type"`
+	StartedAt              *time.Time      `gorm:"column:started_at;type:datetime" json:"started_at,omitempty"`
+	EndedAt                *time.Time      `gorm:"column:ended_at;type:datetime" json:"ended_at,omitempty"`
+	Round                  *int            `gorm:"column:round;type:int" json:"round,omitempty"`
+	MatchNumber            *int            `gorm:"column:match_number;type:int" json:"match_number,omitempty"`
+	NextGameID             *int64          `gorm:"column:next_game_id;type:bigint" json:"next_game_id,omitempty"`
+	BracketPosition        *int            `gorm:"column:bracket_position;type:int" json:"bracket_position,omitempty"`
+	ScheduledStartTime     *time.Time      `gorm:"column:scheduled_start_time;type:datetime" json:"scheduled_start_time,omitempty"`
+	DetectionWindowMinutes int             `gorm:"column:detection_window_minutes;type:int;not null;default:120" json:"detection_window_minutes"`
+	DetectedMatchID        *string         `gorm:"column:detected_match_id;type:varchar(255)" json:"detected_match_id,omitempty"`
+	DetectionStatus        DetectionStatus `gorm:"column:detection_status;type:varchar(20);not null;default:'NONE'" json:"detection_status"`
+	CreatedAt              time.Time       `gorm:"column:created_at;type:timestamp;default:CURRENT_TIMESTAMP" json:"created_at"`
+	ModifiedAt             time.Time       `gorm:"column:modified_at;type:timestamp;default:CURRENT_TIMESTAMP" json:"modified_at"`
 }
 
 func NewGame(
@@ -265,4 +299,121 @@ func (g *Game) ValidateForTournament() error {
 	}
 
 	return nil
+}
+
+// CanTransitionDetectionTo checks if the detection status can transition to the target
+func (g *Game) CanTransitionDetectionTo(target DetectionStatus) bool {
+	allowed, exists := detectionAllowedTransitions[g.DetectionStatus]
+	if !exists {
+		return false
+	}
+	for _, s := range allowed {
+		if s == target {
+			return true
+		}
+	}
+	return false
+}
+
+// TransitionDetectionTo transitions the detection status to the target
+func (g *Game) TransitionDetectionTo(target DetectionStatus) error {
+	if !g.CanTransitionDetectionTo(target) {
+		return exception.ErrInvalidDetectionStatusTransition
+	}
+	g.DetectionStatus = target
+	g.ModifiedAt = time.Now()
+	return nil
+}
+
+// SetSchedule sets the scheduled start time and detection window
+func (g *Game) SetSchedule(scheduledStartTime time.Time, detectionWindowMinutes int) error {
+	if !g.IsPending() {
+		return exception.ErrGameNotPending
+	}
+	if scheduledStartTime.Before(time.Now()) {
+		return exception.ErrScheduledTimeInPast
+	}
+	if detectionWindowMinutes <= 0 {
+		detectionWindowMinutes = 120
+	}
+	g.ScheduledStartTime = &scheduledStartTime
+	g.DetectionWindowMinutes = detectionWindowMinutes
+	g.ModifiedAt = time.Now()
+	return nil
+}
+
+// IsReadyToActivate checks if scheduled start time has arrived and game is pending
+func (g *Game) IsReadyToActivate() bool {
+	return g.GameStatus == GameStatusPending &&
+		g.ScheduledStartTime != nil &&
+		!g.ScheduledStartTime.After(time.Now())
+}
+
+// IsDetectionWindowExpired checks if the detection window has passed
+func (g *Game) IsDetectionWindowExpired() bool {
+	if g.ScheduledStartTime == nil {
+		return false
+	}
+	windowEnd := g.ScheduledStartTime.Add(time.Duration(g.DetectionWindowMinutes) * time.Minute)
+	return time.Now().After(windowEnd)
+}
+
+// GetDetectionWindowEnd returns the end time of the detection window
+func (g *Game) GetDetectionWindowEnd() time.Time {
+	if g.ScheduledStartTime == nil {
+		return time.Time{}
+	}
+	return g.ScheduledStartTime.Add(time.Duration(g.DetectionWindowMinutes) * time.Minute)
+}
+
+// ActivateForDetection transitions game to ACTIVE and starts detection
+func (g *Game) ActivateForDetection() error {
+	if err := g.TransitionTo(GameStatusActive); err != nil {
+		return err
+	}
+	now := time.Now()
+	g.StartedAt = &now
+	return g.TransitionDetectionTo(DetectionStatusDetecting)
+}
+
+// MarkDetected records the detected match ID and transitions statuses
+func (g *Game) MarkDetected(matchID string) error {
+	if err := g.TransitionDetectionTo(DetectionStatusDetected); err != nil {
+		return err
+	}
+	g.DetectedMatchID = &matchID
+	return nil
+}
+
+// MarkDetectionFailed transitions detection to FAILED status
+func (g *Game) MarkDetectionFailed() error {
+	return g.TransitionDetectionTo(DetectionStatusFailed)
+}
+
+// MarkManualResult transitions detection to MANUAL status
+func (g *Game) MarkManualResult() error {
+	return g.TransitionDetectionTo(DetectionStatusManual)
+}
+
+// ForceDetectionStatus forces the detection status regardless of allowed transitions.
+// Use only for manual overrides where normal state transitions are not applicable.
+func (g *Game) ForceDetectionStatus(status DetectionStatus) {
+	g.DetectionStatus = status
+	g.ModifiedAt = time.Now()
+}
+
+// FinishGame transitions game to FINISHED and records end time
+func (g *Game) FinishGame() error {
+	if err := g.TransitionTo(GameStatusFinished); err != nil {
+		return err
+	}
+	now := time.Now()
+	g.EndedAt = &now
+	g.ModifiedAt = now
+	return nil
+}
+
+// IsDetecting returns true if the game is actively detecting matches
+func (g *Game) IsDetecting() bool {
+	return g.GameStatus == GameStatusActive && g.DetectionStatus == DetectionStatusDetecting
 }

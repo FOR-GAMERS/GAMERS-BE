@@ -1,7 +1,7 @@
 package discord
 
 import (
-	"GAMERS-BE/internal/global/utils"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/utils"
 
 	"golang.org/x/oauth2"
 )

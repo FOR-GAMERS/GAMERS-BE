@@ -48,6 +48,18 @@ var (
 	// ScoreTable errors
 	ErrScoreTableNotFound = NewBusinessError(http.StatusNotFound, "score table not found", "ST001")
 
+	// Match Detection errors
+	ErrInvalidDetectionStatusTransition = NewBusinessError(http.StatusConflict, "invalid detection status transition", "MD001")
+	ErrScheduledTimeInPast              = NewBadRequestError("scheduled start time must be in the future", "MD002")
+	ErrGameNotActive                    = NewBadRequestError("game is not in active status", "MD003")
+	ErrDetectionNotFailed               = NewBadRequestError("manual result can only be set when detection has failed or is in progress", "MD004")
+	ErrMatchResultNotFound              = NewBusinessError(http.StatusNotFound, "match result not found", "MD005")
+	ErrMatchResultAlreadyExists         = NewBusinessError(http.StatusConflict, "match result already exists for this game", "MD006")
+	ErrWinnerTeamNotInGame              = NewBadRequestError("winner team is not participating in this game", "MD007")
+	ErrMissingValorantAccount           = NewBadRequestError("some team members have not linked their Valorant account", "MD008")
+	ErrDetectionWindowExpired           = NewBadRequestError("detection window has expired", "MD009")
+	ErrSchedulerLockFailed              = NewBusinessError(http.StatusConflict, "scheduler is already running on another instance", "MD010")
+
 	// GameTeam errors
 	ErrGameTeamNotFound         = NewBusinessError(http.StatusNotFound, "game team not found", "GT001")
 	ErrGameTeamAlreadyExists    = NewBusinessError(http.StatusConflict, "team already exists in this game", "GT002")

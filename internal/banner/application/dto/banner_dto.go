@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"GAMERS-BE/internal/banner/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/banner/domain"
 	"time"
 )
 

@@ -1,6 +1,6 @@
 package port
 
-import "GAMERS-BE/internal/game/domain"
+import "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
 
 type GameTeamDatabasePort interface {
 	Save(gameTeam *domain.GameTeam) (*domain.GameTeam, error)

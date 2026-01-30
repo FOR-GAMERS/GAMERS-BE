@@ -361,6 +361,23 @@ definitions:
       username:
         type: string
     type: object
+  GAMERS-BE_internal_game_application_dto.ContestResultResponse:
+    properties:
+      champion:
+        $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.TeamSummary'
+      contest_id:
+        type: integer
+      contest_status:
+        type: string
+      rounds:
+        items:
+          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.RoundResult'
+        type: array
+      title:
+        type: string
+      total_rounds:
+        type: integer
+    type: object
   GAMERS-BE_internal_game_application_dto.CreateGameRequest:
     properties:
       contest_id:
@@ -411,6 +428,23 @@ definitions:
       started_at:
         type: string
     type: object
+  GAMERS-BE_internal_game_application_dto.GameResult:
+    properties:
+      detection_status:
+        type: string
+      game_id:
+        type: integer
+      game_status:
+        type: string
+      match_number:
+        type: integer
+      match_result:
+        $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.MatchResultSummary'
+      teams:
+        items:
+          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.GameTeamResult'
+        type: array
+    type: object
   GAMERS-BE_internal_game_application_dto.GameTeamResponse:
     properties:
       game_id:
@@ -421,6 +455,15 @@ definitions:
         type: integer
       team_id:
         type: integer
+    type: object
+  GAMERS-BE_internal_game_application_dto.GameTeamResult:
+    properties:
+      grade:
+        type: integer
+      team_id:
+        type: integer
+      team_name:
+        type: string
     type: object
   GAMERS-BE_internal_game_application_dto.InviteMemberRequest:
     properties:
@@ -436,6 +479,127 @@ definitions:
     required:
     - user_id
     type: object
+  GAMERS-BE_internal_game_application_dto.ManualResultRequest:
+    properties:
+      loserScore:
+        type: integer
+      note:
+        type: string
+      winnerScore:
+        type: integer
+      winnerTeamId:
+        type: integer
+    required:
+    - loserScore
+    - winnerScore
+    - winnerTeamId
+    type: object
+  GAMERS-BE_internal_game_application_dto.MatchResultResponse:
+    properties:
+      detectionStatus:
+        $ref: '#/definitions/GAMERS-BE_internal_game_domain.DetectionStatus'
+      gameDuration:
+        type: integer
+      gameId:
+        type: integer
+      gameStartedAt:
+        type: string
+      loserScore:
+        type: integer
+      loserTeamId:
+        type: integer
+      mapName:
+        type: string
+      matchResultId:
+        type: integer
+      playerStats:
+        items:
+          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.PlayerStatResponse'
+        type: array
+      roundsPlayed:
+        type: integer
+      valorantMatchId:
+        type: string
+      winnerScore:
+        type: integer
+      winnerTeamId:
+        type: integer
+    type: object
+  GAMERS-BE_internal_game_application_dto.MatchResultSummary:
+    properties:
+      loser_score:
+        type: integer
+      loser_team_id:
+        type: integer
+      map_name:
+        type: string
+      winner_score:
+        type: integer
+      winner_team_id:
+        type: integer
+    type: object
+  GAMERS-BE_internal_game_application_dto.PlayerStatResponse:
+    properties:
+      agentName:
+        type: string
+      assists:
+        type: integer
+      bodyshots:
+        type: integer
+      deaths:
+        type: integer
+      headshots:
+        type: integer
+      kills:
+        type: integer
+      legshots:
+        type: integer
+      score:
+        type: integer
+      teamId:
+        type: integer
+      userId:
+        type: integer
+    type: object
+  GAMERS-BE_internal_game_application_dto.RoundResult:
+    properties:
+      games:
+        items:
+          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.GameResult'
+        type: array
+      round:
+        type: integer
+      round_name:
+        type: string
+    type: object
+  GAMERS-BE_internal_game_application_dto.ScheduleGameRequest:
+    properties:
+      detectionWindowMinutes:
+        type: integer
+      scheduledStartTime:
+        type: string
+    required:
+    - scheduledStartTime
+    type: object
+  GAMERS-BE_internal_game_application_dto.ScheduleGameResponse:
+    properties:
+      contestId:
+        type: integer
+      detectionStatus:
+        $ref: '#/definitions/GAMERS-BE_internal_game_domain.DetectionStatus'
+      detectionWindowMinutes:
+        type: integer
+      gameId:
+        type: integer
+      gameStatus:
+        $ref: '#/definitions/GAMERS-BE_internal_game_domain.GameStatus'
+      matchNumber:
+        type: integer
+      round:
+        type: integer
+      scheduledStartTime:
+        type: string
+    type: object
   GAMERS-BE_internal_game_application_dto.TeamInviteResponse:
     properties:
       contest_id:
@@ -449,6 +613,13 @@ definitions:
       inviter_name:
         type: string
       status:
+        type: string
+    type: object
+  GAMERS-BE_internal_game_application_dto.TeamSummary:
+    properties:
+      team_id:
+        type: integer
+      team_name:
         type: string
     type: object
   GAMERS-BE_internal_game_application_dto.TransferLeadershipRequest:
@@ -469,6 +640,20 @@ definitions:
       started_at:
         type: string
     type: object
+  GAMERS-BE_internal_game_domain.DetectionStatus:
+    enum:
+    - NONE
+    - DETECTING
+    - DETECTED
+    - FAILED
+    - MANUAL
+    type: string
+    x-enum-varnames:
+    - DetectionStatusNone
+    - DetectionStatusDetecting
+    - DetectionStatusDetected
+    - DetectionStatusFailed
+    - DetectionStatusManual
   GAMERS-BE_internal_game_domain.GameStatus:
     enum:
     - PENDING
@@ -1522,6 +1707,252 @@ paths:
       summary: Withdraw from a contest
       tags:
       - contest-applications
+  /api/contests/{contestId}/games/{gameId}/detect:
+    post:
+      description: Staff manually triggers match detection for a specific game
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      - description: Game ID
+        in: path
+        name: gameId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Manually trigger match detection
+      tags:
+      - games
+      - match-detection
+  /api/contests/{contestId}/games/{gameId}/detection-status:
+    get:
+      description: Returns the current detection status for a game
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      - description: Game ID
+        in: path
+        name: gameId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.ScheduleGameResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      summary: Get match detection status
+      tags:
+      - games
+      - match-detection
+  /api/contests/{contestId}/games/{gameId}/result:
+    get:
+      description: Returns the match result for a finished game
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      - description: Game ID
+        in: path
+        name: gameId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.MatchResultResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      summary: Get match result
+      tags:
+      - games
+      - match-detection
+    post:
+      consumes:
+      - application/json
+      description: Staff manually inputs the game result (fallback when auto-detection
+        fails)
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      - description: Game ID
+        in: path
+        name: gameId
+        required: true
+        type: integer
+      - description: Manual result request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.ManualResultRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.MatchResultResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Submit manual game result
+      tags:
+      - games
+      - match-detection
+  /api/contests/{contestId}/games/{gameId}/result/stats:
+    get:
+      description: Returns the match result and individual player stats
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      - description: Game ID
+        in: path
+        name: gameId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.MatchResultResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      summary: Get match result with player stats
+      tags:
+      - games
+      - match-detection
+  /api/contests/{contestId}/games/{gameId}/schedule:
+    put:
+      consumes:
+      - application/json
+      description: Staff sets the scheduled start time and detection window for a
+        tournament game
+      parameters:
+      - description: Contest ID
+        in: path
+        name: contestId
+        required: true
+        type: integer
+      - description: Game ID
+        in: path
+        name: gameId
+        required: true
+        type: integer
+      - description: Schedule request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.ScheduleGameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.ScheduleGameResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Set game scheduled start time
+      tags:
+      - games
+      - match-detection
   /api/contests/{contestId}/members:
     get:
       consumes:
@@ -2060,6 +2491,39 @@ paths:
       summary: Get all games for a contest
       tags:
       - games
+  /api/contests/{id}/result:
+    get:
+      description: Returns the full tournament bracket with game results and champion
+      parameters:
+      - description: Contest ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/GAMERS-BE_internal_game_application_dto.ContestResultResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GAMERS-BE_internal_global_response.Response'
+      summary: Get tournament contest result
+      tags:
+      - games
+      - tournaments
   /api/contests/{id}/start:
     post:
       consumes:

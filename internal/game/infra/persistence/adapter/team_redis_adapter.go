@@ -1,9 +1,9 @@
 package adapter
 
 import (
-	"GAMERS-BE/internal/game/application/port"
-	"GAMERS-BE/internal/global/exception"
-	"GAMERS-BE/internal/global/utils"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/utils"
 	"context"
 	"encoding/json"
 	"errors"
@@ -496,6 +496,22 @@ func (a *TeamRedisAdapter) GetUserTeams(ctx context.Context, userID int64) ([]in
 	}
 
 	return contestIDs, nil
+}
+
+// IncrementFinalizedTeamCount atomically increments the finalized team count for a contest
+func (a *TeamRedisAdapter) IncrementFinalizedTeamCount(ctx context.Context, contestID int64) (int64, error) {
+	key := "contest:" + strconv.FormatInt(contestID, 10) + ":finalized_team_count"
+	return a.client.Incr(ctx, key).Result()
+}
+
+// GetFinalizedTeamCount returns the current finalized team count for a contest
+func (a *TeamRedisAdapter) GetFinalizedTeamCount(ctx context.Context, contestID int64) (int64, error) {
+	key := "contest:" + strconv.FormatInt(contestID, 10) + ":finalized_team_count"
+	val, err := a.client.Get(ctx, key).Int64()
+	if errors.Is(err, redis.Nil) {
+		return 0, nil
+	}
+	return val, err
 }
 
 // ClearTeam removes all team-related data from Redis

@@ -1,8 +1,8 @@
 package adapter
 
 import (
-	"GAMERS-BE/internal/game/application/port"
-	"GAMERS-BE/internal/global/config"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/config"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -198,6 +198,62 @@ func (a *TeamEventPublisherRabbitMQAdapter) PublishTeamFinalizedEvent(
 				"discord_guild_id":        event.DiscordGuildID,
 				"discord_text_channel_id": event.DiscordTextChannelID,
 				"member_count":            event.MemberCount,
+			},
+		},
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to publish event: %w", err)
+	}
+
+	return nil
+}
+
+func (a *TeamEventPublisherRabbitMQAdapter) PublishContestTeamsReadyEvent(
+	ctx context.Context,
+	event *port.ContestTeamsReadyEvent,
+) error {
+	channel, err := a.connection.GetChannel()
+	if err != nil {
+		return fmt.Errorf("failed to get channel: %w", err)
+	}
+
+	if event.EventID == "" {
+		event.EventID = uuid.New().String()
+	}
+	if event.Timestamp.IsZero() {
+		event.Timestamp = time.Now()
+	}
+
+	body, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event: %w", err)
+	}
+
+	routingKey := a.buildRoutingKey(event.EventType)
+
+	publishCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	err = channel.PublishWithContext(
+		publishCtx,
+		a.exchange,
+		routingKey,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType:  "application/json",
+			DeliveryMode: amqp.Persistent,
+			Timestamp:    event.Timestamp,
+			MessageId:    event.EventID,
+			Body:         body,
+			Headers: amqp.Table{
+				"event_type":              string(event.EventType),
+				"contest_id":              event.ContestID,
+				"finalized_team_count":    event.FinalizedTeamCount,
+				"max_team_count":          event.MaxTeamCount,
+				"discord_guild_id":        event.DiscordGuildID,
+				"discord_text_channel_id": event.DiscordTextChannelID,
 			},
 		},
 	)

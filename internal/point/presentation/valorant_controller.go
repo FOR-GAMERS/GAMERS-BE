@@ -1,11 +1,11 @@
 package presentation
 
 import (
-	"GAMERS-BE/internal/global/common/handler"
-	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/global/response"
-	"GAMERS-BE/internal/point/application"
-	pointDto "GAMERS-BE/internal/point/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/handler"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/response"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/point/application"
+	pointDto "github.com/FOR-GAMERS/GAMERS-BE/internal/point/application/dto"
 	"strconv"
 
 	"github.com/gin-gonic/gin"

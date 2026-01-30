@@ -1,10 +1,10 @@
 package notification
 
 import (
-	"GAMERS-BE/internal/global/common/router"
-	"GAMERS-BE/internal/notification/application"
-	"GAMERS-BE/internal/notification/infra/persistence/adapter"
-	"GAMERS-BE/internal/notification/presentation"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/infra/persistence/adapter"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/notification/presentation"
 
 	"gorm.io/gorm"
 )

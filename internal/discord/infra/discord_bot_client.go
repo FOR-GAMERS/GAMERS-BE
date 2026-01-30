@@ -1,7 +1,7 @@
 package infra
 
 import (
-	"GAMERS-BE/internal/discord/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application/dto"
 	"encoding/json"
 	"errors"
 	"fmt"

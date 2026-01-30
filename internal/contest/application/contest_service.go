@@ -1,13 +1,15 @@
 package application
 
 import (
-	"GAMERS-BE/internal/contest/application/dto"
-	"GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/contest/domain"
-	gameDomain "GAMERS-BE/internal/game/domain"
-	commonDto "GAMERS-BE/internal/global/common/dto"
-	"GAMERS-BE/internal/global/exception"
-	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/domain"
+	gameApplication "github.com/FOR-GAMERS/GAMERS-BE/internal/game/application"
+	gameDomain "github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
+	gamePort "github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	commonDto "github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	oauth2Port "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/application/port"
 	"context"
 	"errors"
 	"log"
@@ -17,6 +19,7 @@ import (
 // TournamentGeneratorPort defines the interface for tournament generation
 type TournamentGeneratorPort interface {
 	GenerateTournamentBracket(contestID int64, maxTeamCount int, gameTeamType gameDomain.GameTeamType) ([]*gameDomain.Game, error)
+	ShuffleAndAllocateTeamsWithResult(contestID int64, gameTeamRepo gamePort.GameTeamDatabasePort) (*gameApplication.TeamAllocationResult, error)
 }
 
 type ContestService struct {
@@ -27,6 +30,8 @@ type ContestService struct {
 	eventPublisher        port.EventPublisherPort
 	discordValidator      port.DiscordValidationPort
 	tournamentGenerator   TournamentGeneratorPort
+	teamDBPort            gamePort.TeamDatabasePort
+	gameTeamDBPort        gamePort.GameTeamDatabasePort
 }
 
 func NewContestService(
@@ -73,6 +78,8 @@ func NewContestServiceFull(
 	eventPublisher port.EventPublisherPort,
 	discordValidator port.DiscordValidationPort,
 	tournamentGenerator TournamentGeneratorPort,
+	teamDBPort gamePort.TeamDatabasePort,
+	gameTeamDBPort gamePort.GameTeamDatabasePort,
 ) *ContestService {
 	return &ContestService{
 		repository:            repository,
@@ -82,6 +89,8 @@ func NewContestServiceFull(
 		eventPublisher:        eventPublisher,
 		discordValidator:      discordValidator,
 		tournamentGenerator:   tournamentGenerator,
+		teamDBPort:            teamDBPort,
+		gameTeamDBPort:        gameTeamDBPort,
 	}
 }
 
@@ -135,14 +144,6 @@ func (c *ContestService) SaveContest(req *dto.CreateContestRequest, userId int64
 		// If member save fails, we should consider rolling back the contest creation
 		// For now, we'll return the error
 		return nil, nil, err
-	}
-
-	// Generate tournament bracket for TOURNAMENT type contests
-	if savedContest.ContestType == domain.ContestTypeTournament && c.tournamentGenerator != nil {
-		if err := c.generateTournamentBracket(savedContest); err != nil {
-			// Log error but don't fail contest creation
-			log.Printf("Failed to generate tournament bracket for contest %d: %v", savedContest.ContestID, err)
-		}
 	}
 
 	// Publish contest created event (async - failure doesn't affect contest creation)
@@ -284,7 +285,87 @@ func (c *ContestService) StartContest(ctx context.Context, contestId, userId int
 		return nil, exception.ErrContestCannotStart
 	}
 
-	acceptedUserIDs, err := c.applicationRepository.GetAcceptedApplications(ctx, contestId)
+	if contest.ContestType == domain.ContestTypeTournament {
+		return c.startTournamentContest(ctx, contest)
+	}
+	return c.startNonTournamentContest(ctx, contest)
+}
+
+// startTournamentContest handles starting a tournament-type contest
+func (c *ContestService) startTournamentContest(ctx context.Context, contest *domain.Contest) (*domain.Contest, error) {
+	// Verify finalized team count
+	if c.teamDBPort != nil {
+		teamCount, err := c.teamDBPort.CountByContestID(contest.ContestID)
+		if err != nil {
+			return nil, err
+		}
+		if teamCount < contest.MaxTeamCount {
+			return nil, exception.ErrNotEnoughTeams
+		}
+	}
+
+	// Convert team members to contest members
+	if c.teamDBPort != nil {
+		teamsWithMembers, err := c.teamDBPort.GetTeamsByContestWithMembers(contest.ContestID)
+		if err != nil {
+			return nil, err
+		}
+
+		var members []*domain.ContestMember
+		for _, twm := range teamsWithMembers {
+			for _, m := range twm.Members {
+				leaderType := domain.LeaderTypeMember
+				if m.MemberType == gameDomain.TeamMemberTypeLeader {
+					leaderType = domain.LeaderTypeLeader
+				}
+				member := domain.NewContestMember(m.UserID, contest.ContestID, domain.MemberTypeNormal, leaderType)
+				members = append(members, member)
+			}
+		}
+
+		if len(members) > 0 {
+			if err := c.memberRepository.SaveBatch(members); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// Transition to ACTIVE
+	if err := contest.TransitionTo(domain.ContestStatusActive); err != nil {
+		return nil, err
+	}
+	if err := c.repository.UpdateContest(contest); err != nil {
+		return nil, err
+	}
+
+	// Generate bracket
+	if c.tournamentGenerator != nil {
+		if err := c.generateTournamentBracket(contest); err != nil {
+			log.Printf("[StartContest] Failed to generate bracket for contest %d: %v", contest.ContestID, err)
+			return nil, err
+		}
+
+		// Shuffle and allocate teams to first round
+		if c.gameTeamDBPort != nil {
+			_, err := c.tournamentGenerator.ShuffleAndAllocateTeamsWithResult(contest.ContestID, c.gameTeamDBPort)
+			if err != nil {
+				log.Printf("[StartContest] Failed to allocate teams for contest %d: %v", contest.ContestID, err)
+				return nil, err
+			}
+		}
+	}
+
+	// Clear applications
+	if err := c.applicationRepository.ClearApplications(ctx, contest.ContestID); err != nil {
+		log.Printf("[StartContest] Failed to clear applications for contest %d: %v", contest.ContestID, err)
+	}
+
+	return contest, nil
+}
+
+// startNonTournamentContest handles starting a non-tournament contest (individual applications)
+func (c *ContestService) startNonTournamentContest(ctx context.Context, contest *domain.Contest) (*domain.Contest, error) {
+	acceptedUserIDs, err := c.applicationRepository.GetAcceptedApplications(ctx, contest.ContestID)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +373,7 @@ func (c *ContestService) StartContest(ctx context.Context, contestId, userId int
 	if len(acceptedUserIDs) > 0 {
 		members := make([]*domain.ContestMember, 0, len(acceptedUserIDs))
 		for _, userID := range acceptedUserIDs {
-			member := domain.NewContestMember(userID, contestId, domain.MemberTypeNormal, domain.LeaderTypeMember)
+			member := domain.NewContestMember(userID, contest.ContestID, domain.MemberTypeNormal, domain.LeaderTypeMember)
 			members = append(members, member)
 		}
 
@@ -309,8 +390,8 @@ func (c *ContestService) StartContest(ctx context.Context, contestId, userId int
 		return nil, err
 	}
 
-	if err := c.applicationRepository.ClearApplications(ctx, contestId); err != nil {
-		log.Fatal(err)
+	if err := c.applicationRepository.ClearApplications(ctx, contest.ContestID); err != nil {
+		log.Printf("[StartContest] Failed to clear applications for contest %d: %v", contest.ContestID, err)
 	}
 
 	return contest, nil

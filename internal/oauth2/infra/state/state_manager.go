@@ -1,7 +1,7 @@
 package state
 
 import (
-	"GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 	"crypto/rand"
 	"encoding/base64"
 	"sync"

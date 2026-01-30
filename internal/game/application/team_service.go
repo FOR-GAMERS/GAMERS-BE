@@ -1,14 +1,14 @@
 package application
 
 import (
-	contestPort "GAMERS-BE/internal/contest/application/port"
-	"GAMERS-BE/internal/game/application/dto"
-	"GAMERS-BE/internal/game/application/port"
-	"GAMERS-BE/internal/game/domain"
-	"GAMERS-BE/internal/global/exception"
-	notificationPort "GAMERS-BE/internal/notification/application/port"
-	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
-	userQueryPort "GAMERS-BE/internal/user/application/port/port"
+	contestPort "github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
+	notificationPort "github.com/FOR-GAMERS/GAMERS-BE/internal/notification/application/port"
+	oauth2Port "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/application/port"
+	userQueryPort "github.com/FOR-GAMERS/GAMERS-BE/internal/user/application/port/port"
 	"context"
 	"log"
 	"time"
@@ -584,6 +584,14 @@ func (s *TeamService) FinalizeTeam(ctx context.Context, contestID, userID int64)
 		go s.publishTeamFinalizedEventForContest(ctx, contest, leader, len(members), memberUserIDs)
 	}
 
+	// Increment finalized team count and check if all teams are ready
+	finalizedCount, err := s.teamRedisRepo.IncrementFinalizedTeamCount(ctx, contestID)
+	if err != nil {
+		log.Printf("[TeamService] Failed to increment finalized team count for contest %d: %v", contestID, err)
+	} else if contest != nil && int(finalizedCount) == contest.MaxTeamCount {
+		go s.publishContestTeamsReadyEvent(ctx, contestID, int(finalizedCount))
+	}
+
 	return nil
 }
 
@@ -783,6 +791,34 @@ func (s *TeamService) publishTeamFinalizedEventForContest(
 	}
 
 	_ = s.eventPublisher.PublishTeamFinalizedEvent(ctx, event)
+}
+
+// publishContestTeamsReadyEvent publishes an event when all teams in a contest are finalized
+func (s *TeamService) publishContestTeamsReadyEvent(ctx context.Context, contestID int64, finalizedCount int) {
+	contestDetails, err := s.contestRepository.GetContestById(contestID)
+	if err != nil {
+		log.Printf("[TeamService] Failed to get contest %d for teams ready event: %v", contestID, err)
+		return
+	}
+
+	event := &port.ContestTeamsReadyEvent{
+		EventType:          port.TeamEventTypeContestTeamsReady,
+		Timestamp:          time.Now(),
+		ContestID:          contestID,
+		FinalizedTeamCount: finalizedCount,
+		MaxTeamCount:       contestDetails.MaxTeamCount,
+	}
+
+	if contestDetails.DiscordGuildId != nil {
+		event.DiscordGuildID = *contestDetails.DiscordGuildId
+	}
+	if contestDetails.DiscordTextChannelId != nil {
+		event.DiscordTextChannelID = *contestDetails.DiscordTextChannelId
+	}
+
+	if err := s.eventPublisher.PublishContestTeamsReadyEvent(ctx, event); err != nil {
+		log.Printf("[TeamService] Failed to publish contest teams ready event: %v", err)
+	}
 }
 
 // SSE notification helper methods

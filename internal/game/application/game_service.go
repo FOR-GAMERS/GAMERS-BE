@@ -1,10 +1,10 @@
 package application
 
 import (
-	"GAMERS-BE/internal/game/application/dto"
-	"GAMERS-BE/internal/game/application/port"
-	"GAMERS-BE/internal/game/domain"
-	"GAMERS-BE/internal/global/exception"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/dto"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/game/domain"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 )
 
 type GameService struct {
@@ -143,6 +143,34 @@ func (s *GameService) CancelGame(gameID, userID int64) (*domain.Game, error) {
 	}
 
 	return game, nil
+}
+
+// ScheduleGame sets the scheduled start time and detection window for a game
+func (s *GameService) ScheduleGame(gameID int64, req *dto.ScheduleGameRequest) (*domain.Game, error) {
+	game, err := s.gameRepository.GetByID(gameID)
+	if err != nil {
+		return nil, err
+	}
+
+	windowMinutes := req.DetectionWindowMinutes
+	if windowMinutes <= 0 {
+		windowMinutes = 120
+	}
+
+	if err := game.SetSchedule(req.ScheduledStartTime, windowMinutes); err != nil {
+		return nil, err
+	}
+
+	if err := s.gameRepository.Update(game); err != nil {
+		return nil, err
+	}
+
+	return game, nil
+}
+
+// GetDetectionStatus returns a game with its detection status
+func (s *GameService) GetDetectionStatus(gameID int64) (*domain.Game, error) {
+	return s.gameRepository.GetByID(gameID)
 }
 
 // DeleteGame deletes a game (Leader only, only in PENDING status)

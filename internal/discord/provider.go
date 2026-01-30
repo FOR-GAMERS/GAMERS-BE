@@ -1,15 +1,15 @@
 package discord
 
 import (
-	"GAMERS-BE/internal/discord/application"
-	"GAMERS-BE/internal/discord/application/port"
-	"GAMERS-BE/internal/discord/infra"
-	discordAdapter "GAMERS-BE/internal/discord/infra/persistence/adapter"
-	"GAMERS-BE/internal/discord/presentation"
-	"GAMERS-BE/internal/global/common/handler"
-	"GAMERS-BE/internal/global/common/router"
-	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
-	oauth2Adapter "GAMERS-BE/internal/oauth2/infra/persistence/adapter"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/infra"
+	discordAdapter "github.com/FOR-GAMERS/GAMERS-BE/internal/discord/infra/persistence/adapter"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/presentation"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/handler"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/common/router"
+	oauth2Port "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/application/port"
+	oauth2Adapter "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/infra/persistence/adapter"
 	"context"
 
 	"github.com/redis/go-redis/v9"

@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"GAMERS-BE/internal/contest/application/port"
+	"github.com/FOR-GAMERS/GAMERS-BE/internal/contest/application/port"
 	"time"
 )
 

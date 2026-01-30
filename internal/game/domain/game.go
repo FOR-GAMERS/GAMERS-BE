@@ -395,6 +395,13 @@ func (g *Game) MarkManualResult() error {
 	return g.TransitionDetectionTo(DetectionStatusManual)
 }
 
+// ForceDetectionStatus forces the detection status regardless of allowed transitions.
+// Use only for manual overrides where normal state transitions are not applicable.
+func (g *Game) ForceDetectionStatus(status DetectionStatus) {
+	g.DetectionStatus = status
+	g.ModifiedAt = time.Now()
+}
+
 // FinishGame transitions game to FINISHED and records end time
 func (g *Game) FinishGame() error {
 	if err := g.TransitionTo(GameStatusFinished); err != nil {

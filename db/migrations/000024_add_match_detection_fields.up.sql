@@ -10,13 +10,13 @@ CREATE INDEX idx_games_scheduled ON games(scheduled_start_time, game_status);
 
 -- Match results table
 CREATE TABLE match_results (
-    match_result_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    game_id         BIGINT NOT NULL,
+    match_result_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    game_id         BIGINT UNSIGNED NOT NULL,
     valorant_match_id VARCHAR(255) NOT NULL,
     map_name        VARCHAR(50),
     rounds_played   INT NOT NULL,
-    winner_team_id  BIGINT NOT NULL,
-    loser_team_id   BIGINT NOT NULL,
+    winner_team_id  BIGINT UNSIGNED NOT NULL,
+    loser_team_id   BIGINT UNSIGNED NOT NULL,
     winner_score    INT NOT NULL,
     loser_score     INT NOT NULL,
     game_started_at DATETIME NOT NULL,
@@ -32,10 +32,10 @@ CREATE TABLE match_results (
 
 -- Match player stats table
 CREATE TABLE match_player_stats (
-    match_player_stat_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    match_result_id      BIGINT NOT NULL,
-    user_id              BIGINT NOT NULL,
-    team_id              BIGINT NOT NULL,
+    match_player_stat_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    match_result_id      BIGINT UNSIGNED NOT NULL,
+    user_id              BIGINT UNSIGNED NOT NULL,
+    team_id              BIGINT UNSIGNED NOT NULL,
     agent_name           VARCHAR(50),
     kills                INT NOT NULL DEFAULT 0,
     deaths               INT NOT NULL DEFAULT 0,

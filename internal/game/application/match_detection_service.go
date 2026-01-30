@@ -489,7 +489,7 @@ func (s *MatchDetectionService) SubmitManualResult(gameID int64, req *dto.Manual
 	// Mark as manual
 	if err := game.MarkManualResult(); err != nil {
 		// If state doesn't allow transition, force it for manual override
-		game.DetectionStatus = domain.DetectionStatusManual
+		game.ForceDetectionStatus(domain.DetectionStatusManual)
 	}
 
 	// Create match result (no Valorant match ID for manual)

@@ -18,6 +18,7 @@ const (
 	TeamEventTypeLeadershipTransfer TeamEventType = "team.leadership.transferred"
 	TeamEventTypeTeamFinalized      TeamEventType = "team.finalized"
 	TeamEventTypeTeamDeleted        TeamEventType = "team.deleted"
+	TeamEventTypeContestTeamsReady  TeamEventType = "contest.teams.ready"
 )
 
 // TeamInviteEvent represents an event when a team invite is sent
@@ -69,6 +70,19 @@ type TeamFinalizedEvent struct {
 	Data                 map[string]interface{} `json:"data,omitempty"`
 }
 
+// ContestTeamsReadyEvent represents an event when all teams in a contest are finalized
+type ContestTeamsReadyEvent struct {
+	EventID              string                 `json:"event_id"`
+	EventType            TeamEventType          `json:"event_type"`
+	Timestamp            time.Time              `json:"timestamp"`
+	ContestID            int64                  `json:"contest_id"`
+	FinalizedTeamCount   int                    `json:"finalized_team_count"`
+	MaxTeamCount         int                    `json:"max_team_count"`
+	DiscordGuildID       string                 `json:"discord_guild_id,omitempty"`
+	DiscordTextChannelID string                 `json:"discord_text_channel_id,omitempty"`
+	Data                 map[string]interface{} `json:"data,omitempty"`
+}
+
 // TeamEventPublisherPort defines the interface for publishing team-related events
 type TeamEventPublisherPort interface {
 	// PublishTeamInviteEvent publishes a team invite event
@@ -79,6 +93,9 @@ type TeamEventPublisherPort interface {
 
 	// PublishTeamFinalizedEvent publishes a team finalized event
 	PublishTeamFinalizedEvent(ctx context.Context, event *TeamFinalizedEvent) error
+
+	// PublishContestTeamsReadyEvent publishes an event when all teams in a contest are finalized
+	PublishContestTeamsReadyEvent(ctx context.Context, event *ContestTeamsReadyEvent) error
 
 	// Close gracefully shuts down the publisher
 	Close() error

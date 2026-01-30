@@ -9,6 +9,8 @@ import (
 	"GAMERS-BE/internal/global/common/handler"
 	"GAMERS-BE/internal/global/common/router"
 	"GAMERS-BE/internal/global/config"
+	"os"
+
 	oauth2Port "GAMERS-BE/internal/oauth2/application/port"
 	userQueryPort "GAMERS-BE/internal/user/application/port/port"
 
@@ -17,14 +19,18 @@ import (
 )
 
 type Dependencies struct {
-	GameController          *presentation.GameController
-	TeamController          *presentation.TeamController
-	GameTeamController      *presentation.GameTeamController
-	GameRepository          port.GameDatabasePort
-	TeamRepository          port.TeamDatabasePort
-	TeamService             *application.TeamService
-	TeamPersistenceConsumer port.TeamPersistenceConsumerPort
-	TeamPersistenceHandler  *application.TeamPersistenceHandler
+	GameController            *presentation.GameController
+	TeamController            *presentation.TeamController
+	GameTeamController        *presentation.GameTeamController
+	GameRepository            port.GameDatabasePort
+	TeamRepository            port.TeamDatabasePort
+	GameTeamRepository        port.GameTeamDatabasePort
+	TeamService               *application.TeamService
+	TeamPersistenceConsumer   port.TeamPersistenceConsumerPort
+	TeamPersistenceHandler    *application.TeamPersistenceHandler
+	GameSchedulerService      *application.GameSchedulerService
+	MatchDetectionService     *application.MatchDetectionService
+	TournamentResultService   *application.TournamentResultService
 }
 
 func ProvideGameDependencies(
@@ -42,6 +48,7 @@ func ProvideGameDependencies(
 	gameDatabaseAdapter := adapter.NewGameDatabaseAdapter(db)
 	teamDatabaseAdapter := adapter.NewTeamDatabaseAdapter(db)
 	gameTeamDatabaseAdapter := adapter.NewGameTeamDatabaseAdapter(db)
+	matchResultDatabaseAdapter := adapter.NewMatchResultDatabaseAdapter(db)
 
 	// Redis Adapter for Team
 	teamRedisAdapter := adapter.NewTeamRedisAdapter(redisClient)
@@ -67,6 +74,16 @@ func ProvideGameDependencies(
 	// Persistence Handler for DB operations
 	teamPersistenceHandler := application.NewTeamPersistenceHandler(teamDatabaseAdapter)
 
+	// Game Event Publisher (RabbitMQ)
+	gameEventPublisher := adapter.NewGameEventPublisherRabbitMQAdapter(
+		rabbitmqConn,
+		rabbitmqConn.Config().Exchange,
+	)
+
+	// Valorant API Adapter for match detection
+	valorantAPIKey := os.Getenv("VALORANT_API_KEY")
+	matchDetectionAdapter := adapter.NewMatchDetectionValorantAdapter(valorantAPIKey)
+
 	// Services
 	gameService := application.NewGameService(
 		gameDatabaseAdapter,
@@ -90,10 +107,40 @@ func ProvideGameDependencies(
 		contestRepository,
 	)
 
+	// Match Detection Service
+	matchDetectionService := application.NewMatchDetectionService(
+		matchDetectionAdapter,
+		gameDatabaseAdapter,
+		gameTeamDatabaseAdapter,
+		teamDatabaseAdapter,
+		matchResultDatabaseAdapter,
+		gameEventPublisher,
+		userQueryRepo,
+	)
+
+	// Game Scheduler Service (with Redis distributed lock)
+	gameSchedulerService := application.NewGameSchedulerService(
+		gameDatabaseAdapter,
+		matchDetectionService,
+		gameEventPublisher,
+		redisClient,
+	)
+
+	// Tournament Result Service
+	tournamentResultService := application.NewTournamentResultService(
+		gameDatabaseAdapter,
+		gameTeamDatabaseAdapter,
+		teamDatabaseAdapter,
+		matchResultDatabaseAdapter,
+		contestRepository,
+	)
+
 	// Controllers
 	gameController := presentation.NewGameController(
 		router,
 		gameService,
+		matchDetectionService,
+		tournamentResultService,
 		controllerHelper,
 	)
 
@@ -115,8 +162,12 @@ func ProvideGameDependencies(
 		GameTeamController:      gameTeamController,
 		GameRepository:          gameDatabaseAdapter,
 		TeamRepository:          teamDatabaseAdapter,
+		GameTeamRepository:      gameTeamDatabaseAdapter,
 		TeamService:             teamService,
 		TeamPersistenceConsumer: teamPersistenceConsumer,
 		TeamPersistenceHandler:  teamPersistenceHandler,
+		GameSchedulerService:    gameSchedulerService,
+		MatchDetectionService:   matchDetectionService,
+		TournamentResultService: tournamentResultService,
 	}
 }

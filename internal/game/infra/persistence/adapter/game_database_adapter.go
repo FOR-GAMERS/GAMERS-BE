@@ -5,6 +5,7 @@ import (
 	"GAMERS-BE/internal/global/exception"
 	"errors"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -99,6 +100,34 @@ func (a *GameDatabaseAdapter) DeleteByContestID(contestID int64) error {
 		return a.translateError(result.Error)
 	}
 	return nil
+}
+
+// GetGamesReadyToStart returns games with scheduled_start_time <= now and status PENDING
+func (a *GameDatabaseAdapter) GetGamesReadyToStart() ([]*domain.Game, error) {
+	var games []*domain.Game
+	result := a.db.Where(
+		"game_status = ? AND scheduled_start_time IS NOT NULL AND scheduled_start_time <= ?",
+		domain.GameStatusPending, time.Now(),
+	).Find(&games)
+
+	if result.Error != nil {
+		return nil, a.translateError(result.Error)
+	}
+	return games, nil
+}
+
+// GetGamesInDetection returns games with status ACTIVE and detection_status DETECTING
+func (a *GameDatabaseAdapter) GetGamesInDetection() ([]*domain.Game, error) {
+	var games []*domain.Game
+	result := a.db.Where(
+		"game_status = ? AND detection_status = ?",
+		domain.GameStatusActive, domain.DetectionStatusDetecting,
+	).Find(&games)
+
+	if result.Error != nil {
+		return nil, a.translateError(result.Error)
+	}
+	return games, nil
 }
 
 func (a *GameDatabaseAdapter) translateError(err error) error {

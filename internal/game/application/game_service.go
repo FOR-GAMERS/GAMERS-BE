@@ -145,6 +145,34 @@ func (s *GameService) CancelGame(gameID, userID int64) (*domain.Game, error) {
 	return game, nil
 }
 
+// ScheduleGame sets the scheduled start time and detection window for a game
+func (s *GameService) ScheduleGame(gameID int64, req *dto.ScheduleGameRequest) (*domain.Game, error) {
+	game, err := s.gameRepository.GetByID(gameID)
+	if err != nil {
+		return nil, err
+	}
+
+	windowMinutes := req.DetectionWindowMinutes
+	if windowMinutes <= 0 {
+		windowMinutes = 120
+	}
+
+	if err := game.SetSchedule(req.ScheduledStartTime, windowMinutes); err != nil {
+		return nil, err
+	}
+
+	if err := s.gameRepository.Update(game); err != nil {
+		return nil, err
+	}
+
+	return game, nil
+}
+
+// GetDetectionStatus returns a game with its detection status
+func (s *GameService) GetDetectionStatus(gameID int64) (*domain.Game, error) {
+	return s.gameRepository.GetByID(gameID)
+}
+
 // DeleteGame deletes a game (Leader only, only in PENDING status)
 func (s *GameService) DeleteGame(gameID, userID int64) error {
 	game, err := s.gameRepository.GetByID(gameID)

@@ -265,6 +265,26 @@ func (a *InMemoryGameAdapter) DeleteByContestID(contestID int64) error {
 	return nil
 }
 
+func (a *InMemoryGameAdapter) GetGamesReadyToStart() ([]*gameDomain.Game, error) {
+	var result []*gameDomain.Game
+	for _, game := range a.games {
+		if game.IsReadyToActivate() {
+			result = append(result, game)
+		}
+	}
+	return result, nil
+}
+
+func (a *InMemoryGameAdapter) GetGamesInDetection() ([]*gameDomain.Game, error) {
+	var result []*gameDomain.Game
+	for _, game := range a.games {
+		if game.IsDetecting() {
+			result = append(result, game)
+		}
+	}
+	return result, nil
+}
+
 // InMemoryTeamAdapter implements TeamDatabasePort for testing
 type InMemoryTeamAdapter struct {
 	teams       map[int64]*gameDomain.Team
@@ -605,6 +625,8 @@ func (s *TournamentFlowTestSuite) SetupTest() {
 		s.mockEventPub,
 		nil, // discord validator
 		s.tournamentService,
+		s.teamAdapter,
+		s.gameTeamAdapter,
 	)
 }
 

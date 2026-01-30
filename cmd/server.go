@@ -125,10 +125,12 @@ func main() {
 		discordDeps.ValidationService,
 		gameDeps.GameRepository,
 		gameDeps.TeamRepository,
+		gameDeps.GameTeamRepository,
 	)
 
-	// Set contest repository for team service (to resolve circular dependency)
+	// Set contest repository for team service and tournament result service (to resolve circular dependency)
 	gameDeps.TeamService.SetContestRepository(contestDeps.ContestRepository)
+	gameDeps.TournamentResultService.SetContestDBPort(contestDeps.ContestRepository)
 
 	commentDeps := comment.ProvideCommentDependencies(db, appRouter, contestDeps.ContestRepository)
 

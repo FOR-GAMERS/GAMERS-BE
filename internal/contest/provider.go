@@ -152,6 +152,7 @@ func ProvideContestDependenciesFull(
 	discordValidationService *discordApplication.DiscordValidationService,
 	gameRepository gamePort.GameDatabasePort,
 	teamRepository gamePort.TeamDatabasePort,
+	gameTeamRepository gamePort.GameTeamDatabasePort,
 ) *Dependencies {
 	controllerHelper := handler.NewControllerHelper()
 
@@ -180,6 +181,8 @@ func ProvideContestDependenciesFull(
 		eventPublisher,
 		discordValidationAdapter,
 		tournamentService,
+		teamRepository,
+		gameTeamRepository,
 	)
 	contestController := presentation.NewContestController(router, contestService, controllerHelper)
 

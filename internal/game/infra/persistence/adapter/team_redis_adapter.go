@@ -498,6 +498,22 @@ func (a *TeamRedisAdapter) GetUserTeams(ctx context.Context, userID int64) ([]in
 	return contestIDs, nil
 }
 
+// IncrementFinalizedTeamCount atomically increments the finalized team count for a contest
+func (a *TeamRedisAdapter) IncrementFinalizedTeamCount(ctx context.Context, contestID int64) (int64, error) {
+	key := "contest:" + strconv.FormatInt(contestID, 10) + ":finalized_team_count"
+	return a.client.Incr(ctx, key).Result()
+}
+
+// GetFinalizedTeamCount returns the current finalized team count for a contest
+func (a *TeamRedisAdapter) GetFinalizedTeamCount(ctx context.Context, contestID int64) (int64, error) {
+	key := "contest:" + strconv.FormatInt(contestID, 10) + ":finalized_team_count"
+	val, err := a.client.Get(ctx, key).Int64()
+	if errors.Is(err, redis.Nil) {
+		return 0, nil
+	}
+	return val, err
+}
+
 // ClearTeam removes all team-related data from Redis
 func (a *TeamRedisAdapter) ClearTeam(ctx context.Context, contestID int64) error {
 	// Get all members to clean up user tracking

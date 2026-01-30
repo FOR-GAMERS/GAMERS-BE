@@ -391,7 +391,7 @@ func (c *ContestService) startNonTournamentContest(ctx context.Context, contest 
 	}
 
 	if err := c.applicationRepository.ClearApplications(ctx, contest.ContestID); err != nil {
-		log.Fatal(err)
+		log.Printf("[StartContest] Failed to clear applications for contest %d: %v", contest.ContestID, err)
 	}
 
 	return contest, nil

@@ -10,6 +10,9 @@ RUN go mod download
 # Copy source code
 COPY .. .
 
+# Install golang-migrate CLI
+RUN go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
 # Build the application from cmd/api
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags="-s -w" \
@@ -30,7 +33,7 @@ RUN echo "=== Builder Stage File Structure ===" && \
 FROM alpine:3.20
 
 # 필수 패키지 설치
-RUN apk --no-cache add ca-certificates tzdata wget curl
+RUN apk --no-cache add ca-certificates tzdata wget curl make
 
 # 비root 유저 생성
 RUN addgroup -g 1000 appgroup && \
@@ -41,6 +44,12 @@ WORKDIR /app
 
 # ⭐ 바이너리 복사
 COPY --from=builder --chown=appuser:appgroup /app/server .
+
+# ⭐ golang-migrate CLI 복사
+COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
+
+# ⭐ Makefile 복사 (make migrate-up 등 실행용)
+COPY --from=builder --chown=appuser:appgroup /app/Makefile .
 
 # ⭐ db 디렉토리 복사 (migrations 포함)
 COPY --from=builder --chown=appuser:appgroup /app/db ./db

@@ -1,6 +1,10 @@
 package main
 
 import (
+	"context"
+	"log"
+	"os"
+
 	"github.com/FOR-GAMERS/GAMERS-BE/internal/auth"
 	authMiddleware "github.com/FOR-GAMERS/GAMERS-BE/internal/auth/middleware"
 	"github.com/FOR-GAMERS/GAMERS-BE/internal/banner"
@@ -18,9 +22,6 @@ import (
 	"github.com/FOR-GAMERS/GAMERS-BE/internal/storage"
 	"github.com/FOR-GAMERS/GAMERS-BE/internal/user"
 	"github.com/FOR-GAMERS/GAMERS-BE/internal/valorant"
-	"context"
-	"log"
-	"os"
 
 	_ "github.com/FOR-GAMERS/GAMERS-BE/docs"
 
@@ -33,6 +34,11 @@ import (
 )
 
 func init() {
+	if os.Getenv("GIN_MODE") == "release" {
+		log.Println("Production mode detected. Using system environment variables.")
+		return
+	}
+
 	// Load .env file from env directory
 	if err := godotenv.Load("env/.env"); err != nil {
 		log.Println("No env/.env file found, using system environment variables")

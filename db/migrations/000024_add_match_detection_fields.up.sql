@@ -10,13 +10,13 @@ CREATE INDEX idx_games_scheduled ON games(scheduled_start_time, game_status);
 
 -- Match results table
 CREATE TABLE match_results (
-    match_result_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    game_id         BIGINT UNSIGNED NOT NULL,
+    match_result_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    game_id         BIGINT NOT NULL,
     valorant_match_id VARCHAR(255) NOT NULL,
     map_name        VARCHAR(50),
     rounds_played   INT NOT NULL,
-    winner_team_id  BIGINT UNSIGNED NOT NULL,
-    loser_team_id   BIGINT UNSIGNED NOT NULL,
+    winner_team_id  BIGINT NOT NULL,
+    loser_team_id   BIGINT NOT NULL,
     winner_score    INT NOT NULL,
     loser_score     INT NOT NULL,
     game_started_at DATETIME NOT NULL,
@@ -28,14 +28,14 @@ CREATE TABLE match_results (
     CONSTRAINT fk_match_results_game FOREIGN KEY (game_id) REFERENCES games(game_id),
     CONSTRAINT fk_match_results_winner FOREIGN KEY (winner_team_id) REFERENCES teams(team_id),
     CONSTRAINT fk_match_results_loser FOREIGN KEY (loser_team_id) REFERENCES teams(team_id)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Match player stats table
 CREATE TABLE match_player_stats (
-    match_player_stat_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    match_result_id      BIGINT UNSIGNED NOT NULL,
-    user_id              BIGINT UNSIGNED NOT NULL,
-    team_id              BIGINT UNSIGNED NOT NULL,
+    match_player_stat_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    match_result_id      BIGINT NOT NULL,
+    user_id              BIGINT NOT NULL,
+    team_id              BIGINT NOT NULL,
     agent_name           VARCHAR(50),
     kills                INT NOT NULL DEFAULT 0,
     deaths               INT NOT NULL DEFAULT 0,
@@ -50,4 +50,4 @@ CREATE TABLE match_player_stats (
     CONSTRAINT fk_match_player_stats_result FOREIGN KEY (match_result_id) REFERENCES match_results(match_result_id),
     CONSTRAINT fk_match_player_stats_user FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT fk_match_player_stats_team FOREIGN KEY (team_id) REFERENCES teams(team_id)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

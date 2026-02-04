@@ -8,4 +8,5 @@ var (
 	ErrInvalidValorantRegion  = NewBadRequestError("Invalid region. Valid regions: ap, br, eu, kr, latam, na", "VAL003")
 	ErrValorantAlreadyLinked  = NewBusinessError(http.StatusConflict, "Valorant account is already linked", "VAL004")
 	ErrValorantPlayerNotFound = NewNotFoundError("Valorant player not found", "VAL005")
+	ErrValorantApiRateLimit   = NewBusinessError(http.StatusTooManyRequests, "Valorant API rate limit exceeded, please try again later", "VAL006")
 )

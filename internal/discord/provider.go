@@ -27,7 +27,8 @@ type Dependencies struct {
 func ProvideDiscordDependencies(r *router.Router, db *gorm.DB, redisClient *redis.Client, ctx *context.Context) *Dependencies {
 	controllerHelper := handler.NewControllerHelper()
 
-	botClient := infra.NewDiscordBotClient()
+	rawBotClient := infra.NewDiscordBotClient()
+	botClient := infra.NewCachedDiscordBotClient(rawBotClient, redisClient, *ctx)
 	userClient := infra.NewDiscordUserClient()
 
 	// Create Discord token Redis adapter for storing Discord OAuth2 tokens

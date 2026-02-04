@@ -93,7 +93,8 @@ func main() {
 	tokenService := authProvider.ProvideJwtService()
 	authInterceptor := authMiddleware.NewAuthMiddleware(tokenService)
 
-	appRouter := router.NewRouter(authInterceptor)
+	webURL := os.Getenv("WEB_URL")
+	appRouter := router.NewRouter(authInterceptor, webURL)
 
 	authDeps := auth.ProvideAuthDependencies(db, redisClient, &ctx, appRouter)
 

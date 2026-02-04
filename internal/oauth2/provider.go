@@ -51,7 +51,8 @@ func ProvideOAuth2Dependencies(db *gorm.DB, redisClient *redis.Client, ctx *cont
 	)
 
 	webURL := utils.GetEnv("WEB_URL", "http://localhost:3000")
-	discordController := presentation.NewDiscordController(router, oauth2Service, webURL)
+	cookieDomain := utils.GetEnv("COOKIE_DOMAIN", "")
+	discordController := presentation.NewDiscordController(router, oauth2Service, webURL, cookieDomain)
 
 	return &Dependencies{
 		Controller:       discordController,

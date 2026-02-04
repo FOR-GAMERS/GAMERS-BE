@@ -16,13 +16,15 @@ type DiscordController struct {
 	router        *router.Router
 	oauth2Service *application.DiscordService
 	webURL        string
+	cookieDomain  string
 }
 
-func NewDiscordController(router *router.Router, oauth2Service *application.DiscordService, webURL string) *DiscordController {
+func NewDiscordController(router *router.Router, oauth2Service *application.DiscordService, webURL string, cookieDomain string) *DiscordController {
 	return &DiscordController{
 		router:        router,
 		oauth2Service: oauth2Service,
 		webURL:        webURL,
+		cookieDomain:  cookieDomain,
 	}
 }
 
@@ -82,17 +84,20 @@ func (c *DiscordController) DiscordCallback(ctx *gin.Context) {
 	// Determine if we're in production (HTTPS) or development (HTTP)
 	isSecure := os.Getenv("ENV") == "production" || strings.HasPrefix(c.webURL, "https")
 	sameSite := http.SameSiteLaxMode
+	if isSecure {
+		sameSite = http.SameSiteNoneMode
+	}
 
 	// Set access token cookie
 	ctx.SetSameSite(sameSite)
 	ctx.SetCookie(
 		"access_token",
 		result.AccessToken,
-		60*15,     // 15 minutes (match JWT_ACCESS_DURATION)
+		60*15, // 15 minutes (match JWT_ACCESS_DURATION)
 		"/",
-		"",
+		c.cookieDomain, // e.g. ".gamers.io.kr" for cross-subdomain sharing
 		isSecure,
-		true,      // HttpOnly
+		true, // HttpOnly
 	)
 
 	// Set refresh token cookie
@@ -101,9 +106,9 @@ func (c *DiscordController) DiscordCallback(ctx *gin.Context) {
 		result.RefreshToken,
 		60*60*24*7, // 7 days (match JWT_REFRESH_DURATION)
 		"/",
-		"",
+		c.cookieDomain,
 		isSecure,
-		true,       // HttpOnly
+		true, // HttpOnly
 	)
 
 	// Set is_new_user cookie (not HttpOnly so frontend can read it)
@@ -114,11 +119,11 @@ func (c *DiscordController) DiscordCallback(ctx *gin.Context) {
 	ctx.SetCookie(
 		"is_new_user",
 		isNewUserValue,
-		60*5,      // 5 minutes (short-lived, just for frontend to check)
+		60*5, // 5 minutes (short-lived, just for frontend to check)
 		"/",
-		"",
+		c.cookieDomain,
 		isSecure,
-		false,     // Not HttpOnly so frontend can read
+		false, // Not HttpOnly so frontend can read
 	)
 
 	// Redirect to frontend login success page

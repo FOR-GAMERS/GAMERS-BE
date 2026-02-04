@@ -13,14 +13,19 @@ type Router struct {
 	authMiddleware *middleware.AuthMiddleware
 }
 
-func NewRouter(authMiddleware *middleware.AuthMiddleware) *Router {
+func NewRouter(authMiddleware *middleware.AuthMiddleware, webURL string) *Router {
 	engine := gin.New()
 	engine.SetTrustedProxies(nil)
 	engine.Use(gin.Logger())
 	engine.Use(gin.Recovery())
 
+	allowedOrigins := []string{"http://localhost:3000", "http://localhost:5173"}
+	if webURL != "" && webURL != "http://localhost:3000" {
+		allowedOrigins = append(allowedOrigins, webURL)
+	}
+
 	engine.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5173"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},

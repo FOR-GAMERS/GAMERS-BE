@@ -20,8 +20,17 @@ func NewRouter(authMiddleware *middleware.AuthMiddleware, webURL string) *Router
 	engine.Use(gin.Recovery())
 
 	allowedOrigins := []string{"http://localhost:3000", "http://localhost:5173"}
-	if webURL != "" && webURL != "http://localhost:3000" {
-		allowedOrigins = append(allowedOrigins, webURL)
+	if webURL != "" {
+		isDuplicate := false
+		for _, origin := range allowedOrigins {
+			if origin == webURL {
+				isDuplicate = true
+				break
+			}
+		}
+		if !isDuplicate {
+			allowedOrigins = append(allowedOrigins, webURL)
+		}
 	}
 
 	engine.Use(cors.New(cors.Config{

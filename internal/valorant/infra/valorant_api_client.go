@@ -1,6 +1,9 @@
 package infra
 
 import (
+	"log"
+	"time"
+
 	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 	"github.com/FOR-GAMERS/GAMERS-BE/internal/valorant/application/port"
 
@@ -8,7 +11,8 @@ import (
 )
 
 type ValorantApiClient struct {
-	client *govapi.VAPI
+	client     *govapi.VAPI
+	maxRetries int
 }
 
 func NewValorantApiClient(apiKey string) *ValorantApiClient {
@@ -19,25 +23,67 @@ func NewValorantApiClient(apiKey string) *ValorantApiClient {
 		client = govapi.New()
 	}
 	return &ValorantApiClient{
-		client: client,
+		client:     client,
+		maxRetries: 3,
 	}
 }
 
 func (c *ValorantApiClient) GetMMRByName(region, name, tag string) (*port.ValorantMMRData, error) {
-	// Get current MMR
-	mmrResp, err := c.client.GetMMRByNameV2(govapi.GetMMRByNameV2Params{
-		Affinity: region,
-		Name:     name,
-		Tag:      tag,
-	})
-	if err != nil {
-		return nil, exception.ErrValorantApiError
-	}
+	var mmrResp *govapi.GetMMRByNameV2Response
+	var err error
 
-	if mmrResp.Status != 200 {
-		if mmrResp.Status == 404 {
+	for attempt := 0; attempt <= c.maxRetries; attempt++ {
+		if attempt > 0 {
+			backoff := time.Duration(1<<uint(attempt-1)) * time.Second
+			log.Printf("[ValorantAPI] Retry attempt %d for GetMMRByName(%s#%s), waiting %v",
+				attempt, name, tag, backoff)
+			time.Sleep(backoff)
+		}
+
+		mmrResp, err = c.client.GetMMRByNameV2(govapi.GetMMRByNameV2Params{
+			Affinity: region,
+			Name:     name,
+			Tag:      tag,
+		})
+		if err == nil && mmrResp != nil && mmrResp.Status == 200 {
+			break
+		}
+
+		if mmrResp != nil && mmrResp.Status == 404 {
+			log.Printf("[ValorantAPI] Player not found: %s#%s in region %s", name, tag, region)
 			return nil, exception.ErrValorantPlayerNotFound
 		}
+
+		if mmrResp != nil && mmrResp.Status == 429 {
+			log.Printf("[ValorantAPI] Rate limited on GetMMRByName(%s#%s), attempt %d/%d",
+				name, tag, attempt, c.maxRetries)
+			continue
+		}
+
+		if err != nil {
+			log.Printf("[ValorantAPI] Error on GetMMRByName(%s#%s): %v (attempt %d/%d)",
+				name, tag, err, attempt, c.maxRetries)
+		} else if mmrResp != nil {
+			log.Printf("[ValorantAPI] Non-200 status %d on GetMMRByName(%s#%s) (attempt %d/%d)",
+				mmrResp.Status, name, tag, attempt, c.maxRetries)
+		}
+	}
+
+	if err != nil {
+		log.Printf("[ValorantAPI] All retries exhausted for GetMMRByName(%s#%s), last error: %v", name, tag, err)
+		return nil, exception.ErrValorantApiError
+	}
+	if mmrResp == nil || mmrResp.Status != 200 {
+		status := 0
+		if mmrResp != nil {
+			status = mmrResp.Status
+		}
+		if status == 429 {
+			log.Printf("[ValorantAPI] Rate limit exhausted for GetMMRByName(%s#%s) after %d retries",
+				name, tag, c.maxRetries)
+			return nil, exception.ErrValorantApiRateLimit
+		}
+		log.Printf("[ValorantAPI] Failed GetMMRByName(%s#%s), final status: %d", name, tag, status)
 		return nil, exception.ErrValorantApiError
 	}
 
@@ -68,8 +114,12 @@ func (c *ValorantApiClient) findPeakRank(region, name, tag string, currentTier i
 		Page:     "1",
 		Size:     "100",
 	})
-	if err != nil || historyResp.Status != 200 {
-		// If we can't get history, use current rank as peak
+	if err != nil {
+		log.Printf("[ValorantAPI] Failed to fetch MMR history for %s#%s: %v, using current rank as peak", name, tag, err)
+		return currentTier, currentTierPatched
+	}
+	if historyResp.Status != 200 {
+		log.Printf("[ValorantAPI] MMR history returned status %d for %s#%s, using current rank as peak", historyResp.Status, name, tag)
 		return currentTier, currentTierPatched
 	}
 

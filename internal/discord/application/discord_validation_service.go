@@ -1,11 +1,14 @@
 package application
 
 import (
+	"time"
+
+	"golang.org/x/sync/errgroup"
+
 	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application/dto"
 	"github.com/FOR-GAMERS/GAMERS-BE/internal/discord/application/port"
 	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/exception"
 	oauth2Port "github.com/FOR-GAMERS/GAMERS-BE/internal/oauth2/application/port"
-	"time"
 )
 
 // DiscordValidationService handles Discord validation logic for contests
@@ -116,6 +119,7 @@ func (s *DiscordValidationService) GetBotGuilds() ([]dto.DiscordGuild, error) {
 
 // GetAvailableGuilds returns guilds where both the GAMERS bot and the user are members.
 // This is used to determine which guilds a user can create contests in.
+// User guild and bot guild fetches run in parallel for better latency.
 func (s *DiscordValidationService) GetAvailableGuilds(userID int64) ([]dto.DiscordGuild, error) {
 	// Get user's Discord token from Redis
 	discordToken, err := s.discordTokenPort.GetToken(userID)
@@ -128,15 +132,25 @@ func (s *DiscordValidationService) GetAvailableGuilds(userID int64) ([]dto.Disco
 		return nil, exception.ErrDiscordTokenExpired
 	}
 
-	// Get all guilds the user is a member of using their access token
-	userGuilds, err := s.userClient.GetUserGuilds(discordToken.AccessToken)
-	if err != nil {
-		return nil, exception.ErrDiscordAPIError
-	}
+	var userGuilds []dto.DiscordGuild
+	var botGuilds []dto.DiscordGuild
 
-	// Get all guilds the bot is a member of
-	botGuilds, err := s.botClient.GetBotGuilds()
-	if err != nil {
+	// Fetch user guilds and bot guilds in parallel
+	g := new(errgroup.Group)
+
+	g.Go(func() error {
+		var err error
+		userGuilds, err = s.userClient.GetUserGuilds(discordToken.AccessToken)
+		return err
+	})
+
+	g.Go(func() error {
+		var err error
+		botGuilds, err = s.botClient.GetBotGuilds()
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
 		return nil, exception.ErrDiscordAPIError
 	}
 
@@ -158,6 +172,7 @@ func (s *DiscordValidationService) GetAvailableGuilds(userID int64) ([]dto.Disco
 }
 
 // GetAvailableGuildTextChannels returns text channels for a guild where both the bot and user are members.
+// Bot-in-guild validation and user-in-guild check run in parallel for better latency.
 func (s *DiscordValidationService) GetAvailableGuildTextChannels(guildID string, userID int64) ([]dto.DiscordChannel, error) {
 	// Get user's Discord token from Redis
 	discordToken, err := s.discordTokenPort.GetToken(userID)
@@ -170,20 +185,36 @@ func (s *DiscordValidationService) GetAvailableGuildTextChannels(guildID string,
 		return nil, exception.ErrDiscordTokenExpired
 	}
 
-	// Check if bot is in the guild
-	if err := s.ValidateBotInGuild(guildID); err != nil {
-		return nil, err
-	}
+	// Validate bot-in-guild and user-in-guild in parallel
+	var userInGuild bool
 
-	// Check if user is in the guild using their access token
-	userInGuild, err := s.userClient.IsUserInGuild(discordToken.AccessToken, guildID)
-	if err != nil {
+	g := new(errgroup.Group)
+
+	g.Go(func() error {
+		return s.ValidateBotInGuild(guildID)
+	})
+
+	g.Go(func() error {
+		var err error
+		userInGuild, err = s.userClient.IsUserInGuild(discordToken.AccessToken, guildID)
+		if err != nil {
+			return err
+		}
+		if !userInGuild {
+			return exception.ErrUserNotInGuild
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		// Return the error directly if it's already a known business error
+		if err == exception.ErrBotNotInGuild || err == exception.ErrUserNotInGuild {
+			return nil, err
+		}
 		return nil, exception.ErrDiscordAPIError
 	}
-	if !userInGuild {
-		return nil, exception.ErrUserNotInGuild
-	}
 
+	// GetGuildTextChannels benefits from Redis caching on subsequent calls
 	channels, err := s.botClient.GetGuildTextChannels(guildID)
 	if err != nil {
 		return nil, exception.ErrDiscordAPIError

@@ -69,3 +69,15 @@ func GetContestTeamPatternKey(contestId int64) string {
 func GetDiscordTokenKey(userId int64) string {
 	return fmt.Sprintf("discord:token:%d", userId)
 }
+
+// Discord bot cache related Redis keys
+
+// GetDiscordBotGuildsKey returns the key for caching the bot's guild list
+func GetDiscordBotGuildsKey() string {
+	return "discord:cache:bot:guilds"
+}
+
+// GetDiscordGuildChannelsKey returns the key for caching a guild's channel list
+func GetDiscordGuildChannelsKey(guildID string) string {
+	return fmt.Sprintf("discord:cache:guild:%s:channels", guildID)
+}

@@ -5,31 +5,19 @@ import (
 	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/response"
 	"github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt/application"
 	jwtdomain "github.com/FOR-GAMERS/GAMERS-BE/internal/global/security/jwt/domain"
-	userdomain "github.com/FOR-GAMERS/GAMERS-BE/internal/user/domain"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-// UserQueryPort is the interface for querying users (to avoid circular dependency)
-type UserQueryPort interface {
-	FindById(id int64) (*userdomain.User, error)
-}
-
 type AuthMiddleware struct {
-	tokenService  *application.TokenService
-	userQueryPort UserQueryPort
+	tokenService *application.TokenService
 }
 
 func NewAuthMiddleware(tokenService *application.TokenService) *AuthMiddleware {
 	return &AuthMiddleware{
 		tokenService: tokenService,
 	}
-}
-
-// SetUserQueryPort sets the user query port for admin middleware
-func (m *AuthMiddleware) SetUserQueryPort(port UserQueryPort) {
-	m.userQueryPort = port
 }
 
 func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
@@ -58,6 +46,7 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 		}
 
 		c.Set("userId", claims.UserID)
+		c.Set("userRole", claims.Role)
 
 		c.Next()
 	}
@@ -67,27 +56,14 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 // Must be used after RequireAuth middleware
 func (m *AuthMiddleware) RequireAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if m.userQueryPort == nil {
-			response.JSON(c, response.InternalServerError("admin middleware not configured"))
-			c.Abort()
-			return
-		}
-
-		userId, ok := GetUserIdFromContext(c)
+		role, ok := GetUserRoleFromContext(c)
 		if !ok {
 			response.JSON(c, response.Error(401, "user not authenticated"))
 			c.Abort()
 			return
 		}
 
-		user, err := m.userQueryPort.FindById(userId)
-		if err != nil {
-			response.JSON(c, response.Error(401, "user not found"))
-			c.Abort()
-			return
-		}
-
-		if !user.IsAdmin() {
+		if role != "ADMIN" {
 			c.JSON(exception.ErrAdminRequired.Status, exception.ErrAdminRequired)
 			c.Abort()
 			return
@@ -105,6 +81,16 @@ func GetUserIdFromContext(c *gin.Context) (int64, bool) {
 
 	userIdInt, ok := userId.(int64)
 	return userIdInt, ok
+}
+
+func GetUserRoleFromContext(c *gin.Context) (string, bool) {
+	role, exists := c.Get("userRole")
+	if !exists {
+		return "", false
+	}
+
+	roleStr, ok := role.(string)
+	return roleStr, ok
 }
 
 func GetUserEmailFromContext(c *gin.Context) (string, bool) {

@@ -37,7 +37,7 @@ func (s *AuthService) Login(req *dto.LoginRequest) (*dto.LoginResponse, error) {
 		return nil, err
 	}
 
-	token, err := s.tokenService.GenerateTokenPair(user.Id)
+	token, err := s.tokenService.GenerateTokenPair(user.Id, string(user.Role))
 	if err != nil {
 		return nil, err
 	}
@@ -72,12 +72,17 @@ func (s *AuthService) Refresh(req dto.RefreshRequest) (*dto.RefreshResponse, err
 		return nil, err
 	}
 
+	claims, err := s.tokenService.Validate(jwtToken.TokenTypeRefresh, req.RefreshToken)
+	if err != nil {
+		return nil, err
+	}
+
 	err = s.refreshTokenCachePort.Delete(&req.RefreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := s.tokenService.GenerateTokenPair(refreshToken.UserID)
+	token, err := s.tokenService.GenerateTokenPair(refreshToken.UserID, claims.Role)
 	if err != nil {
 		return nil, err
 	}

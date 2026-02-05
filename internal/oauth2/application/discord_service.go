@@ -85,6 +85,7 @@ func (s *DiscordService) HandleDiscordCallback(req *dto.DiscordCallbackRequest) 
 	}
 
 	var userId int64
+	var userRole string
 	isNewUser := false
 
 	if discordAccount == nil {
@@ -105,6 +106,7 @@ func (s *DiscordService) HandleDiscordCallback(req *dto.DiscordCallbackRequest) 
 		}
 
 		userId = user.Id
+		userRole = string(user.Role)
 		isNewUser = true
 	} else {
 		discordAccount.DiscordAvatar = userInfo.Avatar
@@ -115,6 +117,12 @@ func (s *DiscordService) HandleDiscordCallback(req *dto.DiscordCallbackRequest) 
 		}
 
 		userId = discordAccount.UserId
+
+		existingUser, err := s.oauth2UserPort.FindById(userId)
+		if err != nil {
+			return nil, errors.New("failed to find user: " + err.Error())
+		}
+		userRole = string(existingUser.Role)
 	}
 
 	// Save Discord OAuth2 token to Redis for future API calls
@@ -131,7 +139,7 @@ func (s *DiscordService) HandleDiscordCallback(req *dto.DiscordCallbackRequest) 
 		fmt.Printf("Warning: failed to save Discord token to Redis: %v\n", err)
 	}
 
-	jwtToken, err := s.tokenService.GenerateTokenPair(userId)
+	jwtToken, err := s.tokenService.GenerateTokenPair(userId, userRole)
 	if err != nil {
 		return nil, errors.New("failed to generate JWT token: " + err.Error())
 	}

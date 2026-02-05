@@ -20,13 +20,13 @@ func (t *TokenService) RegisterStrategy(strategy domain.TokenStrategy) {
 	t.strategies[strategy.GetTokenType()] = strategy
 }
 
-func (t *TokenService) Generate(tokenType domain.TokenType, userID int64) (string, error) {
+func (t *TokenService) Generate(tokenType domain.TokenType, userID int64, role string) (string, error) {
 	strategy, exists := t.strategies[tokenType]
 	if !exists {
 		return "", errors.New("token strategy not found")
 	}
 
-	return strategy.Generate(userID)
+	return strategy.Generate(userID, role)
 }
 
 func (t *TokenService) GetTTL(tokenType domain.TokenType) *int64 {
@@ -45,13 +45,13 @@ func (t *TokenService) Validate(tokenType domain.TokenType, tokenString string) 
 	return strategy.Validate(tokenString)
 }
 
-func (t *TokenService) GenerateTokenPair(userID int64) (*dto.TokenResponse, error) {
-	accessToken, err := t.Generate(domain.TokenTypeAccess, userID)
+func (t *TokenService) GenerateTokenPair(userID int64, role string) (*dto.TokenResponse, error) {
+	accessToken, err := t.Generate(domain.TokenTypeAccess, userID, role)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken, err := t.Generate(domain.TokenTypeRefresh, userID)
+	refreshToken, err := t.Generate(domain.TokenTypeRefresh, userID, role)
 	if err != nil {
 		return nil, err
 	}
@@ -68,5 +68,5 @@ func (t *TokenService) RefreshAccessToken(refreshToken string) (string, error) {
 		return "", err
 	}
 
-	return t.Generate(domain.TokenTypeAccess, claims.UserID)
+	return t.Generate(domain.TokenTypeAccess, claims.UserID, claims.Role)
 }

@@ -37,6 +37,15 @@ func (a *OAuth2UserAdapter) SaveRandomUser(user *domain.User) error {
 	return nil
 }
 
+func (a *OAuth2UserAdapter) FindById(id int64) (*domain.User, error) {
+	var user domain.User
+	result := a.db.First(&user, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &user, nil
+}
+
 func (a *OAuth2UserAdapter) save(user *domain.User) error {
 	result := a.db.Create(user)
 	if result.Error != nil {

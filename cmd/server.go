@@ -107,9 +107,6 @@ func main() {
 	// User module - uses OAuth2 repository for Discord avatar URL generation
 	userDeps := user.ProvideUserDependencies(db, appRouter, oauth2Deps.OAuth2Repository)
 
-	// Set user query port for admin middleware after user dependencies are initialized
-	authInterceptor.SetUserQueryPort(userDeps.UserQueryRepo)
-
 	// Game module - provides Game, Team, and GameTeam management
 	gameDeps := game.ProvideGameDependencies(
 		db,

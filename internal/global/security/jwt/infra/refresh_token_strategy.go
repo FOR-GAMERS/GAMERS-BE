@@ -22,11 +22,12 @@ func NewRefreshTokenStrategy(config *domain.Token) *RefreshTokenStrategy {
 	}
 }
 
-func (s *RefreshTokenStrategy) Generate(userID int64) (string, error) {
+func (s *RefreshTokenStrategy) Generate(userID int64, role string) (string, error) {
 	now := time.Now()
 
 	claims := &domain.Claims{
 		UserID:    userID,
+		Role:      role,
 		TokenType: domain.TokenTypeRefresh,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.duration)),

@@ -12,7 +12,7 @@ const (
 )
 
 type TokenStrategy interface {
-	Generate(userID int64) (string, error)
+	Generate(userID int64, role string) (string, error)
 	GetTTL() *int64
 	Validate(tokenString string) (*Claims, error)
 	GetTokenType() TokenType
@@ -20,6 +20,7 @@ type TokenStrategy interface {
 
 type Claims struct {
 	UserID    int64     `json:"user_id"`
+	Role      string    `json:"role"`
 	TokenType TokenType `json:"token_type"`
 	jwt.RegisteredClaims
 }

@@ -22,11 +22,12 @@ func NewAccessTokenStrategy(config *domain.Token) *AccessTokenStrategy {
 	}
 }
 
-func (s *AccessTokenStrategy) Generate(userID int64) (string, error) {
+func (s *AccessTokenStrategy) Generate(userID int64, role string) (string, error) {
 	now := time.Now()
 
 	claims := &domain.Claims{
 		UserID:    userID,
+		Role:      role,
 		TokenType: domain.TokenTypeAccess,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.duration)),
